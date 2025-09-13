@@ -15,7 +15,7 @@ import PageNotFound from "./page/error/PageNotFound.jsx";
 // import ResetPassword from "./page/auth/ResetPassword.jsx";
 import KoreanHomepage from "./page/homepage/HomePage.jsx";
 import PageWrapper from "./components/Wrapper/PageWrapper.jsx";
-import AdminDashboard from "./components/Admin/admin.jsx";
+import AdminDashboard from "./AdminControl/Admin/admin.jsx";
 function AnimatedRoutes() {
   const location = useLocation();
 
