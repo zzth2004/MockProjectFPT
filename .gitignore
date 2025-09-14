@@ -27,6 +27,6 @@ dist-ssr
 .env
 .env.*.local
 
-# ignores some file 
-src/page/auth
-src/hooks
+# # ignores some file 
+# src/page/auth
+# src/hooks
