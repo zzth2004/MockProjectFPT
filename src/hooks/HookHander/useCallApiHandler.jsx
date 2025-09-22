@@ -44,9 +44,12 @@ export default function useCallApiHandler(apiFn) {
     } catch (error) {
       if (error.name === "CanceledError") {
         dispatch({ type: "ERROR", error: "AbortError" });
+        
       } else {
         dispatch({ type: 'ERROR', error: error.message || "Unknown error" });
+        
       }
+      throw error;
     } finally {
       dispatch({ type: 'END' });
     }
