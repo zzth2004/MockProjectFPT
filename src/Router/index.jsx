@@ -29,7 +29,8 @@ import Lesson from "../page/mainpage/Courses/MyCourse/Lesson.jsx"
 import StudyPage from "../page/mainpage/Courses/MyCourse/StudyPage.jsx";
 import StudyVocab from "../page/mainpage/Courses/MyCourse/StudyVocab.jsx";
 import QuizzPlaypage from "../page/mainpage/Quizzes/QuizzPlayPage.jsx";
-
+import Page404 from "../page/error/PageNotFound2.jsx";
+import CatchAll404 from "./CatchAll404.jsx";
 function AnimatedRoutes() {
   const location = useLocation();
 
@@ -42,7 +43,11 @@ function AnimatedRoutes() {
         <Route path="/login" element={<PageWrapper><Login /></PageWrapper>} />
         <Route path="/register" element={<PageWrapper><Register /></PageWrapper>} />
         <Route path="/verify" element={<PageWrapper><VerifyAccount /></PageWrapper>} />
-        <Route path="/404" element={<PageWrapper><PageNotFound /></PageWrapper>} />
+        // Routes
+        <Route path="/404-1" element={<PageWrapper><PageNotFound /></PageWrapper>} />
+        <Route path="/404-2" element={<PageWrapper><Page404 /></PageWrapper>} />
+
+
 
         {/* Home pages */}
         <Route path="/homeindex" element={<PageWrapper><KoreanHomepage /></PageWrapper>} />
@@ -58,77 +63,77 @@ function AnimatedRoutes() {
           <ProtectedRoute allowedRoles={['user']}>
             <PageWrapper><Dashboard /></PageWrapper>
           </ProtectedRoute>
-        }/>
+        } />
         <Route path="/courses" element={
           <ProtectedRoute allowedRoles={['user']}>
             <PageWrapper><Courses /></PageWrapper>
           </ProtectedRoute>
-        }/>
+        } />
         <Route path="/user/mycourses" element={
           <ProtectedRoute allowedRoles={['user']}>
             <PageWrapper><MyCourse /></PageWrapper>
           </ProtectedRoute>
-        }/>
+        } />
         <Route path="/user/mycourses/:bookId" element={
           <ProtectedRoute allowedRoles={['user']}>
             <PageWrapper><Lesson /></PageWrapper>
           </ProtectedRoute>
-        }/>
+        } />
         <Route path="/user/mycourses/:bookId/:unitId" element={
           <ProtectedRoute allowedRoles={['user']}>
             <PageWrapper><StudyPage /></PageWrapper>
           </ProtectedRoute>
-        }/>
+        } />
         <Route path="/user/mycourses/:bookId/:unitId/vocabulary" element={
           <ProtectedRoute allowedRoles={['user']}>
             <PageWrapper><StudyVocab /></PageWrapper>
           </ProtectedRoute>
-        }/>
+        } />
         <Route path="/user/quizz/:bookId/:unitId/vocabulary" element={
           <ProtectedRoute allowedRoles={['user']}>
             <PageWrapper><QuizzPlaypage /></PageWrapper>
           </ProtectedRoute>
-        }/>
+        } />
         <Route path="/user/message" element={
           <ProtectedRoute allowedRoles={['user']}>
             <PageWrapper><ChatUI /></PageWrapper>
           </ProtectedRoute>
-        }/>
+        } />
         <Route path="/user/settings" element={
           <ProtectedRoute allowedRoles={['user']}>
             <PageWrapper><Settings /></PageWrapper>
           </ProtectedRoute>
-        }/>
+        } />
         <Route path="/user/logout" element={
           <ProtectedRoute allowedRoles={['user']}>
             <PageWrapper><Logout /></PageWrapper>
           </ProtectedRoute>
-        }/>
+        } />
         <Route path="/user/account" element={
           <ProtectedRoute allowedRoles={['user']}>
             <PageWrapper><Account /></PageWrapper>
           </ProtectedRoute>
-        }/>
+        } />
         <Route path="/user/schedule" element={
           <ProtectedRoute allowedRoles={['user']}>
             <PageWrapper><Schedule /></PageWrapper>
           </ProtectedRoute>
-        }/>
+        } />
         <Route path="/user/schedule/:id" element={
           <ProtectedRoute allowedRoles={['user']}>
             <PageWrapper><ScheduleDetail /></PageWrapper>
           </ProtectedRoute>
-        }/>
+        } />
 
         {/* Admin routes */}
         <Route path="/admin/*" element={
           <ProtectedRoute allowedRoles={['admin']}>
             <AdminDashboard />
           </ProtectedRoute>
-        }/>
+        } />
 
         {/* Catch all */}
-        <Route path="*" element={<PageWrapper><PageNotFound /></PageWrapper>} />
+        <Route path="*" element={<PageWrapper><CatchAll404 /></PageWrapper>} />
       </Routes>
     </AnimatePresence>
   );

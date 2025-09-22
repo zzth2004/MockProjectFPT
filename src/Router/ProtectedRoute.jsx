@@ -1,21 +1,20 @@
-// src/components/ProtectedRoute.jsx
-import { Navigate } from "react-router-dom";
 import { useAuth } from "../context/authContext";
+import { Navigate } from "react-router-dom";
 
-const ProtectedRoute = ({ children, allowedRoles }) => {
-  const { user } = useAuth(); // user = {name, role} hoặc null
+export default function ProtectedRoute({ allowedRoles, children }) {
+  const { user } = useAuth();
 
+  // Nếu chưa login => guest
   if (!user) {
-    // guest chưa login
-    return <Navigate to="/login" replace />;
+    return <Navigate to="/login" replace />; // guest đi 404_1
   }
 
-  if (allowedRoles && !allowedRoles.includes(user.role)) {
-    // role không hợp lệ → 404
-    return <Navigate to="/404" replace />;
+  // Nếu role không hợp lệ
+  if (!allowedRoles.includes(user.role)) {
+    if (user.role === "user") return <Navigate to="/404-2" replace />;
+    return <Navigate to="/404-1" replace />; // admin hoặc các role khác chưa hợp lệ
   }
 
+  // Nếu hợp lệ
   return children;
-};
-
-export default ProtectedRoute;
+}

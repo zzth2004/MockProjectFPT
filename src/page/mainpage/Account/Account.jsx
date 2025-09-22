@@ -3,8 +3,8 @@ import MainLayout2 from "../../../layout/MainLayout2";
 export default function Account() {
   return (
     <MainLayout2>
-      <div className="flex flex-col items-center justify-center min-h-screen bg-gray-50 px-4">
-        <div className="bg-white shadow-xl rounded-2xl p-8 w-full max-w-3xl space-y-8">
+      <div className="flex flex-col items-center justify-center max-h-[90vh] bg-gray-50 px-4">
+        <div className="bg-white shadow-xl rounded-2xl p-8 w-full max-w-3xl space-y-8 max-h-[90vh]">
           {/* Header: Avatar + Name */}
           <div className="flex flex-col items-center">
             <div className="w-24 h-24 rounded-full bg-green-200 flex items-center justify-center text-3xl font-bold text-green-700 shadow-md">
