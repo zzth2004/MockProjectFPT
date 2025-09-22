@@ -9,8 +9,23 @@ import {
   CalendarDays,
 } from "lucide-react";
 import Card from "../ui/Card";
+import Button from "../ui/Button";
+import Table from "../ui/Table";
 
 export default function DashboardHome() {
+  const userColumns = [
+    { key: "name", title: "Name" },
+    { key: "email", title: "Email" },
+    { key: "role", title: "Role" },
+  ];
+
+  const userData = [
+    { name: "John Doe", email: "john@example.com", role: "Student" },
+    { name: "Jane Smith", email: "jane@example.com", role: "Instructor" },
+    { name: "Alice Johnson", email: "alice@example.com", role: "Student" },
+    { name: "Bob Brown", email: "bob@example.com", role: "Admin" },
+  ];
+
   return (
     <div className="flex flex-col h-screen p-6 bg-gradient-to-br from-gray-50 to-gray-100 space-y-6 overflow-y-auto">
       {/* HEADER */}
@@ -18,14 +33,14 @@ export default function DashboardHome() {
         <h1 className="text-3xl font-extrabold text-gray-800 flex items-center gap-2">
           📊 Admin Dashboard
         </h1>
-        <button className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-2xl shadow hover:shadow-lg hover:bg-blue-700 transition-transform transform hover:scale-105">
+        <Button variant="primary" className="flex items-center gap-2 shadow">
           <PlusCircle className="w-5 h-5" /> Add New
-        </button>
+        </Button>
       </header>
 
       {/* STAT CARDS */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <Card className="p-4 text-white bg-gradient-to-r from-blue-600 to-blue-400 shadow-lg rounded-xl hover:shadow-xl transition transform hover:-translate-y-1">
+        <Card className="p-4 text-white bg-gradient-to-r from-blue-600 to-blue-400 hover:-translate-y-1">
           <div className="flex items-center justify-between">
             <div>
               <div className="text-xs opacity-80">Total Users</div>
@@ -35,7 +50,7 @@ export default function DashboardHome() {
           </div>
         </Card>
 
-        <Card className="p-4 text-white bg-gradient-to-r from-green-500 to-green-400 shadow-lg rounded-xl hover:shadow-xl transition transform hover:-translate-y-1">
+        <Card className="p-4 text-white bg-gradient-to-r from-green-500 to-green-400 hover:-translate-y-1">
           <div className="flex items-center justify-between">
             <div>
               <div className="text-xs opacity-80">Courses</div>
@@ -45,7 +60,7 @@ export default function DashboardHome() {
           </div>
         </Card>
 
-        <Card className="p-4 text-white bg-gradient-to-r from-purple-500 to-purple-400 shadow-lg rounded-xl hover:shadow-xl transition transform hover:-translate-y-1">
+        <Card className="p-4 text-white bg-gradient-to-r from-purple-500 to-purple-400 hover:-translate-y-1">
           <div className="flex items-center justify-between">
             <div>
               <div className="text-xs opacity-80">Quizzes</div>
@@ -55,7 +70,7 @@ export default function DashboardHome() {
           </div>
         </Card>
 
-        <Card className="p-4 text-white bg-gradient-to-r from-pink-500 to-pink-400 shadow-lg rounded-xl hover:shadow-xl transition transform hover:-translate-y-1">
+        <Card className="p-4 text-white bg-gradient-to-r from-pink-500 to-pink-400 hover:-translate-y-1">
           <div className="flex items-center justify-between">
             <div>
               <div className="text-xs opacity-80">Feedback</div>
@@ -68,8 +83,8 @@ export default function DashboardHome() {
 
       {/* CONTENT SECTIONS */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 flex-1 min-h-[300px]">
-        {/* Chart */}
-        <Card className="col-span-2 flex flex-col p-4 bg-gradient-to-b from-indigo-50 to-indigo-100 rounded-xl shadow">
+        {/* Chart Section */}
+        <Card className="col-span-2 flex flex-col p-4 bg-gradient-to-b from-indigo-50 to-indigo-100">
           <div className="text-gray-700 mb-3 font-semibold flex items-center gap-2">
             <TrendingUp className="w-4 h-4 text-indigo-500" /> User Growth (Last
             30 days)
@@ -80,7 +95,7 @@ export default function DashboardHome() {
         </Card>
 
         {/* Quick Activity */}
-        <Card className="flex flex-col p-4 rounded-xl shadow">
+        <Card className="flex flex-col p-4">
           <div className="text-gray-700 mb-3 font-semibold flex items-center gap-2">
             <Activity className="w-4 h-4 text-pink-500" /> Quick Activity
           </div>
@@ -94,41 +109,11 @@ export default function DashboardHome() {
       </div>
 
       {/* Recent Users Table */}
-      <Card className="p-4 rounded-xl shadow max-h-64 overflow-auto">
+      <Card className="p-4 max-h-64 overflow-auto">
         <div className="text-gray-700 mb-3 font-semibold flex items-center gap-2">
           <CalendarDays className="w-4 h-4 text-blue-500" /> Recent Users
         </div>
-        <table className="min-w-full text-xs divide-y divide-gray-200">
-          <thead>
-            <tr className="text-left font-semibold text-gray-600">
-              <th className="py-1">Name</th>
-              <th className="py-1">Email</th>
-              <th className="py-1">Role</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-100 text-gray-700">
-            <tr className="hover:bg-gray-50 transition">
-              <td className="py-1">John Doe</td>
-              <td className="py-1">john@example.com</td>
-              <td className="py-1">Student</td>
-            </tr>
-            <tr className="hover:bg-gray-50 transition">
-              <td className="py-1">Jane Smith</td>
-              <td className="py-1">jane@example.com</td>
-              <td className="py-1">Instructor</td>
-            </tr>
-            <tr className="hover:bg-gray-50 transition">
-              <td className="py-1">Alice Johnson</td>
-              <td className="py-1">alice@example.com</td>
-              <td className="py-1">Student</td>
-            </tr>
-            <tr className="hover:bg-gray-50 transition">
-              <td className="py-1">Bob Brown</td>
-              <td className="py-1">bob@example.com</td>
-              <td className="py-1">Admin</td>
-            </tr>
-          </tbody>
-        </table>
+        <Table columns={userColumns} data={userData} />
       </Card>
     </div>
   );

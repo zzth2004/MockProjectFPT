@@ -1,5 +1,7 @@
-import React from "react";
 import Card from "../ui/Card";
+import Button from "../ui/Button";
+import Badge from "../ui/Badge";
+import Table from "../ui/Table";
 
 export default function Vocabulary() {
   const words = [
@@ -20,23 +22,49 @@ export default function Vocabulary() {
 
   const totalWords = words.length;
 
-  const typeColors = {
-    Greeting: "bg-green-100 text-green-800",
-    Noun: "bg-blue-100 text-blue-800",
-    Verb: "bg-purple-100 text-purple-800",
-    Adjective: "bg-pink-100 text-pink-800",
-    Default: "bg-gray-200 text-gray-700",
-  };
+  const columns = [
+    { key: "word", title: "Từ" },
+    { key: "meaning", title: "Nghĩa" },
+    { key: "type", title: "Loại từ" },
+    { key: "actions", title: "Hành động" },
+  ];
+
+  const data = words.map((w) => ({
+    word: <span className="font-semibold text-gray-700">{w.word}</span>,
+    meaning: <span className="text-gray-600">{w.meaning}</span>,
+    type: (
+      <Badge
+        color={
+          w.type === "Greeting"
+            ? "green"
+            : w.type === "Noun"
+            ? "blue"
+            : w.type === "Verb"
+            ? "purple"
+            : w.type === "Adjective"
+            ? "pink"
+            : "gray"
+        }
+      >
+        {w.type}
+      </Badge>
+    ),
+    actions: (
+      <div className="flex justify-end gap-3">
+        <Button variant="outline" className="text-blue-600 border-blue-200">
+          ✏️ Sửa
+        </Button>
+        <Button variant="danger">🗑️ Xóa</Button>
+      </div>
+    ),
+  }));
 
   return (
     <div className="flex flex-col h-full space-y-6 p-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <h2 className="text-2xl font-bold text-gray-800">🔤 Từ vựng</h2>
-        <button className="flex items-center px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition">
-          <span className="mr-2 text-lg">➕</span>
-          Thêm từ mới
-        </button>
+        <Button variant="primary">➕ Thêm từ mới</Button>
       </div>
 
       {/* Summary */}
@@ -46,45 +74,8 @@ export default function Vocabulary() {
       </div>
 
       {/* Vocabulary Table */}
-      <Card className="flex-1 overflow-auto p-4 bg-white shadow-md rounded-2xl">
-        <table className="w-full border-collapse text-sm">
-          <thead>
-            <tr className="bg-gray-100 text-left rounded-lg">
-              <th className="p-3">Từ</th>
-              <th className="p-3">Nghĩa</th>
-              <th className="p-3">Loại từ</th>
-              <th className="p-3 text-right">Hành động</th>
-            </tr>
-          </thead>
-          <tbody>
-            {words.map((w, idx) => (
-              <tr
-                key={idx}
-                className="border-t hover:bg-indigo-50 transition-all duration-200"
-              >
-                <td className="p-3 font-semibold text-gray-700">{w.word}</td>
-                <td className="p-3 text-gray-600">{w.meaning}</td>
-                <td className="p-3">
-                  <span
-                    className={`px-3 py-1 rounded-full text-xs font-medium ${
-                      typeColors[w.type] || typeColors.Default
-                    }`}
-                  >
-                    {w.type}
-                  </span>
-                </td>
-                <td className="p-3 text-right">
-                  <button className="text-blue-500 hover:underline mr-3">
-                    ✏️ Sửa
-                  </button>
-                  <button className="text-red-500 hover:underline">
-                    🗑️ Xóa
-                  </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+      <Card className="flex-1">
+        <Table columns={columns} data={data} />
       </Card>
     </div>
   );

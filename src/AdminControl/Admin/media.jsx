@@ -1,6 +1,8 @@
 import React from "react";
 import { Image, Video, Music, Download, Trash2, Plus } from "lucide-react";
 import Card from "../ui/Card";
+import Button from "../ui/Button";
+import Badge from "../ui/Badge";
 
 export default function Media() {
   const files = [
@@ -55,22 +57,24 @@ export default function Media() {
         <h2 className="text-3xl font-bold text-gray-800 flex items-center gap-2">
           🗂️ Media Library
         </h2>
-        <button className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-xl hover:scale-105 hover:bg-indigo-700 transition shadow">
+        <Button variant="primary" className="flex items-center gap-2 shadow">
           <Plus size={18} /> Thêm media
-        </button>
+        </Button>
       </div>
 
       {/* Stats Row */}
       <div className="grid grid-cols-3 gap-4">
-        <Card className="p-4 text-center bg-gradient-to-r from-purple-50 to-purple-100 rounded-xl shadow-md">
+        <Card className="text-center bg-gradient-to-r from-purple-50 to-purple-100">
           <Video className="mx-auto mb-2 text-purple-500" />
           <p className="text-lg font-semibold">{stats.videos} Video</p>
         </Card>
-        <Card className="p-4 text-center bg-gradient-to-r from-blue-50 to-blue-100 rounded-xl shadow-md">
+
+        <Card className="text-center bg-gradient-to-r from-blue-50 to-blue-100">
           <Image className="mx-auto mb-2 text-blue-500" />
           <p className="text-lg font-semibold">{stats.images} Ảnh</p>
         </Card>
-        <Card className="p-4 text-center bg-gradient-to-r from-green-50 to-green-100 rounded-xl shadow-md">
+
+        <Card className="text-center bg-gradient-to-r from-green-50 to-green-100">
           <Music className="mx-auto mb-2 text-green-500" />
           <p className="text-lg font-semibold">{stats.audios} Ghi âm</p>
         </Card>
@@ -79,20 +83,21 @@ export default function Media() {
       {/* Media Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 flex-1 overflow-auto">
         {files.map((file, idx) => (
-          <Card
-            key={idx}
-            className="p-4 flex flex-col justify-between shadow-lg rounded-2xl bg-white hover:shadow-xl transition h-fit"
-          >
+          <Card key={idx} className="flex flex-col justify-between h-fit">
             <div className="flex items-center justify-between mb-2">
               <span className="font-semibold text-gray-700 flex items-center gap-2">
-                {file.type === "Image" && <Image size={16} className="text-blue-500" />}
-                {file.type === "Video" && <Video size={16} className="text-purple-500" />}
-                {file.type === "Audio" && <Music size={16} className="text-green-500" />}
+                {file.type === "Image" && (
+                  <Image size={16} className="text-blue-500" />
+                )}
+                {file.type === "Video" && (
+                  <Video size={16} className="text-purple-500" />
+                )}
+                {file.type === "Audio" && (
+                  <Music size={16} className="text-green-500" />
+                )}
                 {file.name}
               </span>
-              <span className="text-xs bg-gray-100 px-2 py-1 rounded">
-                {file.type}
-              </span>
+              <Badge color="gray">{file.type}</Badge>
             </div>
 
             {/* Preview */}
@@ -120,23 +125,25 @@ export default function Media() {
             <div className="flex items-center justify-between text-sm text-gray-500">
               <span>{file.size}</span>
               <div className="flex gap-3">
-                <button className="text-blue-500 hover:scale-110 transition flex items-center gap-1">
+                <Button variant="outline" className="p-1">
                   <Download size={16} />
-                </button>
-                <button className="text-red-500 hover:scale-110 transition flex items-center gap-1">
+                </Button>
+                <Button variant="danger" className="p-1">
                   <Trash2 size={16} />
-                </button>
+                </Button>
               </div>
             </div>
           </Card>
         ))}
       </div>
 
-      {/* Extra Section: Storage Info */}
-      <Card className="p-4 bg-gradient-to-r from-indigo-50 to-indigo-100 shadow-md rounded-xl">
+      {/* Storage Info */}
+      <Card className="bg-gradient-to-r from-indigo-50 to-indigo-100">
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-gray-700 font-medium">Dung lượng đã dùng: 88 MB</p>
+            <p className="text-gray-700 font-medium">
+              Dung lượng đã dùng: 88 MB
+            </p>
             <p className="text-xs text-gray-500">Giới hạn: 500 MB</p>
           </div>
           <div className="w-40 h-3 bg-gray-200 rounded-full overflow-hidden">

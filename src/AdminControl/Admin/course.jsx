@@ -1,5 +1,6 @@
 import Card from "../ui/Card";
-import { BookOpen, Star, Award } from "lucide-react";
+import Button from "../ui/Button";
+import { BookOpen, Star, Award, Plus } from "lucide-react";
 
 export default function Courses() {
   const courses = [
@@ -70,10 +71,9 @@ export default function Courses() {
         <h2 className="text-2xl font-bold text-gray-800">
           📚 Khóa học Hàn ngữ
         </h2>
-        <button className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition">
-          <span className="mr-2 text-lg">➕</span>
-          Thêm khóa học
-        </button>
+        <Button variant="primary" className="flex items-center gap-2">
+          <Plus className="w-4 h-4" /> Thêm khóa học
+        </Button>
       </div>
 
       {/* Summary */}
@@ -99,7 +99,7 @@ export default function Courses() {
                 {course.name}
               </h3>
             </div>
-            <div className="mt-2 text-sm text-gray-600">
+            <div className="mt-2 text-sm text-gray-600 space-y-1">
               <p>
                 📖 Bài học: <b>{course.lessons}</b>
               </p>
@@ -110,9 +110,9 @@ export default function Courses() {
                 🎯 Trình độ: <b>{course.level}</b>
               </p>
             </div>
-            <button className="mt-4 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition">
+            <Button variant="secondary" className="mt-4">
               Xem chi tiết
-            </button>
+            </Button>
           </Card>
         ))}
       </div>

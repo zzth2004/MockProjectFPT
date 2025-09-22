@@ -1,8 +1,9 @@
-import React from "react";
 import { CheckCircle2, PlusCircle, Crown, Star, Zap } from "lucide-react";
 import Card from "../ui/Card";
+import Button from "../ui/Button";
 
 export default function Plans() {
+  //  Danh sách các gói học
   const plans = [
     {
       name: "Free",
@@ -28,29 +29,36 @@ export default function Plans() {
   ];
 
   return (
-    <div className="flex flex-col min-h-screen space-y-6 p-6 bg-gradient-to-br from-gray-50 to-gray-100">
-      {/* Header */}
+    <div className="flex flex-col h-full space-y-6 p-6">
+      {/*tiêu đề + nút thêm gói */}
       <div className="flex items-center justify-between">
         <h2 className="text-3xl font-extrabold text-gray-800 flex items-center gap-2">
           💳 Gói học
         </h2>
-        <button className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-xl shadow hover:shadow-lg hover:bg-green-700 transition-transform transform hover:scale-105">
+        <Button variant="primary" className="flex items-center gap-2">
           <PlusCircle className="w-5 h-5" /> Thêm gói học
-        </button>
+        </Button>
       </div>
 
-      {/* Plans Grid */}
+      {/* Grid hiển thị gói học */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 flex-1">
         {plans.map((plan, idx) => (
           <Card
             key={idx}
-            className={`p-8 flex flex-col items-center text-center shadow-lg rounded-2xl bg-gradient-to-r ${plan.color} hover:shadow-xl transition transform hover:-translate-y-1 min-h-[350px]`}
+            className={`p-8 flex flex-col items-center text-center shadow-lg rounded-2xl bg-gradient-to-r ${plan.color} hover:shadow-xl transition-transform hover:-translate-y-1 min-h-[350px]`}
           >
+            {/* Icon + tên gói */}
             {plan.icon}
-            <h3 className="text-2xl font-bold text-gray-700 mt-3">{plan.name}</h3>
+            <h3 className="text-2xl font-bold text-gray-700 mt-3">
+              {plan.name}
+            </h3>
+
+            {/* Giá */}
             <p className="text-4xl font-extrabold text-indigo-600 mt-2">
               {plan.price}
             </p>
+
+            {/* Danh sách tính năng */}
             <ul className="mt-4 space-y-2 text-gray-600 text-base flex-1 flex flex-col justify-center">
               {plan.features.map((f, i) => (
                 <li key={i} className="flex items-center justify-center gap-2">
@@ -58,16 +66,20 @@ export default function Plans() {
                 </li>
               ))}
             </ul>
-            <button className="mt-6 bg-indigo-600 text-white px-5 py-2 rounded-xl hover:bg-indigo-700 transition w-full">
+
+            {/* Nút chọn gói */}
+            <Button variant="primary" className="mt-6 w-full">
               Chọn gói
-            </button>
+            </Button>
           </Card>
         ))}
       </div>
 
-      {/* Additional Section: Benefits */}
+      {/* Lợi ích khi nâng cấp */}
       <Card className="p-6 rounded-2xl shadow flex flex-col space-y-4 flex-1 min-h-[200px]">
-        <h3 className="text-xl font-semibold text-gray-800">🎯 Lợi ích khi nâng cấp</h3>
+        <h3 className="text-xl font-semibold text-gray-800">
+          🎯 Lợi ích khi nâng cấp
+        </h3>
         <ul className="grid grid-cols-1 md:grid-cols-2 gap-3 text-base text-gray-700">
           <li>🚀 Học nhanh hơn với nội dung mở khóa toàn bộ</li>
           <li>💬 Hỗ trợ 24/7 với đội ngũ chuyên gia</li>
