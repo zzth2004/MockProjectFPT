@@ -12,7 +12,7 @@ export default function Logout() {
 
   return (
     <MainLayout2>
-      <div className="flex items-center justify-center mt-6 p-6">
+      <div className="flex items-center justify-center mt-6 p-6 max-h-[80vh]">
         <div className="bg-white rounded-3xl shadow-2xl p-5 w-full max-w-lg text-center relative overflow-hidden">
           {/* Decorative gradient circle */}
           <div className="absolute -top-20 -right-20 w-56 h-56 bg-green-100 rounded-full mix-blend-multiply opacity-40 animate-pulse"></div>

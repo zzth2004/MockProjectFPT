@@ -13,7 +13,7 @@ export default function Settings() {
 
   return (
     <MainLayout2>
-      <div className="bg-white rounded-2xl shadow-md p-6">
+      <div className="bg-white rounded-2xl shadow-md p-6 max-h-[80vh]">
         {/* Tabs */}
         <div className="flex space-x-2 mb-6">
           <button

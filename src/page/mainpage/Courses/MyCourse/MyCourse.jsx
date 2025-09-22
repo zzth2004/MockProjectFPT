@@ -18,7 +18,7 @@ const MyCourse = () => {
     const navigate = useNavigate();
     return (
         <MainLayout2>
-            <div className="bg-gray-50 min-h-screen py-8 px-4">
+            <div className="bg-gray-50 max-h-[80vh] py-8 px-4">
                 <AnimateOnView>
                     <h1 className="text-2xl sm:text-3xl font-extrabold text-gray-900 mb-6 text-center">
                         Tất cả giáo trình Tiếng Hàn

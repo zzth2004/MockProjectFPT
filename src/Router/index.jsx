@@ -33,7 +33,8 @@ import DemoVideoPlayer from "../page/mainpage/Courses/DemoPlan.jsx";
 import ScheduleDetail from "../page/mainpage/Schedule/ScheduleDetail.jsx";
 import Lesson from "../page/mainpage/Courses/MyCourse/Lesson.jsx"
 import StudyPage from "../page/mainpage/Courses/MyCourse/StudyPage.jsx";
-
+import StudyVocab from "../page/mainpage/Courses/MyCourse/StudyVocab.jsx";
+import QuizzPlaypage from "../page/mainpage/Quizzes/QuizzPlayPage.jsx";
 function AnimatedRoutes() {
   const location = useLocation();
 
@@ -66,8 +67,15 @@ function AnimatedRoutes() {
         <Route path="/user/mycourses" element={<PageWrapper><MyCourse /></PageWrapper>} />
         <Route path="/user/mycourses/:bookId" element={<PageWrapper><Lesson /></PageWrapper>} />
         <Route path="/user/mycourses/:bookId/:unitId" element={<PageWrapper><StudyPage /></PageWrapper>} />
+        <Route
+          path="/user/mycourses/:bookId/:unitId/vocabulary"
+          element={<PageWrapper><StudyVocab /></PageWrapper>}
+        />
+        
 
+        {/* quizz */}
 
+        <Route path="/user/quizz/:bookId/:unitId/vocabulary" element={<PageWrapper><QuizzPlaypage /></PageWrapper>} />
 
         {/* messChat */}
         <Route path="/user/message" element={<PageWrapper><ChatUI /></PageWrapper>} />

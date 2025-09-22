@@ -14,8 +14,9 @@ import {
 const PRIMARY = "#008236";
 const PRIMARY_DARK = "#00591A";
 
-const bg = `linear-gradient(180deg, ${PRIMARY} 0%, ${PRIMARY_DARK} 100%)`;
+const PRIMARY_DARK_2 = "#284228";
 
+const bg = `linear-gradient(to bottom, ${PRIMARY} 0%, ${PRIMARY_DARK_2} 100%)`;
 const sizeIcon = 25;
 
 export default function Sidebar({ mobile = false }) {

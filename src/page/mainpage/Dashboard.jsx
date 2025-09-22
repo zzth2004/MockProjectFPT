@@ -42,7 +42,7 @@ const Dashboard = () => {
 
     return (
         <MainLayout2>
-            <div>
+            <div className="max-h-[80vh]">
                 {/* Main content */}
                 <main className="flex-1 p-8">
                     <div className="grid grid-cols-1 md:grid-cols-12 gap-6 mb-8 items-stretch">
