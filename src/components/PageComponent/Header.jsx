@@ -71,16 +71,16 @@ export default function Header() {
 
                 {/* Menu desktop */}
                 <nav className="hidden md:flex items-center gap-7 text-sm font-medium">
-                    <Link to="/aboutus" className="text-gray-700 hover:opacity-80">
+                    <Link to="/homeindex/aboutus" className="text-gray-700 hover:opacity-80">
                         Về chúng tôi
                     </Link>
-                    <Link to="/features" className="text-gray-700 hover:opacity-80">
+                    <Link to="/homeindex/features" className="text-gray-700 hover:opacity-80">
                         Tính năng
                     </Link>
-                    <Link to="/courses" className="text-gray-700 hover:opacity-80">
+                    <Link to="/homeindex/courses" className="text-gray-700 hover:opacity-80">
                         Khoá học
                     </Link>
-                    <Link to="/community" className="text-gray-700 hover:opacity-80">
+                    <Link to="/homeindex/community" className="text-gray-700 hover:opacity-80">
                         Cộng đồng
                     </Link>
 

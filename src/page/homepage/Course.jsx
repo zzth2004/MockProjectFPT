@@ -3,13 +3,15 @@ import React from "react";
 import MainLayout from "../../layout/MainLayout";
 import { PlayCircle } from "lucide-react";
 import AnimateOnView from "../../components/Wrapper/WrapperMotion";
+import yonsei from "../../assets/yonsei.webp";
+import sojong from "../../assets/sojong.png";
 
-// Danh sách unit Sojong (1→6)
+
 const sojongUnits = Array.from({ length: 6 }, (_, i) => ({
     id: i + 1,
     title: `Sojong ${i + 1}`,
     description: `Tiếng Hàn Tổng hợp ${i + 1}`,
-    image: `https://source.unsplash.com/400x300/?korean,${i + 1}`, // lấy ảnh minh họa đại
+    image: sojong, // lấy ảnh minh họa đại
 }));
 
 // Danh sách unit Yonsei (1→6)
@@ -17,7 +19,7 @@ const yonseiUnits = Array.from({ length: 6 }, (_, i) => ({
     id: i + 1,
     title: `Yonsei ${i + 1}`,
     description: `Tiếng Hàn Tổng hợp ${i + 1}`,
-    image: `https://source.unsplash.com/400x300/?korean,${i + 7}`, // lấy ảnh minh họa đại
+    image: yonsei, 
 }));
 
 const Course = () => {

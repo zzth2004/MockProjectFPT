@@ -3,7 +3,7 @@ import React from "react";
 import { motion } from "framer-motion";
 import { CheckCircle2 } from "lucide-react";
 import Button from "./ButtonComponent";
-import AnimateOnView from "../../Wrapper/WrapperMotion"; 
+import AnimateOnView from "../../../components/Wrapper/WrapperMotion"; 
 
 const PRIMARY = "#008236";
 

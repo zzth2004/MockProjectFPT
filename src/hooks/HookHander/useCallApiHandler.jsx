@@ -37,6 +37,7 @@ export default function useCallApiHandler(apiFn) {
 
       if (data) {
         dispatch({ type: 'SUCCESS', data: data });
+        return data;
       } else {
         throw new Error(`Call API failed`);
       }

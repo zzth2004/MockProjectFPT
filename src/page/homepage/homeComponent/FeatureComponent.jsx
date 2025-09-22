@@ -2,7 +2,7 @@
 import React from "react";
 import { motion } from "framer-motion";
 import { Trophy, Star, Users, CheckCircle2 } from "lucide-react";
-import AnimateOnView from "../../Wrapper/WrapperMotion";
+import AnimateOnView from "../../../components/Wrapper/WrapperMotion";
 
 const PRIMARY = "#008236";
 

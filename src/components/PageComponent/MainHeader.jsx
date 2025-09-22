@@ -1,15 +1,17 @@
 import { Link } from "react-router-dom";
 import { BookOpen, ChevronRight, ChevronLeft, Search, Menu, MessageSquareMore, BellDot } from "lucide-react";
 import avatar from "../../assets/text.png";
+import { useRouteHistory } from "../../hooks/HookHander/useRouteHistory";
 
 const PRIMARY = "#008236";
 
 export default function MainHeader({ onMenuClick }) {
+  const { back, forward, canBack, canForward } = useRouteHistory();
   return (
     <header className="sticky top-0 z-40 bg-white/90 backdrop-blur border-b">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between h-16">
+      <div className="w-full mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between h-16">
         {/* Logo chỉ hiện trên mobile */}
-        <Link to="/" className="flex items-center gap-2 md:hidden">
+        <Link to="/user/dashboard" className="flex items-center gap-2 md:hidden">
           <div
             className="w-10 h-10 rounded-2xl flex items-center justify-center"
             style={{ backgroundColor: PRIMARY }}
@@ -21,14 +23,22 @@ export default function MainHeader({ onMenuClick }) {
           </span>
         </Link>
 
-        {/* Điều hướng desktop */}
+        {/* Undo / Redo desktop */}
         <div className="hidden md:flex items-center gap-2 ml-4">
-          <Link to="/dashboard" className="text-gray-600 hover:text-gray-900">
+          <button
+            onClick={back}
+            disabled={!canBack}
+            className={`text-gray-600 hover:text-gray-900 ${!canBack && "opacity-50 cursor-not-allowed"}`}
+          >
             <ChevronLeft size={20} />
-          </Link>
-          <Link className="text-gray-600 hover:text-gray-900">
+          </button>
+          <button
+            onClick={forward}
+            disabled={!canForward}
+            className={`text-gray-600 hover:text-gray-900 ${!canForward && "opacity-50 cursor-not-allowed"}`}
+          >
             <ChevronRight size={20} />
-          </Link>
+          </button>
         </div>
 
         {/* Search bar - desktop */}
@@ -60,7 +70,7 @@ export default function MainHeader({ onMenuClick }) {
               </Link>
             </button>
           </div>
-          <Link to="/">
+          <Link to="/user/account">
             <img
               src={avatar}
               alt="Avatar"
@@ -70,7 +80,7 @@ export default function MainHeader({ onMenuClick }) {
         </div>
 
         {/* Mobile menu icon */}
-        <div className="flex md:hidden items-center gap-2">
+        <div className="flex lg:hidden items-center gap-2">
           <button
             className="p-2 rounded-full border border-gray-300"
             onClick={onMenuClick}

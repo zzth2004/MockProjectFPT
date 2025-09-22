@@ -1,9 +1,13 @@
 // src/pages/Dashboard.jsx
 import React from "react";
-import { Home, BookOpen, MessageCircle, Calendar, User, Settings, LogOut } from "lucide-react";
+import { Home, BookOpen, CirclePoundSterling, Trophy, Coins, Medal, ChevronLeft, ChevronRight, NotebookPen, ClipboardList, GraduationCap } from "lucide-react";
 import { Line } from "react-chartjs-2";
 import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, Tooltip, Legend } from "chart.js";
 import MainLayout2 from "../../layout/MainLayout2";
+import NestedDonutChart from "../../components/ChartComponent/NestedDonutChart";
+import testImg from "../../assets/test.png";
+import quizzImg from "../../assets/quizz.png";
+import vocabImg from "../../assets/vocab.png";
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Tooltip, Legend);
 
@@ -38,72 +42,152 @@ const Dashboard = () => {
 
     return (
         <MainLayout2>
-            <div className="flex min-h-screen bg-gray-50">
-                {/* Sidebar */}
+            <div>
                 {/* Main content */}
                 <main className="flex-1 p-8">
-                    {/* Unit progress */}
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                        <div className="bg-white p-6 rounded-2xl shadow hover:shadow-lg transition">
-                            <h3 className="text-lg font-semibold">Unit 1.2</h3>
-                            <p className="text-gray-500 flex items-center gap-1 mt-2"><span>Homework</span> 🏅</p>
-                            <div className="w-full h-2 bg-gray-200 rounded mt-3">
-                                <div className="h-2 bg-green-600 rounded w-1/2"></div>
+                    <div className="grid grid-cols-1 md:grid-cols-12 gap-6 mb-8 items-stretch">
+                        <div className="flex flex-col gap-6 md:col-span-3">
+                            {/* Card 1: Unit Homework */}
+                            <div className="bg-white p-6 rounded-2xl shadow hover:shadow-lg transition transform hover:-translate-y-1 flex flex-col">
+                                <div className="flex justify-between items-center">
+                                    <div>
+                                        <h3 className="text-xl font-bold text-gray-800">Unit 1.2</h3>
+                                        <p className="text-gray-500 flex items-center gap-1 mt-1 text-base">
+                                            Homework <Medal className="w-5 h-5 text-yellow-500" />
+                                        </p>
+                                    </div>
+                                    <NotebookPen className="w-12 h-12 text-green-600" />
+                                </div>
+                                <div className="w-full h-2 bg-gray-200 rounded mt-4">
+                                    <div className="h-2 bg-green-600 rounded w-1/2"></div>
+                                </div>
+                                <p className="mt-2 text-base text-gray-400">50% completed</p>
+                            </div>
+
+                            {/* Card 2: Coins & Scores */}
+                            <div className="bg-white p-6 rounded-2xl shadow hover:shadow-lg transition transform hover:-translate-y-1 flex flex-col">
+                                <div className="flex justify-between items-center mb-4">
+                                    <h3 className="text-xl font-bold text-gray-800">Achievements</h3>
+                                    <Medal className="w-12 h-12 text-yellow-500" />
+                                </div>
+                                <div className="flex justify-between items-center text-2xl font-extrabold text-gray-700">
+                                    <span>320</span>
+                                    <span>850</span>
+                                </div>
+                                <div className="flex justify-between mt-3 text-gray-600 text-base">
+                                    <div className="flex items-center gap-1">
+                                        <CirclePoundSterling className="w-5 h-5 text-amber-400" />
+                                        <span>Coins</span>
+                                    </div>
+                                    <div className="flex items-center gap-1">
+                                        <Trophy className="w-5 h-5 text-green-500" />
+                                        <span>Scores</span>
+                                    </div>
+                                </div>
                             </div>
                         </div>
-                        <div className="bg-white p-6 rounded-2xl shadow hover:shadow-lg transition">
-                            <div className="flex justify-between">
-                                <div className="text-gray-700">320</div>
-                                <div className="text-gray-700">850</div>
-                            </div>
-                            <div className="flex justify-between mt-1 text-gray-500 text-sm">
-                                <span>Coins</span>
-                                <span>Scores</span>
-                            </div>
+
+                        {/* Middle: Chart */}
+                        <div className="md:col-span-6">
+                            <NestedDonutChart
+                                centerValue="5000"
+                                data={[
+                                    { label: "Từ vựng đã học", color: "#16a34a", value: 70 },
+                                    { label: "Ngữ pháp đã học", color: "#3b82f6", value: 45 },
+                                ]}
+                            />
                         </div>
-                        <div className="bg-white p-6 rounded-2xl shadow hover:shadow-lg transition flex flex-col items-center justify-center">
-                            <div className="relative w-24 h-24">
-                                <svg className="w-24 h-24" viewBox="0 0 36 36">
-                                    <path
-                                        className="text-gray-200"
-                                        strokeWidth="3.5"
-                                        fill="none"
-                                        stroke="currentColor"
-                                        d="M18 2.0845
-                     a 15.9155 15.9155 0 0 1 0 31.831
-                     a 15.9155 15.9155 0 0 1 0 -31.831"
-                                    />
-                                    <path
-                                        className="text-green-600"
-                                        strokeWidth="3.5"
-                                        strokeDasharray="75,100"
-                                        strokeLinecap="round"
-                                        fill="none"
-                                        stroke="currentColor"
-                                        d="M18 2.0845
-                     a 15.9155 15.9155 0 0 1 0 31.831
-                     a 15.9155 15.9155 0 0 1 0 -31.831"
-                                    />
-                                </svg>
-                                <div className="absolute inset-0 flex items-center justify-center text-lg font-bold">5000</div>
-                            </div>
-                            <div className="text-gray-500 mt-2 text-sm">Total Word</div>
+
+                        {/* Right: Study Goals */}
+                        <div className="bg-white p-6 rounded-2xl shadow hover:shadow-lg transition transform hover:-translate-y-1 flex flex-col md:col-span-3">
+                            <h3 className="text-xl font-bold text-gray-800 mb-4">🎯 Mục tiêu học tập</h3>
+                            <ul className="space-y-4">
+                                {[
+                                    { label: "Học 200 từ mới", color: "bg-green-600", progress: 70 },
+                                    { label: "Ôn 50 cấu trúc ngữ pháp", color: "bg-blue-500", progress: 45 },
+                                    { label: "Hoàn thành 10 quiz", color: "bg-amber-400", progress: 30 },
+                                    { label: "Nghe 5 podcast", color: "bg-purple-500", progress: 20 },
+                                    { label: "Test 5 quizz", color: "bg-red-500", progress: 40 },
+                                ].map((item, i) => (
+                                    <li key={i} className="flex flex-col">
+                                        <div className="flex items-center gap-2">
+                                            <span className={`w-3 h-3 rounded-full ${item.color}`}></span>
+                                            <span className="text-gray-700 text-base">{item.label}</span>
+                                        </div>
+                                        <div className="w-full h-2 bg-gray-200 rounded mt-1">
+                                            <div
+                                                className={`h-2 rounded ${item.color}`}
+                                                style={{ width: `${item.progress}%` }}
+                                            ></div>
+                                        </div>
+
+                                    </li>
+                                ))}
+                            </ul>
                         </div>
                     </div>
-
                     {/* Chart */}
+                    <h2 className="text-xl font-bold mb-4 flex items-center justify-between">
+                        <span>Statistics</span>
+                        <div className="flex items-center gap-2">
+                            <button className="p-2 transition">
+                                <ChevronLeft className="w-5 h-5 text-gray-600 hover:text-blue-400" />
+                            </button>
+                            <span>2022</span>
+                            <button className="p-2  transition">
+                                <ChevronRight className="w-5 h-5 text-gray-600 hover:text-blue-400" />
+                            </button>
+                        </div>
+                    </h2>
                     <div className="bg-white p-6 rounded-2xl shadow hover:shadow-lg transition mb-8 h-64">
                         <Line data={chartData} options={chartOptions} />
                     </div>
 
                     {/* Word Sets */}
-                    <h2 className="text-xl font-bold mb-4">Word Sets</h2>
+                    <h2 className="text-xl font-bold mb-4 flex items-center justify-between">
+                        <span>Word Sets</span>
+                        <div className="flex items-center gap-2">
+                            <button className="p-2 transition">
+                                <ChevronLeft className="w-5 h-5 text-gray-600 hover:text-blue-400" />
+                            </button>
+                            <span>|</span>
+                            <button className="p-2  transition">
+                                <ChevronRight className="w-5 h-5 text-gray-600 hover:text-blue-400" />
+                            </button>
+                        </div>
+                    </h2>
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-                        {["Vocabulary", "Quizzet", "Test"].map((word, idx) => (
-                            <div key={idx} className="bg-gradient-to-r from-purple-400 via-pink-400 to-blue-400 rounded-2xl p-6 flex flex-col items-center justify-center hover:scale-105 transition cursor-pointer">
-                                <div className="text-white font-bold text-lg">{word}</div>
-                            </div>
-                        ))}
+                        {[
+                            { label: "Vocabulary", img: vocabImg, gradient: "from-green-600/70 via-emerald-500/60 to-teal-600/70", icon: BookOpen },
+                            { label: "Quizzet", img: quizzImg, gradient: "from-purple-600/70 via-pink-500/60 to-fuchsia-600/70", icon: ClipboardList },
+                            { label: "Test", img: testImg, gradient: "from-blue-600/70 via-cyan-500/60 to-sky-600/70", icon: GraduationCap },
+                        ].map((item, idx) => {
+                            const Icon = item.icon;
+                            return (
+                                <div
+                                    key={idx}
+                                    className="relative rounded-2xl overflow-hidden group cursor-pointer shadow-md hover:shadow-xl transition transform hover:-translate-y-1 h-48"
+                                >
+                                    {/* Full background image */}
+                                    <img
+                                        src={item.img}
+                                        alt={item.label}
+                                        className="absolute inset-0 w-full h-full object-cover"
+                                    />
+
+                                    {/* Gradient overlay */}
+                                    <div
+                                        className={`absolute inset-0 bg-gradient-to-r ${item.gradient} opacity-80 group-hover:opacity-90 transition`}
+                                    ></div>
+
+                                    {/* Center content */}
+                                    <div className="relative z-10 flex flex-col items-center justify-center h-full text-white">
+                                        <Icon className="w-10 h-10 mb-2 drop-shadow-lg" />
+                                        <p className="text-lg font-bold drop-shadow-md">{item.label}</p>
+                                    </div>
+                                </div>
+                            );
+                        })}
                     </div>
                 </main>
             </div>

@@ -2,7 +2,7 @@
 import React from "react";
 import Button from "./ButtonComponent";
 import { Users } from "lucide-react";
-import AnimateOnView from "../../Wrapper/WrapperMotion";
+import AnimateOnView from "../../../components/Wrapper/WrapperMotion";
 
 const PRIMARY = "#008236";
 

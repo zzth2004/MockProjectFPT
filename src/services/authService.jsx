@@ -22,23 +22,47 @@ export async function registerApi(payload) {
 export async function loginApi(payload) {
   console.log("🔑 loginApi gọi với payload:", payload);
 
+  // Giả lập độ trễ
   await new Promise((resolve) => setTimeout(resolve, 1000));
 
-
-  if (payload.email !== "user@example.com" || payload.password !== "Pass123@") {
-    throw new Error("Email hoặc mật khẩu không đúng");
+  // Admin login
+  if (
+    payload.email === "admin@example.com" &&
+    payload.password === "Admin@123"
+  ) {
+    return {
+      success: true,
+      user: {
+        id: 999,
+        name: "Admin User",
+        email: payload.email,
+        role: "admin",
+      },
+      token: "fake-jwt-token-admin-abc",
+    };
   }
 
-  return {
-    success: true,
-    user: {
-      id: 1,
-      name: "Demo User",
-      email: payload.email,
-    },
-    token: "fake-jwt-token-xyz",
-  };
+  // User login
+  if (
+    payload.email === "user@example.com" &&
+    payload.password === "Pass123@"
+  ) {
+    return {
+      success: true,
+      user: {
+        id: 1,
+        name: "Demo User",
+        email: payload.email,
+        role: "user",
+      },
+      token: "fake-jwt-token-xyz",
+    };
+  }
+
+  // Sai thông tin
+  throw new Error("Email hoặc mật khẩu không đúng");
 }
+
 export async function verifyCodeApi(payload) {
   console.log("📩 verifyCodeApi gọi với payload:", payload);
 

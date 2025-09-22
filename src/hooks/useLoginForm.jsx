@@ -19,9 +19,15 @@ export function useLoginForm() {
       password: (val) => Validator.validatePassword(val),
     },
     apiFn: call,
-    onSuccess: () => {
+    onSuccess: (res) => {
       alert("Đăng nhập thành công ✅");
-      navigate("/dashboard"); // tuỳ route bạn muốn
+      console.log("Login successful:", res);
+      if (res?.user?.role === "admin") {
+        navigate("/admin/dashboard"); // Admin sẽ vào trang admin
+        console.log(`🚀 Admin logged in:`, res?.user?.role);
+      } else {
+        navigate("/user/dashboard"); // User thường vào dashboard
+      }
     },
     onError: (err) => {
       console.error("Login error:", err);

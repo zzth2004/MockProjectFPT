@@ -1,4 +1,4 @@
-import MainLayout2 from "../../layout/MainLayout2";
+import MainLayout2 from "../../../layout/MainLayout2";
 
 export default function Account() {
   return (

@@ -25,11 +25,11 @@ import roadmapImg from "../../assets/goal.png";
 
 
 // import section 
-import Hero from "../../components/PageComponent/Home/HeroComponent";
-import Features from "../../components/PageComponent/Home/FeatureComponent";
-import Courses from "../../components/PageComponent/Home/CourseComponent";
-import Fees from "../../components/PageComponent/Home/FeesComponent";
-import CTA from "../../components/PageComponent/Home/CTAComponent";
+import Hero from "../homepage/homeComponent/HeroComponent";
+import Features from "../homepage/homeComponent/FeatureComponent";
+import Courses from "../homepage/homeComponent/CourseComponent";
+import Fees from "../homepage/homeComponent/FeesComponent";
+import CTA from "../homepage/homeComponent/CTAComponent";
 
 const PRIMARY = "#008236";
 
