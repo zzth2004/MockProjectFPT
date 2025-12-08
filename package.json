@@ -21,6 +21,7 @@
     "axios": "^1.12.1",
     "chart.js": "^4.5.0",
     "classnames": "^2.5.1",
+    "firebase": "^12.6.0",
     "framer-motion": "^12.23.12",
     "lucide-react": "^0.535.0",
     "react": "^19.1.0",

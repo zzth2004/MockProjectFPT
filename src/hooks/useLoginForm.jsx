@@ -1,4 +1,5 @@
 // src/hooks/useLoginForm.js
+import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import useCallApiHandler from "./HookHander/useCallApiHandler";
 import useFormHandler from "./HookHander/useFormHandler";
@@ -8,7 +9,10 @@ import { useAuth } from "../context/authContext";
 
 export function useLoginForm() {
   const navigate = useNavigate();
-  const { setUser } = useAuth();
+  const { login } = useAuth();
+
+
+  // Gọi API login
   const { data, loading, error, call } = useCallApiHandler(loginApi);
 
   const form = useFormHandler({
@@ -22,27 +26,38 @@ export function useLoginForm() {
     },
     apiFn: call,
     onSuccess: (res) => {
-      // Kiểm tra res và user
-      if (!res || !res.user) {
-        console.error("Login API trả về dữ liệu không hợp lệ:", res);
-        alert("Đăng nhập thất bại ❌");
+      console.log("Login Success Data:", res);
+
+      if (!res || !res.user || !res.jwt) {
+        console.error("Dữ liệu trả về thiếu user hoặc jwt:", res);
+        alert("Lỗi hệ thống: Không nhận được thông tin người dùng.");
         return;
       }
 
-      // Lưu user vào context
-      setUser(res.user);
+      const { user, jwt } = res;
+      login(user, jwt);
+      const role = user.role?.toLowerCase();
 
-      // Redirect theo role
-      if (res.user.role === "admin") {
-        navigate("/admin/dashboard", { replace: true });
-        console.log("🚀 Admin logged in:", res.user);
-      } else {
-        navigate("/user/dashboard", { replace: true });
-        console.log("👤 User logged in:", res.user);
+
+      switch (role) {
+        case "admin":
+          navigate("/admin", { replace: true });
+          break;
+        case "teacher":
+          navigate("/teacher/dashboard", { replace: true });
+          break;
+        case "student":
+          navigate("/student/dashboard", { replace: true });
+          break;
+        default:
+          navigate("/", { replace: true });
+          break;
       }
     },
     onError: (err) => {
-      console.error("Login error:", err);
+      console.error("Login failed:", err);
+      // Hiển thị thông báo lỗi cụ thể từ Backend gửi về (đã được service xử lý)
+      alert(err.message || "Email hoặc mật khẩu không đúng ❌");
     },
   });
 

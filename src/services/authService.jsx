@@ -1,90 +1,169 @@
-export async function registerApi(payload) {
-  console.log("📩 registerApi gọi với payload:", payload);
+import axiosClient from "../api/axiosAPI.jsx";
+import { 
+  createUserWithEmailAndPassword, 
+  signInWithEmailAndPassword, 
+  signInWithPopup, 
+  GoogleAuthProvider,
+  updateProfile,
+  deleteUser, updatePassword,
+} from "firebase/auth";
+import { auth } from "../firebase/firebase.js"; 
 
-  await new Promise((resolve) => setTimeout(resolve, 1200));
+// ================= REGISTER =================
+export async function registerApi({ name, email, password, phone, address }) {
+  let firebaseUser = null;
+  
+  try {
+    // 1️⃣ Tạo user Firebase
+    const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+    firebaseUser = userCredential.user;
 
-  if (payload.email === "test@example.com") {
-    throw new Error("Email đã được sử dụng");
+    // 2️⃣ Cập nhật tên hiển thị trên Firebase (Optional nhưng nên làm)
+    await updateProfile(firebaseUser, { displayName: name });
+
+    // 3️⃣ Lấy Firebase ID Token
+    const idToken = await firebaseUser.getIdToken();
+
+    // 4️⃣ Gửi lên backend để lưu MySQL
+    const res = await axiosClient.post("/auth/register", {
+      firebaseToken: idToken,
+      email,
+      fullName: name, // Map 'name' form -> 'fullName' backend DTO
+      phone,
+      address,
+    });
+
+    // 🟢 Backend trả về { code: 201, data: { user, jwt } }
+    // 🟢 Cần lấy res.data.data
+    return res.data.data; 
+
+  } catch (err) {
+    // 🛑 ROLLBACK: Nếu lưu backend thất bại, xóa user trên Firebase đi
+    if (firebaseUser) {
+      console.warn("⚠️ Register backend failed. Deleting Firebase user...");
+      await deleteUser(firebaseUser).catch(e => console.error("Delete user error:", e));
+    }
+
+    console.error("❌ [registerApi] Error:", err.response?.data || err.message);
+    throw new Error(err.response?.data?.message || 'Đăng ký thất bại');
   }
-
-  return {
-    success: true,
-    user: {
-      id: Date.now(),
-      name: payload.name,
-      email: payload.email,
-    },
-    token: "fake-jwt-token-123",
-  };
 }
 
+// ================= LOGIN EMAIL/PASS =================
+export async function loginApi({ email, password }) {
+  try {
+    console.log("📌 [loginApi] Start login:", email);
 
-export async function loginApi(payload) {
-  console.log("🔑 loginApi gọi với payload:", payload);
+    // 1️⃣ Đăng nhập Firebase
+    const userCredential = await signInWithEmailAndPassword(auth, email, password);
+    const firebaseUser = userCredential.user;
 
-  // Giả lập độ trễ
-  await new Promise((resolve) => setTimeout(resolve, 1000));
+    // 2️⃣ Lấy Token
+    const idToken = await firebaseUser.getIdToken();
 
-  // Admin login
-  if (
-    payload.email === "admin@example.com" &&
-    payload.password === "Admin@123"
-  ) {
-    return {
-      success: true,
-      user: {
-        id: 999,
-        name: "Admin User",
-        email: payload.email,
-        role: "admin",
-      },
-      token: "fake-jwt-token-admin-abc",
-    };
+    // 3️⃣ Gọi Backend
+    const res = await axiosClient.post("/auth/login", {
+      firebaseToken: idToken,
+    });
+
+    console.log("✅ [loginApi] Success:", res.data);
+
+    // 🟢 Trả về data thực (user + jwt)
+    return res.data.data; 
+
+  } catch (err) {
+    console.error("❌ [loginApi] Error:", err.response?.data || err.message);
+    // Throw message để UI hiển thị Toast
+    throw new Error(err.response?.data?.message || 'Email hoặc mật khẩu không đúng');
   }
-
-  // User login
-  if (
-    payload.email === "user@example.com" &&
-    payload.password === "Pass123@"
-  ) {
-    return {
-      success: true,
-      user: {
-        id: 1,
-        name: "Demo User",
-        email: payload.email,
-        role: "user",
-      },
-      token: "fake-jwt-token-xyz",
-    };
-  }
-
-  // Sai thông tin
-  throw new Error("Email hoặc mật khẩu không đúng");
 }
 
+// ================= LOGIN GOOGLE =================
+export async function loginWithGoogle() {
+  try {
+    const provider = new GoogleAuthProvider();
+
+    // 1️⃣ Popup Google
+    const result = await signInWithPopup(auth, provider);
+    const firebaseUser = result.user;
+
+    // 2️⃣ Lấy Token
+    const idToken = await firebaseUser.getIdToken();
+
+    // 3️⃣ Gọi Backend (Backend sẽ tự tạo user nếu chưa có)
+    const res = await axiosClient.post("/auth/login", {
+      firebaseToken: idToken,
+    });
+
+    // 🟢 Trả về data thực
+    return res.data.data; 
+
+  } catch (err) {
+    console.error("❌ [GoogleLogin] Error:", err);
+    throw new Error(err.response?.data?.message || 'Đăng nhập Google thất bại');
+  }
+}
 export async function verifyCodeApi(payload) {
   console.log("📩 verifyCodeApi gọi với payload:", payload);
 
-  await new Promise((resolve) => setTimeout(resolve, 1000));
+  const { email, otp } = payload;
+  try {
+    // Backend API expects: { email: string, code: string }
+    const res = await axiosClient.post("/auth/verify-code", { 
+      email, 
+      code: otp // Map 'otp' từ form sang 'code' của backend
+    });
 
-  if (payload.otp !== "123456") {
-    throw new Error("Mã OTP không hợp lệ");
+    // 🟢 QUAN TRỌNG: 
+    // Vì Backend dùng Interceptor trả về { status, code, data }
+    // Nên dữ liệu thực sự nằm ở res.data.data
+    console.log("✅ verifyCodeApi thành công:", res.data);
+    return res.data.data; 
+
+  } catch (err) {
+    console.error('❌ verifyCodeApi error:', err.response?.data || err.message);
+    
+    // Ném ra message lỗi cụ thể để UI hiển thị
+    // err.response?.data?.message thường là message từ NestJS (BadRequestException)
+    throw new Error(err.response?.data?.message || 'Mã xác thực không đúng hoặc đã hết hạn');
   }
-
-  return {
-    success: true,
-    message: "Xác minh thành công",
-  };
 }
 
 export async function resendCodeApi(email) {
   console.log("📩 resendCodeApi gửi lại OTP cho:", email);
+  try {
+    const res = await axiosClient.post("/auth/resend-code", { email });
+    
+    // Backend hàm này trả về void (hoặc null), nên return true để báo thành công
+    return true; 
+    
+  } catch (err) {
+    console.error('❌ resendCodeApi error:', err.response?.data || err.message);
+    throw new Error(err.response?.data?.message || 'Không thể gửi lại mã. Vui lòng thử lại sau.');
+  } 
 
-  await new Promise((resolve) => setTimeout(resolve, 800));
+  
+}
+export async function updatePasswordAPI({ email, newPassword, code}) {
+    try {
+      const res = await axiosClient.post("/auth/update-password", {
+        email,
+        newPassword,
+        code
+      });    
+      if (auth.currentUser) {
+        try {
+          await signOut(auth);
+        } catch (signOutError) {
+          // Bỏ qua lỗi signOut vì token đã bị revoke
+          console.log("Token already revoked, signing out locally");
+        }
+      }
 
-  return {
-    success: true,
-    message: "Mã xác nhận đã được gửi lại!",
-  };
+      return res.data.data; 
+
+    } catch (err) {
+      console.error("❌ [updatePasswordAPI] Error:", err.response?.data || err.message);
+      throw new Error(err.response?.data?.message || 'Cập nhật mật khẩu thất bại');
+    }   
 }

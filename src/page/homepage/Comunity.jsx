@@ -73,7 +73,7 @@ const Community = () => {
                     {posts.map((post) => (
                         <AnimateOnView key={post.id}>
                             <Link
-                                to={`/community/${post.id}`} // link tới chi tiết bài viết
+                                to={`/homeindex/community/${post.id}`} // link tới chi tiết bài viết
                                 className="block rounded-3xl overflow-hidden shadow-lg hover:shadow-2xl transition transform hover:-translate-y-2 duration-500 bg-white"
                             >
                                 <img

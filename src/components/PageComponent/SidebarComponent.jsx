@@ -33,8 +33,8 @@ export default function Sidebar({ mobile = false }) {
   ];
 
   const footerItems = [
-    { icon: <Settings size={sizeIcon} />, label: "Settings", to: "/settings" },
-    { icon: <LogOut size={sizeIcon} />, label: "Log out", to: "/logout" },
+    { icon: <Settings size={sizeIcon} />, label: "Settings", to: "/user/settings" },
+    { icon: <LogOut size={sizeIcon} />, label: "Log out", to: "/user/logout" },
   ];
 
   const renderLink = (item) => {

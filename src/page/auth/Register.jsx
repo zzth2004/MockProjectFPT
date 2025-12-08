@@ -50,9 +50,9 @@ export default function Register() {
                             <InputComponent
                                 labelText="Full Name"
                                 hintText="Enter your full name"
-                                value={values.name}
-                                onChange={(e) => setField("name", e.target.value)}
-                                errorText={errors.name}
+                                value={values.fullName}
+                                onChange={(e) => setField("fullName", e.target.value)}
+                                errorText={errors.fullName}
                                 prefixIcon={<span className="text-gray-500"><User size={16} /></span>}
                             />
 

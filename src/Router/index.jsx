@@ -58,69 +58,84 @@ function AnimatedRoutes() {
         <Route path="/homeindex/demo" element={<PageWrapper><DemoVideoPlayer /></PageWrapper>} />
         <Route path="/homeindex/courses" element={<PageWrapper><Course /></PageWrapper>} />
 
+      
+
+        {/* Teacher routes */}
+        <Route path="/teacher/dashboard" element={
+          <ProtectedRoute allowedRoles={['teacher']}>
+            <PageWrapper><AdminDashboard /></PageWrapper>
+          </ProtectedRoute>
+        } />
+
+        {/* Admin routes */}
+        <Route path="/admin/*" element={
+          <ProtectedRoute allowedRoles={['admin']}>
+            <AdminDashboard />
+          </ProtectedRoute>
+        } />
         {/* User routes */}
         <Route path="/user/dashboard" element={
-          <ProtectedRoute allowedRoles={['user']}>
-            <PageWrapper><Dashboard /></PageWrapper>
+          <ProtectedRoute allowedRoles={['student', 'teacher']}>
+             <PageWrapper><Dashboard /></PageWrapper>
           </ProtectedRoute>
         } />
         <Route path="/courses" element={
-          <ProtectedRoute allowedRoles={['user']}>
+          <ProtectedRoute allowedRoles={['student', 'teacher']}>
             <PageWrapper><Courses /></PageWrapper>
           </ProtectedRoute>
         } />
         <Route path="/user/mycourses" element={
-          <ProtectedRoute allowedRoles={['user']}>
+          <ProtectedRoute allowedRoles={['student', 'teacher']}>
             <PageWrapper><MyCourse /></PageWrapper>
           </ProtectedRoute>
         } />
         <Route path="/user/mycourses/:bookId" element={
-          <ProtectedRoute allowedRoles={['user']}>
+          <ProtectedRoute allowedRoles={['student', 'teacher']}>
             <PageWrapper><Lesson /></PageWrapper>
           </ProtectedRoute>
         } />
         <Route path="/user/mycourses/:bookId/:unitId" element={
-          <ProtectedRoute allowedRoles={['user']}>
+          <ProtectedRoute allowedRoles={['student', 'teacher']}>
             <PageWrapper><StudyPage /></PageWrapper>
           </ProtectedRoute>
         } />
         <Route path="/user/mycourses/:bookId/:unitId/vocabulary" element={
-          <ProtectedRoute allowedRoles={['user']}>
+          <ProtectedRoute allowedRoles={['student', 'teacher']}>
             <PageWrapper><StudyVocab /></PageWrapper>
           </ProtectedRoute>
         } />
         <Route path="/user/quizz/:bookId/:unitId/vocabulary" element={
-          <ProtectedRoute allowedRoles={['user']}>
+          <ProtectedRoute allowedRoles={['student', 'teacher']}>
             <PageWrapper><QuizzPlaypage /></PageWrapper>
           </ProtectedRoute>
         } />
         <Route path="/user/message" element={
-          <ProtectedRoute allowedRoles={['user']}>
+          <ProtectedRoute allowedRoles={['student', 'teacher']}>
             <PageWrapper><ChatUI /></PageWrapper>
           </ProtectedRoute>
         } />
         <Route path="/user/settings" element={
-          <ProtectedRoute allowedRoles={['user']}>
+          <ProtectedRoute allowedRoles={['student', 'teacher']}>
             <PageWrapper><Settings /></PageWrapper>
           </ProtectedRoute>
         } />
         <Route path="/user/logout" element={
-          <ProtectedRoute allowedRoles={['user']}>
+          <ProtectedRoute allowedRoles={['student', 'teacher']}>
             <PageWrapper><Logout /></PageWrapper>
           </ProtectedRoute>
         } />
         <Route path="/user/account" element={
-          <ProtectedRoute allowedRoles={['user']}>
+          <ProtectedRoute allowedRoles={['student', 'teacher']}>
             <PageWrapper><Account /></PageWrapper>
           </ProtectedRoute>
         } />
         <Route path="/user/schedule" element={
-          <ProtectedRoute allowedRoles={['user']}>
+          <ProtectedRoute allowedRoles={['student', 'teacher']}>
             <PageWrapper><Schedule /></PageWrapper>
           </ProtectedRoute>
         } />
         <Route path="/user/schedule/:id" element={
-          <ProtectedRoute allowedRoles={['user']}>
+          <ProtectedRoute allowedRoles={['student', 'teacher']}>
             <PageWrapper><ScheduleDetail /></PageWrapper>
           </ProtectedRoute>
         } />

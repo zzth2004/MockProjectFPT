@@ -8,16 +8,85 @@ import { Mail, Lock } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import MainLayout from '../../layout/MainLayout';
 import { useLoginForm } from '../../hooks/useLoginForm';
+import { loginWithGoogle } from '../../services/authService';
+import { useAuth } from '../../context/authContext';
+import { resendCodeApi } from '../../services/authService';
+import useCallApiHandler from '../../hooks/HookHander/useCallApiHandler';
 
 export default function Login() {
+    const { login } = useAuth();
     const navigate = useNavigate();
-    const {
-        values,
-        errors,
-        setField,
-        handleSubmit,
-        loading
-    } = useLoginForm();
+    const { call: sendOtpCall, loading: sendingOtp } = useCallApiHandler(resendCodeApi);
+    const handleForgotPassword = async () => {
+        // 1. Lấy email từ form (giả sử bạn đang dùng biến values từ form handler)
+        const email = values.email;
+
+        // 2. Validate
+        if (!email) {
+            alert('Vui lòng nhập email của bạn vào ô bên trên để lấy lại mật khẩu.');
+            return;
+        }
+
+        try {
+            // 3. Gọi API gửi mã
+            // Hàm này sẽ gọi backend gửi mail chứa OTP
+            const res = await sendOtpCall(email);
+
+            // 4. Nếu thành công -> Chuyển hướng
+            if (res) {
+                alert(`Mã xác thực đã được gửi tới ${email}`);
+                navigate("/verify", {
+                    state: {
+                        email: email,
+                        type: "FORGOT_PASSWORD" // Đánh dấu là luồng quên mật khẩu
+                    }
+                });
+            }
+        } catch (err) {
+            // Lỗi đã được useCallApiHandler log, ở đây chỉ cần báo UI
+            console.error("Forgot password error:", err);
+            // alert("Không tìm thấy email hoặc lỗi hệ thống."); // Tùy chọn
+        }
+    };
+    // Hook xử lý đăng nhập Google
+    const handleGoogleLogin = async () => {
+        try {
+            const res = await loginWithGoogle();
+            console.log("Login Success Data:", res);
+
+            if (!res || !res.user || !res.jwt) {
+                console.error("Dữ liệu trả về thiếu user hoặc jwt:", res);
+                alert("Lỗi hệ thống: Không nhận được thông tin người dùng.");
+                return;
+            }
+
+            const { user, jwt } = res;
+            login(user, jwt);
+            const role = user.role?.toLowerCase();
+
+
+            switch (role) {
+                case "admin":
+                    navigate("/admin", { replace: true });
+                    break;
+                case "teacher":
+                    navigate("/teacher/dashboard", { replace: true });
+                    break;
+                case "student":
+                    navigate("/student/dashboard", { replace: true });
+                    break;
+                default:
+                    navigate("/", { replace: true });
+                    break;
+            }
+        } catch (err) {
+            console.error("Google login error:", err);
+            alert("Đăng nhập Google thất bại ❌");
+        }
+    };
+
+    // Hook xử lý form email/password
+    const { values, errors, setField, handleSubmit, loading } = useLoginForm();
 
     return (
         <MainLayout>
@@ -61,10 +130,10 @@ export default function Login() {
                             <InputComponent
                                 labelText="Password"
                                 hintText="Enter your password"
+                                type="password"
                                 value={values.password}
                                 onChange={(e) => setField("password", e.target.value)}
                                 errorText={errors.password}
-                                type="password"
                                 prefixIcon={<span className="text-gray-500"><Lock size={16} /></span>}
                             />
 
@@ -74,12 +143,11 @@ export default function Login() {
                                     <span>Remember me</span>
                                 </label>
                                 <a
-                                    onClick={() => {
-                                        if (!values.email) {
-                                            alert('Vui lòng nhập email trước');
-                                            return;
+                                    onClick={(e) => {
+                                        e.preventDefault(); // Ngăn hành vi mặc định của thẻ a
+                                        if (!sendingOtp) {
+                                            handleForgotPassword();
                                         }
-                                        navigate('/reset-pass', { state: { email: values.email } });
                                     }}
                                     className="text-green-700 hover:underline cursor-pointer"
                                 >
@@ -98,6 +166,7 @@ export default function Login() {
                             />
                         </form>
 
+                        {/* Divider */}
                         <div className="flex items-center m-4 gap-4">
                             <hr className="flex-grow border-gray-300" />
                             <p className="text-sm text-gray-500 text-center whitespace-nowrap">
@@ -106,22 +175,15 @@ export default function Login() {
                             <hr className="flex-grow border-gray-300" />
                         </div>
 
+                        {/* Google login */}
                         <ButtonComponent
                             text="Sign in with Google"
                             variant="secondary"
                             size="md"
                             fullWidth
                             color="bg-gray-200 hover:bg-green-700 hover:text-white border border-gray-300"
-                            icon={
-                                <img
-                                    src={ggImage}
-                                    alt="Google"
-                                    className="w-5 h-5"
-                                />
-                            }
-                            onClick={() => {
-                                console.log("Google sign in clicked");
-                            }}
+                            icon={<img src={ggImage} alt="Google" className="w-5 h-5" />}
+                            onClick={handleGoogleLogin}
                         />
                     </div>
                 </div>
