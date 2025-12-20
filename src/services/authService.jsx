@@ -9,56 +9,62 @@ import {
 } from "firebase/auth";
 import { auth } from "../firebase/firebase.js"; 
 
-// ================= REGISTER =================
 export async function registerApi({ name, email, password, phone, address }) {
   let firebaseUser = null;
   
   try {
-    // 1️⃣ Tạo user Firebase
     const userCredential = await createUserWithEmailAndPassword(auth, email, password);
     firebaseUser = userCredential.user;
 
-    // 2️⃣ Cập nhật tên hiển thị trên Firebase (Optional nhưng nên làm)
     await updateProfile(firebaseUser, { displayName: name });
-
-    // 3️⃣ Lấy Firebase ID Token
     const idToken = await firebaseUser.getIdToken();
 
-    // 4️⃣ Gửi lên backend để lưu MySQL
     const res = await axiosClient.post("/auth/register", {
       firebaseToken: idToken,
       email,
-      fullName: name, // Map 'name' form -> 'fullName' backend DTO
+      fullName: name,
       phone,
       address,
     });
 
-    // 🟢 Backend trả về { code: 201, data: { user, jwt } }
-    // 🟢 Cần lấy res.data.data
-    return res.data.data; 
+    console.log("🔥 Raw Response:", res);
 
-  } catch (err) {
-    // 🛑 ROLLBACK: Nếu lưu backend thất bại, xóa user trên Firebase đi
-    if (firebaseUser) {
-      console.warn("⚠️ Register backend failed. Deleting Firebase user...");
-      await deleteUser(firebaseUser).catch(e => console.error("Delete user error:", e));
+    // === HANDLE ALL POSSIBLE RESPONSE SHAPES ===
+    
+    // Case 1: axios not intercepted
+    if (res?.data?.data?.user && res?.data?.data?.jwt) {
+      return res.data.data;
     }
 
-    console.error("❌ [registerApi] Error:", err.response?.data || err.message);
-    throw new Error(err.response?.data?.message || 'Đăng ký thất bại');
+    // Case 2: axios intercepted (res is body)
+    if (res?.data?.user && res?.data?.jwt) {
+      return res.data;
+    }
+
+    // Case 3: fallback
+    console.warn("⚠️ Unexpected API response, returning full:", res);
+    return res;
+
+  } catch (err) {
+    if (firebaseUser) await deleteUser(firebaseUser).catch(() => {});
+    console.error("❌ registerApi Error:", err);
+    throw err;
   }
 }
+
+
+
 
 // ================= LOGIN EMAIL/PASS =================
 export async function loginApi({ email, password }) {
   try {
     console.log("📌 [loginApi] Start login:", email);
 
-    // 1️⃣ Đăng nhập Firebase
+    // 1️⃣ Login Firebase
     const userCredential = await signInWithEmailAndPassword(auth, email, password);
     const firebaseUser = userCredential.user;
 
-    // 2️⃣ Lấy Token
+    // 2️⃣ Lấy ID Token
     const idToken = await firebaseUser.getIdToken();
 
     // 3️⃣ Gọi Backend
@@ -66,17 +72,24 @@ export async function loginApi({ email, password }) {
       firebaseToken: idToken,
     });
 
-    console.log("✅ [loginApi] Success:", res.data);
+    console.log("✅ [loginApi] Raw Response:", res.data);
 
-    // 🟢 Trả về data thực (user + jwt)
-    return res.data.data; 
+    if (res.status !== "success") {
+      throw new Error("Login failed!");
+    }
+
+    const finalData = res.data; // { user, jwt }
+
+    console.log("🟢 [loginApi] Final Data:", finalData);
+
+    return finalData;
 
   } catch (err) {
     console.error("❌ [loginApi] Error:", err.response?.data || err.message);
-    // Throw message để UI hiển thị Toast
     throw new Error(err.response?.data?.message || 'Email hoặc mật khẩu không đúng');
   }
 }
+
 
 // ================= LOGIN GOOGLE =================
 export async function loginWithGoogle() {
@@ -96,7 +109,7 @@ export async function loginWithGoogle() {
     });
 
     // 🟢 Trả về data thực
-    return res.data.data; 
+    return res.data; 
 
   } catch (err) {
     console.error("❌ [GoogleLogin] Error:", err);
@@ -118,7 +131,7 @@ export async function verifyCodeApi(payload) {
     // Vì Backend dùng Interceptor trả về { status, code, data }
     // Nên dữ liệu thực sự nằm ở res.data.data
     console.log("✅ verifyCodeApi thành công:", res.data);
-    return res.data.data; 
+    return res.data; 
 
   } catch (err) {
     console.error('❌ verifyCodeApi error:', err.response?.data || err.message);

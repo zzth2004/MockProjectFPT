@@ -63,7 +63,7 @@ export default function Login() {
             const { user, jwt } = res;
             login(user, jwt);
             const role = user.role?.toLowerCase();
-
+            console.log("User role:", role);
 
             switch (role) {
                 case "admin":
@@ -73,7 +73,7 @@ export default function Login() {
                     navigate("/teacher/dashboard", { replace: true });
                     break;
                 case "student":
-                    navigate("/student/dashboard", { replace: true });
+                    navigate("/user/dashboard", { replace: true });
                     break;
                 default:
                     navigate("/", { replace: true });

@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import useCallApiHandler from "./HookHander/useCallApiHandler";
 import useFormHandler from "./HookHander/useFormHandler";
 import { verifyCodeApi, resendCodeApi } from "../services/authService";
-
+import { useAuth } from "../context/authContext";
 // 👇 Thêm tham số type
 export function useVerifyCodeForm(initialEmail = "", type = "REGISTER") {
   const navigate = useNavigate();
@@ -12,6 +12,8 @@ export function useVerifyCodeForm(initialEmail = "", type = "REGISTER") {
 
   const [resendMessage, setResendMessage] = useState("");
   const [countdown, setCountdown] = useState(0);
+
+  const { login } = useAuth();
 
   // Logic đếm ngược (Giữ nguyên)
   useEffect(() => {
@@ -36,12 +38,30 @@ export function useVerifyCodeForm(initialEmail = "", type = "REGISTER") {
       if (type === "FORGOT_PASSWORD") {
         // Nhánh 1: Quên mật khẩu -> Chuyển sang trang đặt lại mật khẩu
         alert("Xác thực thành công. Vui lòng đặt lại mật khẩu.");
-        navigate("/reset-pass", { 
-          state: { email: initialEmail} // 
+        navigate("/reset-pass", {
+          state: { email: initialEmail } // 
         });
       } else {
         alert("Kích hoạt tài khoản thành công! ✅");
-        navigate("/user/dashboard", { replace: true });
+
+        login(res.user, res.jwt);
+        const role = user.role?.toLowerCase();
+        console.log("User role:", role);
+
+        switch (role) {
+          case "admin":
+            navigate("/admin", { replace: true });
+            break;
+          case "teacher":
+            navigate("/teacher/dashboard", { replace: true });
+            break;
+          case "student":
+            navigate("/user/dashboard", { replace: true });
+            break;
+          default:
+            navigate("/", { replace: true });
+            break;
+        }
       }
     },
     onError: (err) => {

@@ -4,7 +4,7 @@ import useCallApiHandler from "./HookHander/useCallApiHandler";
 import useFormHandler from "./HookHander/useFormHandler";
 import { registerApi } from "../services/authService";
 import { Validator } from "../utils/Validator";
-import { useAuth } from "../context/authContext"; // 👈 1. Import Auth Context
+import { useAuth } from "../context/authContext";
 
 export function useRegisterForm() {
   const navigate = useNavigate();
@@ -30,36 +30,54 @@ export function useRegisterForm() {
       address: (val) => Validator.validateUsername(val),
     },
     apiFn: (values) => {
-        // Map data từ form sang đúng tên field backend cần (nếu cần thiết)
-        // Backend: { fullName, email... } -> Form: { fullName... } -> Khớp rồi
-        return call({
-            name: values.fullName, // Frontend service của bạn đang map 'name' -> 'fullName'
-            ...values
-        });
-    },
+    return call({
+        fullName: values.fullName,
+        email: values.email,
+        password: values.password,
+        phone: values.phone,
+        address: values.address,
+    });
+},
+
     
     // 👇 3. Sửa logic onSuccess
     onSuccess: (res) => { 
-      // res chính là object { user, jwt } trả về từ service
       console.log("Register Success Data:", res);
 
-      if (!res || !res.jwt) {
-          alert("Đăng ký thành công nhưng không nhận được token.");
-          navigate("/login");
-          return;
-      }
-
-      // Lưu token
-      login(res.user, res.jwt); // Tự động đăng nhập sau khi đăng ký thành công
-      alert("Đăng ký thành công! Vui lòng xác nhận email. ✅");
+      // KHÔNG gọi login() ở đây vì tài khoản chưa active
+      // login(res.user, res.jwt); 
+      console.log("Register Success Data:", res);
+      alert(`Đăng ký thành công! Mã xác thực đã được gửi đến ${form.values.email}`);
+      
+      // Chuyển sang trang nhập OTP/Verify
       navigate("/verify", { state: { email: form.values.email } });
     },
 
-    // 👇 4. Sửa logic onError
+    // 👇 4. Logic onError (Bây giờ nó đã hoạt động đúng nhờ sửa registerApi)
     onError: (err) => {
-       console.error("Register Error:", err);
-       // Hiển thị lỗi cụ thể từ backend (vd: Email đã tồn tại)
-       alert(err.message || "Đăng ký thất bại");
+       console.log("Error caught in Hook:", err); // Debug xem lỗi gì
+
+       const serverError = err.response?.data; // Bây giờ cái này sẽ có dữ liệu
+    
+       let displayMessage = "Đăng ký thất bại";
+
+       if (serverError) {
+           // Ưu tiên lấy message từ Backend NestJS
+           if (Array.isArray(serverError.message)) {
+               displayMessage = serverError.message[0];
+           } else if (serverError.message) {
+               displayMessage = serverError.message;
+           }
+       } else if (err.message) {
+           // Lỗi Firebase hoặc lỗi mạng
+           if(err.code === 'auth/email-already-in-use') {
+               displayMessage = "Email này đã được sử dụng trên hệ thống.";
+           } else {
+               displayMessage = err.message;
+           }
+       }
+
+       alert(displayMessage);
     },
   });
 

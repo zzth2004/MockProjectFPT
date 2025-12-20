@@ -47,7 +47,7 @@ export function useLoginForm() {
           navigate("/teacher/dashboard", { replace: true });
           break;
         case "student":
-          navigate("/student/dashboard", { replace: true });
+          navigate("/user/dashboard", { replace: true });
           break;
         default:
           navigate("/", { replace: true });
