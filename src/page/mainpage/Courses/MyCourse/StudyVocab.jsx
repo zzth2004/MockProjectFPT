@@ -1,279 +1,138 @@
-import React, { useState, useRef } from "react";
-import { useNavigate, useParams } from "react-router-dom";
-import VocabCard from "../../../../components/StudyComponent/VocabCard";
-import { Swiper, SwiperSlide } from "swiper/react";
-import "swiper/css";
-import LayoutNoSideBar from "../../../../layout/LayoutNoSideBar";
-import { CircleCheckBig, ChevronRight, ChevronLeft } from "lucide-react";
-import EndVocabPopup from "../../../../components/StudyComponent/EndVocabCard";
-import PopupConfirmComp from "../../../../components/PopupComponent/PopupConfirmComp";
-const vocabList = [
-  {
-    id: 1,
-    imgPath: "https://cdn-icons-png.flaticon.com/512/197/197582.png",
-    wordKorean: "안녕하세요",
-    wordEnglish: "Hello",
-    wordVietnamese: "Xin chào",
-    example: "안녕하세요! 만나서 반갑습니다.",
-  },
-  {
-    id: 2,
-    imgPath: "https://cdn-icons-png.flaticon.com/512/197/197604.png",
-    wordKorean: "학교",
-    wordEnglish: "School",
-    wordVietnamese: "Trường học",
-    example: "저는 학교에 갑니다.",
-  },
-  {
-    id: 3,
-    imgPath: "https://cdn-icons-png.flaticon.com/512/197/197375.png",
-    wordKorean: "사랑",
-    wordEnglish: "Love",
-    wordVietnamese: "Tình yêu",
-    example: "사랑은 아름답습니다.",
-  },
-  {
-    id: 4,
-    imgPath: "https://cdn-icons-png.flaticon.com/512/197/197633.png",
-    wordKorean: "책",
-    wordEnglish: "Book",
-    wordVietnamese: "Quyển sách",
-    example: "저는 책을 읽고 있습니다.",
-  },
-  {
-    id: 5,
-    imgPath: "https://cdn-icons-png.flaticon.com/512/197/197561.png",
-    wordKorean: "음식",
-    wordEnglish: "Food",
-    wordVietnamese: "Đồ ăn",
-    example: "한국 음식은 맛있습니다.",
-  },
-  {
-    id: 6,
-    imgPath: "https://cdn-icons-png.flaticon.com/512/197/197564.png",
-    wordKorean: "물",
-    wordEnglish: "Water",
-    wordVietnamese: "Nước",
-    example: "물을 많이 마셔야 합니다.",
-  },
-  {
-    id: 7,
-    imgPath: "https://cdn-icons-png.flaticon.com/512/197/197388.png",
-    wordKorean: "하늘",
-    wordEnglish: "Sky",
-    wordVietnamese: "Bầu trời",
-    example: "오늘 하늘이 맑습니다.",
-  },
-  {
-    id: 8,
-    imgPath: "https://cdn-icons-png.flaticon.com/512/197/197500.png",
-    wordKorean: "친구",
-    wordEnglish: "Friend",
-    wordVietnamese: "Bạn bè",
-    example: "저는 친구와 영화를 봅니다.",
-  },
-  {
-    id: 9,
-    imgPath: "https://cdn-icons-png.flaticon.com/512/197/197593.png",
-    wordKorean: "음악",
-    wordEnglish: "Music",
-    wordVietnamese: "Âm nhạc",
-    example: "저는 음악 듣기를 좋아합니다.",
-  },
-  {
-    id: 10,
-    imgPath: "https://cdn-icons-png.flaticon.com/512/197/197457.png",
-    wordKorean: "집",
-    wordEnglish: "Home",
-    wordVietnamese: "Ngôi nhà",
-    example: "저는 집에 갑니다.",
-  },
-  {
-    id: 11,
-    imgPath: "https://cdn-icons-png.flaticon.com/512/197/197600.png",
-    wordKorean: "시간",
-    wordEnglish: "Time",
-    wordVietnamese: "Thời gian",
-    example: "시간이 빠르게 갑니다.",
-  },
-  {
-    id: 12,
-    imgPath: "https://cdn-icons-png.flaticon.com/512/197/197622.png",
-    wordKorean: "돈",
-    wordEnglish: "Money",
-    wordVietnamese: "Tiền",
-    example: "저는 돈을 절약합니다.",
-  },
-  {
-    id: 13,
-    imgPath: "https://cdn-icons-png.flaticon.com/512/197/197569.png",
-    wordKorean: "여행",
-    wordEnglish: "Travel",
-    wordVietnamese: "Du lịch",
-    example: "저는 한국으로 여행하고 싶습니다.",
-  }
+import React, { useState } from "react";
+import { useParams, useNavigate } from "react-router-dom";
+import { ChevronLeft, ChevronRight, Star, RotateCw } from "lucide-react";
+
+// Import ảnh (Đảm bảo đường dẫn này đúng với máy của bạn)
+import fightingGirlImg from "../../../../assets/scheduleAva.png"; 
+
+// Mock Data
+const VOCAB_DATA = [
+  { id: 1, vn: "Dưa hấu", kr: "수박", image: "🍉", saved: false },
+  { id: 2, vn: "Quả táo", kr: "사과", image: "🍎", saved: true },
+  { id: 3, vn: "Quả chuối", kr: "바나나", image: "🍌", saved: false },
+  { id: 4, vn: "Quả nho", kr: "포도", image: "🍇", saved: false },
 ];
 
-
-export default function StudyVocab() {
-  const { bookId, unitId, tab } = useParams();
-  const [currentIndex, setCurrentIndex] = useState(0);
-  const [showEndCard, setShowEndCard] = useState(false);
-  const [showPopup, setShowPopup] = useState(false);
-  const swiperRef = useRef(null);
+const StudyVocab = () => {
+  const { unitId } = useParams();
   const navigate = useNavigate();
+  
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [isFlipped, setIsFlipped] = useState(false);
+  const [vocabList, setVocabList] = useState(VOCAB_DATA);
+  const [isFinished, setIsFinished] = useState(false);
 
-  const progress = ((currentIndex + 1) / vocabList.length) * 100;
+  const currentCard = vocabList[currentIndex];
+  const totalCards = vocabList.length;
 
   const handleNext = () => {
-    if (swiperRef.current && currentIndex < vocabList.length - 1) {
-      swiperRef.current.slideNext();
+    if (currentIndex < totalCards - 1) {
+      setCurrentIndex(prev => prev + 1);
+      setIsFlipped(false);
+    } else {
+      setIsFinished(true);
     }
   };
 
   const handlePrev = () => {
-    if (swiperRef.current && currentIndex > 0) {
-      swiperRef.current.slidePrev();
+    if (currentIndex > 0) {
+      setCurrentIndex(prev => prev - 1);
+      setIsFlipped(false);
     }
   };
-  const handleEnd = () => {
-    console.log("Đã học xong từ vựng!");
-    setShowEndCard(true)
 
-  };
-  const handleCancel = () => {
-    setShowPopup(false);
-    navigate(-1); // quay lại trang trước
+  const toggleSave = (e) => {
+    e.stopPropagation();
+    const updatedList = [...vocabList];
+    updatedList[currentIndex].saved = !updatedList[currentIndex].saved;
+    setVocabList(updatedList);
   };
 
-  const handleConfirm = () => {
-    console.log("Xác nhận hành động!");
-    setShowPopup(false);
-    navigate(`/user/quizz/${bookId}/${unitId}/vocabulary`);
-  };
-  const handleCheckVocab = () => {
-    console.log("Đã chon xong từ vựng!");
-    setShowPopup(true)
-
-  };
-  const handleStarVocab = () => {
-    console.log("Đã chon hoc từ vựng gan sao! -> phat trien sau");
-
-
+  const handleNavigateToQuiz = () => {
+    // 👇 SỬA ĐƯỜNG DẪN QUIZ
+    navigate(`/courses/general-learning/${unitId}/quiz`);
   };
 
+  // --- MÀN HÌNH HOÀN THÀNH ---
+  if (isFinished) {
+    return (
+      <div className="w-full min-h-screen bg-[#F5F7FA] font-sans p-6">
+        <button 
+            onClick={() => setIsFinished(false)}
+            className="flex items-center gap-2 text-gray-600 font-bold hover:text-gray-900 transition mb-6"
+        >
+            <ChevronLeft size={24} /> Back
+        </button>
 
-  return (
-    <LayoutNoSideBar>
-      <div className="min-h-screen bg-gray-50 py-8">
-        <div className="max-w-4xl mx-auto px-4">
-          {/* Header */}
-          <div className="flex items-center mb-6">
-            {/* Nút Back */}
-            {/* <button
-              onClick={() => navigate(-1)}
-              className="mr-4 px-4 py-2 bg-green-600 text-white rounded-lg shadow hover:bg-green-700 transition"
-            >
-              
-            </button> */}
-            <h1 className="text-3xl font-bold text-green-700 text-center flex-1">
-              Study Vocabulary
-            </h1>
-          </div>
-
-          {/* Progress Bar */}
-          <div className="mb-8">
-            <div className="flex justify-between mb-2">
-              <span className="text-lg font-semibold text-gray-700">
-                Progress
-              </span>
-              <span className="text-lg font-semibold text-green-600">
-                {currentIndex + 1}/{vocabList.length}
-              </span>
+        <div className="flex flex-col items-center">
+            <h1 className="text-2xl font-bold text-gray-800 mb-8 w-full max-w-3xl">Unit Vocabulary - Completed</h1>
+            <div className="relative w-full max-w-3xl bg-white rounded-[2rem] shadow-sm border border-gray-100 p-10 md:p-16 min-h-[400px] flex flex-col justify-center overflow-hidden">
+                <div className="flex flex-col items-start gap-6 relative z-10">
+                    <h2 className="text-2xl font-bold text-gray-800">Bạn đã học hết từ vựng!!</h2>
+                    <p className="text-gray-600 font-medium -mt-2">Hãy thử các chế độ khác nhé</p>
+                    <button onClick={handleNavigateToQuiz} className="bg-[#66A869] hover:bg-[#558f57] text-white font-bold py-3 px-8 rounded-lg shadow-sm transition-all transform hover:-translate-y-0.5">Kiểm tra từ vựng</button>
+                    <button 
+                        onClick={() => {
+                            // 👇 QUAY LẠI TRANG CHI TIẾT VÀ MỞ TAB STARRED
+                            navigate(`/courses/general-learning/${unitId}`, { state: { activeTab: 'starred' } });
+                        }} 
+                        className="bg-[#66A869] hover:bg-[#558f57] text-white font-bold py-3 px-8 rounded-lg shadow-sm transition-all transform hover:-translate-y-0.5 flex items-center gap-2"
+                    >
+                        Xem lại các từ vựng có sao <Star size={18} className="fill-yellow-400 text-yellow-400"/>
+                    </button>
+                </div>
+                <div className="absolute bottom-0 right-0 pointer-events-none">
+                     <img src={fightingGirlImg} alt="Fighting" className="w-48 md:w-64 h-auto object-contain" />
+                </div>
             </div>
-            <div className="w-full bg-gray-200 rounded-full h-4 overflow-hidden">
-              <div
-                className="bg-green-600 h-4 transition-all duration-300"
-                style={{ width: `${progress}%` }}
-              ></div>
-            </div>
-          </div>
-
-          {/* Swiper */}
-          <Swiper
-            spaceBetween={20}
-            slidesPerView={1}
-            onSwiper={(swiper) => (swiperRef.current = swiper)}
-            onSlideChange={(swiper) => setCurrentIndex(swiper.activeIndex)}
-          >
-            {vocabList.map((vocab) => (
-              <SwiperSlide key={vocab.id}>
-                <VocabCard vocab={vocab} />
-              </SwiperSlide>
-            ))}
-          </Swiper>
-
-          {/* Navigation buttons */}
-          <div className="flex justify-between mt-6">
-            <button
-              onClick={handlePrev}
-              disabled={currentIndex === 0}
-              className={`px-6 py-2 rounded-lg shadow transition ${currentIndex === 0
-                ? "bg-gray-300 text-gray-500 cursor-not-allowed"
-                : "bg-green-600 text-white hover:bg-green-700"
-                }`}
-            >
-              <ChevronLeft className="w-6 h-6 inline-block mr-2" /> Prev
-            </button>
-
-            {currentIndex === vocabList.length - 1 ? (
-              <button
-                onClick={handleEnd}
-                className="px-6 py-2 rounded-lg shadow bg-green-600 text-white hover:bg-green-700 transition"
-              >
-                Hoàn thành <CircleCheckBig className="w-6 h-6 inline-block ml-2" />
-
-              </button>
-            ) : (
-              <button
-                onClick={handleNext}
-                className="px-6 py-2 rounded-lg shadow bg-green-600 text-white hover:bg-green-700 transition"
-              >
-                Next
-                <ChevronRight className="w-6 h-6 inline-block ml-2" />
-              </button>
-            )}
-            {showEndCard && (
-              <EndVocabPopup
-                onClose={() => {
-                  setShowEndCard(false);
-                  navigate(`/user/mycourses/${bookId}/${unitId}`);
-                }}
-
-                onCheckVocab={() =>
-                  // navigate(`/user/quiz/${bookId}/${unitId}/vocabulary`)
-                  handleCheckVocab()
-                }
-                onReviewStar={() =>
-                  // navigate(`/user/review/${bookId}/${unitId}/starred`)
-                  handleStarVocab()
-                }
-              />
-            )}
-            {/* Popup confirm */}
-            {showPopup && (
-              <PopupConfirmComp
-                title="Xác nhận"
-                message="Bạn đã học xong và chuyển qua quiz vocabulary nhé?"
-                onCancel={handleCancel}
-                onConfirm={handleConfirm}
-              />
-            )}
-
-
-          </div>
         </div>
       </div>
-    </LayoutNoSideBar >
+    );
+  }
+
+  // --- MÀN HÌNH FLASHCARD ---
+  return (
+    <div className="w-full min-h-screen bg-[#F5F7FA] font-sans p-4 md:p-6">
+      
+      {/* HEADER */}
+      <header className="flex items-center gap-3 mb-6">
+        <button 
+          // 👇 SỬA ĐƯỜNG DẪN NÚT BACK
+          onClick={() => navigate(`/courses/general-learning/${unitId}`)} 
+          className="p-2 rounded-full bg-white text-gray-500 hover:text-gray-900 hover:shadow-sm transition-all border border-gray-200"
+        >
+          <ChevronLeft size={24} />
+        </button>
+        <h1 className="text-xl md:text-2xl font-bold text-gray-800">Unit Vocabulary</h1>
+      </header>
+
+      {/* FLASHCARD */}
+      <div className="flex flex-col items-center mt-2"> 
+        <div className="text-xl font-bold text-gray-800 mb-4">{currentIndex + 1}/{totalCards}</div>
+
+        <div onClick={() => setIsFlipped(!isFlipped)} className="relative w-full max-w-lg aspect-[4/3] bg-white rounded-[2rem] shadow-lg border border-gray-100 flex flex-col items-center justify-center p-8 cursor-pointer hover:shadow-xl transition-all duration-300 select-none">
+           <button onClick={toggleSave} className="absolute top-6 right-6 p-2 rounded-full hover:bg-gray-50 transition-colors z-10">
+              <Star size={28} className={currentCard.saved ? "fill-yellow-400 text-yellow-400" : "text-gray-300"} />
+           </button>
+           <div className="flex flex-col items-center gap-6 animate-in fade-in zoom-in duration-300">
+              <div className="text-[100px] md:text-[120px] drop-shadow-md leading-none">{currentCard.image}</div>
+              <h2 className="text-3xl font-bold text-gray-800 mt-2 text-center">{isFlipped ? currentCard.kr : currentCard.vn}</h2>
+              <p className="text-xs text-gray-400 absolute bottom-6 font-medium flex items-center gap-1">{isFlipped ? "(Click to see Vietnamese)" : "(Click to flip)"} <RotateCw size={12}/></p>
+           </div>
+        </div>
+
+        {/* NAVIGATION */}
+        <div className="flex items-center gap-16 mt-8">
+           <button onClick={handlePrev} disabled={currentIndex === 0} className={`p-3 rounded-full border-2 transition-all ${currentIndex === 0 ? "border-gray-200 text-gray-300" : "border-gray-800 text-gray-800 hover:bg-gray-800 hover:text-white"}`}><ChevronLeft size={28} /></button>
+           <button onClick={handleNext} className="p-3 rounded-full border-2 border-gray-800 text-gray-800 hover:bg-gray-800 hover:text-white transition-all">
+              {currentIndex === totalCards - 1 ? (
+                 <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 11 12 14 22 4"></polyline><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path></svg>
+              ) : (<ChevronRight size={28} />)}
+           </button>
+        </div>
+      </div>
+    </div>
   );
-}
+};
+
+export default StudyVocab;

@@ -1,163 +1,86 @@
 import React, { useState } from "react";
-import MainLayout2 from "../../../layout/MainLayout2";
+import { Bell, Volume2 } from "lucide-react";
 
 export default function Settings() {
-  const [activeTab, setActiveTab] = useState("profile");
+  // Chỉ còn một tab duy nhất là Cài đặt chung
+  const [settings, setSettings] = useState({
+    notifications: false,
+    appSound: true,
+  });
 
-  const tabClass = (tab) =>
-    `px-6 py-2 rounded-t-xl text-sm font-semibold transition ${
-      activeTab === tab
-        ? "bg-green-500 text-white"
-        : "bg-green-100 text-green-700 hover:bg-green-200"
-    }`;
+  const toggleSetting = (key) => {
+    setSettings((prev) => ({ ...prev, [key]: !prev[key] }));
+  };
 
   return (
-    <MainLayout2>
-      <div className="bg-white rounded-2xl shadow-md p-6 max-h-[80vh]">
-        {/* Tabs */}
-        <div className="flex space-x-2 mb-6">
-          <button
-            onClick={() => setActiveTab("profile")}
-            className={tabClass("profile")}
-          >
-            Thông tin cá nhân
-          </button>
-          <button
-            onClick={() => setActiveTab("general")}
-            className={tabClass("general")}
-          >
+    <div className="p-4 md:p-6 font-sans"> 
+      <div className="bg-white rounded-[2rem] shadow-sm border border-gray-100 p-8 md:p-10 max-w-4xl mx-auto">
+        
+        {/* Header Tab */}
+        <div className="flex mb-10 border-b border-gray-50">
+          <button className="px-10 py-3 rounded-t-2xl text-sm font-black bg-[#377437] text-white transition-all shadow-lg shadow-green-900/10">
             Cài đặt chung
-          </button>
-          <button
-            onClick={() => setActiveTab("password")}
-            className={tabClass("password")}
-          >
-            Đổi mật khẩu
           </button>
         </div>
 
-        {/* Tab content */}
-        {activeTab === "profile" && (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-semibold">Họ và tên</label>
-              <input
-                className="w-full border border-green-600 rounded-lg px-3 py-2"
-                defaultValue="Bích Thùy"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-semibold">Email</label>
-              <input
-                className="w-full border border-green-600 rounded-lg px-3 py-2"
-                defaultValue="user@hmail.com"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-semibold">Giới tính</label>
-              <select className="w-full border border-green-600 rounded-lg px-3 py-2">
-                <option>Nữ</option>
-                <option>Nam</option>
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm font-semibold">
-                Tỉnh/Thành phố
-              </label>
-              <select className="w-full border border-green-600 rounded-lg px-3 py-2">
-                <option>Đà Nẵng</option>
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-sm font-semibold">
-                Số điện thoại
-              </label>
-              <input
-                className="w-full border border-green-600 rounded-lg px-3 py-2"
-                placeholder="VD: 012345678"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-semibold">Quận/Huyện</label>
-              <select className="w-full border border-green-600 rounded-lg px-3 py-2">
-                <option>Ngũ Hành Sơn</option>
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-sm font-semibold">Sinh nhật</label>
-              <input
-                className="w-full border border-green-600 rounded-lg px-3 py-2"
-                placeholder="dd/mm/yy"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-semibold">
-                Địa chỉ cụ thể
-              </label>
-              <input
-                className="w-full border border-green-600 rounded-lg px-3 py-2"
-                placeholder="470 TDN"
-              />
-            </div>
-          </div>
-        )}
-
-        {activeTab === "general" && (
-          <div className="space-y-4">
-            <div className="flex items-center justify-between bg-green-50 rounded-lg p-3">
-              <div className="flex items-center gap-3">
-                <span className="text-green-600 text-xl">🔔</span>
-                <div>
-                  <p className="font-semibold">Thông báo</p>
-                  <p className="text-sm text-gray-500">Thông báo đã tắt</p>
-                </div>
+        {/* Nội dung Cài đặt */}
+        <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+          
+          {/* Mục: Thông báo */}
+          <div className="flex items-center justify-between p-6 rounded-[1.5rem] bg-gray-50/50 border border-transparent hover:border-green-100 transition-all group">
+            <div className="flex items-center gap-5">
+              <div className="p-4 bg-green-50 text-[#377437] rounded-2xl group-hover:scale-110 transition-transform">
+                <Bell size={24} />
               </div>
-              <input type="checkbox" className="toggle accent-green-600" />
-            </div>
-
-            <div className="flex items-center justify-between bg-green-50 rounded-lg p-3">
-              <div className="flex items-center gap-3">
-                <span className="text-green-600 text-xl">🔊</span>
-                <div>
-                  <p className="font-semibold">Âm thanh trong ứng dụng</p>
-                  <p className="text-sm text-gray-500">Âm thanh đã bật</p>
-                </div>
+              <div>
+                <p className="font-black text-gray-900 text-lg">Thông báo</p>
+                <p className="text-xs font-bold text-gray-400 mt-0.5 uppercase tracking-wider">
+                  {settings.notifications ? "Thông báo đang bật" : "Thông báo đã tắt"}
+                </p>
               </div>
-              <input
-                type="checkbox"
-                className="toggle accent-green-600"
-                defaultChecked
-              />
             </div>
+            
+            {/* Toggle Switch */}
+            <button 
+              onClick={() => toggleSetting('notifications')}
+              className={`w-16 h-9 rounded-full p-1.5 transition-all duration-300 relative ${settings.notifications ? 'bg-[#377437]' : 'bg-gray-200'}`}
+            >
+              <div className={`w-6 h-6 bg-white rounded-full shadow-md transform transition-transform duration-300 ${settings.notifications ? 'translate-x-7' : 'translate-x-0'}`} />
+            </button>
           </div>
-        )}
 
-        {activeTab === "password" && (
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-semibold">
-                Mật khẩu mới
-              </label>
-              <input
-                type="password"
-                className="w-full border border-green-600 rounded-lg px-3 py-2"
-              />
+          {/* Mục: Âm thanh ứng dụng */}
+          <div className="flex items-center justify-between p-6 rounded-[1.5rem] bg-gray-50/50 border border-transparent hover:border-green-100 transition-all group">
+            <div className="flex items-center gap-5">
+              <div className="p-4 bg-green-50 text-[#377437] rounded-2xl group-hover:scale-110 transition-transform">
+                <Volume2 size={24} />
+              </div>
+              <div>
+                <p className="font-black text-gray-900 text-lg">Âm thanh trong ứng dụng</p>
+                <p className="text-xs font-bold text-gray-400 mt-0.5 uppercase tracking-wider">
+                  {settings.appSound ? "Âm thanh đang bật" : "Âm thanh đã tắt"}
+                </p>
+              </div>
             </div>
-            <div>
-              <label className="block text-sm font-semibold">
-                Xác nhận mật khẩu mới
-              </label>
-              <input
-                type="password"
-                className="w-full border border-green-600 rounded-lg px-3 py-2"
-              />
-            </div>
+            
+            <button 
+              onClick={() => toggleSetting('appSound')}
+              className={`w-16 h-9 rounded-full p-1.5 transition-all duration-300 relative ${settings.appSound ? 'bg-[#377437]' : 'bg-gray-200'}`}
+            >
+              <div className={`w-6 h-6 bg-white rounded-full shadow-md transform transition-transform duration-300 ${settings.appSound ? 'translate-x-7' : 'translate-x-0'}`} />
+            </button>
           </div>
-        )}
+
+        </div>
+
+        {/* Nút lưu thay đổi */}
+        <div className="mt-12 flex justify-end">
+          <button className="px-12 py-4 bg-[#377437] text-white font-black text-lg rounded-2xl shadow-xl shadow-green-900/20 transform transition-all hover:scale-[1.02] active:scale-95">
+            Lưu thay đổi
+          </button>
+        </div>
+
       </div>
-    </MainLayout2>
+    </div>
   );
-}
+} 

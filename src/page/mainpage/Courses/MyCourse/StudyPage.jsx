@@ -1,239 +1,170 @@
-// src/pages/Study.jsx
-import React, { useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
-import MainLayout2 from "../../../../layout/MainLayout2";
-import { Star, X } from "lucide-react";
-import AnimateOnView from "../../../../components/Wrapper/WrapperMotion";
+import React, { useState, useEffect } from "react";
+import { useParams, useNavigate, useLocation } from "react-router-dom";
+import { ChevronLeft, ChevronRight, Star, Bookmark } from "lucide-react";
 
-// Dữ liệu ví dụ
-const studyData = {
-  1: {
-    title: "Unit 1 - Introduction - 소개하다",
-    vocabulary: [
-      { id: 1, content: "안녕하세요 - Hello", favorite: false },
-      { id: 2, content: "저는 … 입니다 - I am ...", favorite: false },
-      { id: 3, content: "만나서 반갑습니다 - Nice to meet you", favorite: false },
-    ],
-    grammar: [
-      { id: 1, content: "이/가 vs 은/는", favorite: false },
-      { id: 2, content: "입니다 (to be)", favorite: false },
-    ],
-    communication: [
-      { id: 1, content: "Introducing yourself", favorite: false },
-      { id: 2, content: "Greeting others", favorite: false },
-    ],
-  },
-  2: {
-    title: "Unit 2 - Healthy - 건강",
-    vocabulary: [
-      { id: 1, content: "건강 - Health", favorite: false },
-      { id: 2, content: "아프다 - Sick", favorite: false },
-      { id: 3, content: "약 - Medicine", favorite: false },
-    ],
-    grammar: [
-      { id: 1, content: "Adjective + 아/어하다", favorite: false },
-      { id: 2, content: "Past tense ~았/었어요", favorite: false },
-    ],
-    communication: [
-      { id: 1, content: "Talking about illness", favorite: false },
-      { id: 2, content: "Asking about health", favorite: false },
-    ],
-  },
-  3: {
-    title: "Unit 3 - Travel - 여행",
-    vocabulary: [
-      { id: 1, content: "비행기 - Airplane", favorite: false },
-      { id: 2, content: "호텔 - Hotel", favorite: false },
-      { id: 3, content: "여권 - Passport", favorite: false },
-    ],
-    grammar: [
-      { id: 1, content: "Direction & location: ~에/에서", favorite: false },
-      { id: 2, content: "Making suggestions: ~까요?", favorite: false },
-    ],
-    communication: [
-      { id: 1, content: "Asking for directions", favorite: false },
-      { id: 2, content: "Booking a hotel", favorite: false },
-    ],
-  },
-  4: {
-    title: "Unit 4 - Movies - 영화",
-    vocabulary: [
-      { id: 1, content: "영화 - Movie", favorite: false },
-      { id: 2, content: "장르 - Genre", favorite: false },
-      { id: 3, content: "감독 - Director", favorite: false },
-    ],
-    grammar: [
-      { id: 1, content: "Expressing likes/dislikes: ~을/를 좋아하다", favorite: false },
-      { id: 2, content: "Talking about past: ~았/었어요", favorite: false },
-    ],
-    communication: [
-      { id: 1, content: "Talking about favorite movies", favorite: false },
-      { id: 2, content: "Discussing movie genres", favorite: false },
-    ],
-  },
-  5: {
-    title: "Unit 5 - Occupation - 직업",
-    vocabulary: [
-      { id: 1, content: "의사 - Doctor", favorite: false },
-      { id: 2, content: "선생님 - Teacher", favorite: false },
-      { id: 3, content: "학생 - Student", favorite: false },
-    ],
-    grammar: [
-      { id: 1, content: "Talking about work: ~에서 일하다", favorite: false },
-      { id: 2, content: "Asking about jobs: 직업이 뭐예요?", favorite: false },
-    ],
-    communication: [
-      { id: 1, content: "Asking about someone's occupation", favorite: false },
-      { id: 2, content: "Describing your job", favorite: false },
-    ],
-  },
-  6: {
-    title: "Unit 6 - Hobbies - 취미",
-    vocabulary: [
-      { id: 1, content: "독서 - Reading", favorite: false },
-      { id: 2, content: "운동 - Exercise", favorite: false },
-      { id: 3, content: "게임 - Games", favorite: false },
-    ],
-    grammar: [
-      { id: 1, content: "Talking about hobbies: ~을/를 좋아하다", favorite: false },
-      { id: 2, content: "Expressing frequency: 자주/가끔/매일", favorite: false },
-    ],
-    communication: [
-      { id: 1, content: "Talking about hobbies", favorite: false },
-      { id: 2, content: "Inviting someone to join an activity", favorite: false },
-    ],
-  },
-};
-// Thêm hàm xử lý
-
-
-export default function StudyPage() {
-  const { bookId, unitId } = useParams();
-  const unitStudy = studyData[unitId];
-
-  // handle navigate
-
+const StudyPage = () => {
+  const { unitId } = useParams(); // Lấy unitId từ URL
   const navigate = useNavigate();
+  const location = useLocation();
+  
+  const [activeTab, setActiveTab] = useState("vocab");
 
-  const handleLearn = (tab) => {
-    console.log("Học ngay:", tab, typeof tab); // debug
-    navigate(`/user/mycourses/${bookId}/${unitId}/${tab}`);
+  // Tự động chuyển tab nếu có yêu cầu từ trang khác (ví dụ từ nút "Xem lại sao")
+  useEffect(() => {
+    if (location.state?.activeTab) {
+      setActiveTab(location.state.activeTab);
+    }
+  }, [location.state]);
+
+  // --- MOCK DATA ---
+  const [vocabList, setVocabList] = useState([
+    { id: 1, text: "1. Xin chào - 안녕하세요", saved: false },
+    { id: 2, text: "2. Quốc tịch - 국적", saved: false },
+    { id: 3, text: "3. Nghề nghiệp - 직업", saved: true }, 
+    { id: 4, text: "4. Giáo viên - 선생님", saved: false },
+    { id: 5, text: "5. Bạn tên gì? - 이름이 뭐예요?", saved: false },
+    { id: 6, text: "6. Người Việt Nam - 베트남 사람", saved: false },
+  ]);
+
+  const [grammarList, setGrammarList] = useState([
+    { id: 1, text: "...입니다 (imnida) - là ...", saved: false },
+    { id: 2, text: "...은/는 (eun/neun) - tiểu từ chủ ngữ", saved: false },
+    { id: 3, text: "~이/가 아니다 - không phải là ...", saved: false },
+    { id: 4, text: "~도 (cũng)", saved: true },
+  ]);
+
+  const [commList, setCommList] = useState([
+    { id: 1, text: "Chào hỏi đơn giản", saved: false },
+    { id: 2, text: "Giới thiệu", saved: false },
+  ]);
+
+  const toggleSave = (id, type) => {
+    if (type === 'vocab') {
+      setVocabList(prev => prev.map(item => item.id === id ? { ...item, saved: !item.saved } : item));
+    } else if (type === 'grammar') {
+      setGrammarList(prev => prev.map(item => item.id === id ? { ...item, saved: !item.saved } : item));
+    } else if (type === 'comm') {
+      setCommList(prev => prev.map(item => item.id === id ? { ...item, saved: !item.saved } : item));
+    }
   };
 
-
-  const [activeTab, setActiveTab] = useState("vocabulary");
-  const [starred, setStarred] = useState({}); // {vocabulary: [1,3], grammar: [2], ...}
-
-  const [mobileModal, setMobileModal] = useState(null);
-  const toggleStar = (tab, id) => {
-    setStarred((prev) => {
-      const tabStars = prev[tab] || [];
-      if (tabStars.includes(id)) {
-        return { ...prev, [tab]: tabStars.filter((x) => x !== id) };
-      } else {
-        return { ...prev, [tab]: [...tabStars, id] };
-      }
-    });
+  const formatUnitName = (id) => {
+    return id ? id.replace(/-/g, " ").toUpperCase() : "UNIT 1";
   };
 
-  const tabs = ["vocabulary", "grammar", "communication"];
+  // List Items đã lưu (Starred)
+  const starredList = [
+    ...vocabList.filter(i => i.saved).map(i => ({...i, type: 'vocab', typeName: 'Từ vựng'})),
+    ...grammarList.filter(i => i.saved).map(i => ({...i, type: 'grammar', typeName: 'Ngữ pháp'})),
+    ...commList.filter(i => i.saved).map(i => ({...i, type: 'comm', typeName: 'Hội thoại'}))
+  ];
 
-  const renderList = (tab) => (
-    <div className="space-y-3">
-      {unitStudy[tab].map((item) => (
-        <div
-          key={item.id}
-          className="flex justify-between items-center p-4 bg-white shadow rounded-lg"
+  return (
+    <div className="w-full min-h-screen font-sans pt-2 pb-8">
+      
+      {/* --- HEADER --- */}
+      <header className="flex items-center gap-2 mb-8 -ml-2">
+        <button 
+          onClick={() => navigate('/courses/general-learning')} 
+          className="p-2 rounded-full bg-white text-gray-500 hover:text-gray-900 hover:shadow-sm transition-all border border-gray-200"
         >
-          <span className="text-base md:text-lg">{item.content}</span>
-          <button onClick={() => toggleStar(tab, item.id)}>
-            <Star
-              size={24}
-              className={`transition-colors ${starred[tab]?.includes(item.id) ? "text-yellow-400" : "text-gray-300"
-                }`}
-            />
-          </button>
-        </div>
-      ))}
-
-      {/* Nút học ngay */}
-      <div className="flex justify-center pt-4">
-        <button
-          onClick={() => handleLearn(tab)}
-          className="px-6 py-2 bg-green-600 text-white font-semibold rounded-lg shadow hover:bg-green-700 transition"
-        >
-          Học ngay
+          <ChevronLeft size={20} />
         </button>
+
+        <div className="flex flex-wrap items-center gap-2 text-lg font-bold text-gray-800 ml-1">
+            <span className="opacity-50 hover:opacity-100 cursor-pointer transition" onClick={() => navigate('/courses')}>Course</span>
+            <ChevronRight size={18} className="text-gray-400" />
+            <span className="opacity-50 hover:opacity-100 cursor-pointer transition" onClick={() => navigate(`/courses/general-learning`)}>General Learning</span>
+            <ChevronRight size={18} className="text-gray-400" />
+            <span className="uppercase text-[#008236]">{formatUnitName(unitId)}</span>
+        </div>
+      </header>
+
+      {/* --- TABS --- */}
+      <div className="flex items-end pl-4 overflow-x-auto">
+        <button onClick={() => setActiveTab("vocab")} className={`px-8 py-3 rounded-t-xl font-bold text-sm tracking-wide transition-all relative top-[2px] z-10 ${activeTab === "vocab" ? "bg-white text-black border-t-2 border-l-2 border-r-2 border-[#5CA370] border-b-white" : "bg-transparent text-gray-500 hover:text-gray-800 border-b-2 border-[#5CA370]"}`}>VOCAB</button>
+        <button onClick={() => setActiveTab("grammar")} className={`px-8 py-3 rounded-t-xl font-bold text-sm tracking-wide transition-all relative top-[2px] z-10 ${activeTab === "grammar" ? "bg-white text-black border-t-2 border-l-2 border-r-2 border-[#5CA370] border-b-white" : "bg-transparent text-gray-500 hover:text-gray-800 border-b-2 border-[#5CA370]"}`}>GRAMMAR</button>
+        <button onClick={() => setActiveTab("communication")} className={`px-8 py-3 rounded-t-xl font-bold text-sm tracking-wide transition-all relative top-[2px] z-10 ${activeTab === "communication" ? "bg-white text-black border-t-2 border-l-2 border-r-2 border-[#5CA370] border-b-white" : "bg-transparent text-gray-500 hover:text-gray-800 border-b-2 border-[#5CA370]"}`}>COMMUNICATION</button>
+        <button onClick={() => setActiveTab("starred")} className={`flex items-center gap-2 px-8 py-3 rounded-t-xl font-bold text-sm tracking-wide transition-all relative top-[2px] z-10 ${activeTab === "starred" ? "bg-yellow-50 text-yellow-700 border-t-2 border-l-2 border-r-2 border-yellow-400 border-b-yellow-50" : "bg-transparent text-gray-400 hover:text-yellow-600 border-b-2 border-[#5CA370]"}`}><Star size={16} className={activeTab === "starred" ? "fill-yellow-500 text-yellow-500" : ""}/> SAVED</button>
+      </div>
+
+      {/* --- CONTENT --- */}
+      <div className={`bg-white border-2 ${activeTab === 'starred' ? 'border-yellow-400 bg-yellow-50/10' : 'border-[#5CA370]'} rounded-b-2xl rounded-tr-2xl p-6 min-h-[500px] shadow-sm relative z-0`}>
+        
+        {/* 1. VOCAB */}
+        {activeTab === "vocab" && (
+          <div className="flex flex-col gap-4">
+            {vocabList.map((item) => (
+              <div 
+                key={item.id} 
+                // 👇 SỬA ĐƯỜNG DẪN TẠI ĐÂY
+                onClick={() => navigate(`/courses/general-learning/${unitId}/vocabulary`)}
+                className="group flex items-center justify-between p-5 rounded-xl border-2 border-[#5CA370] bg-white hover:bg-green-50 transition-colors cursor-pointer"
+              >
+                <div className="font-bold text-gray-800 text-lg">{item.text}</div>
+                <button onClick={(e) => {e.stopPropagation(); toggleSave(item.id, 'vocab');}} className="p-2 transition-transform active:scale-90">
+                  <Star size={24} className={item.saved ? "text-yellow-400 fill-yellow-400" : "text-yellow-400"} strokeWidth={2}/>
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* 2. GRAMMAR */}
+        {activeTab === "grammar" && (
+           <div className="flex flex-col gap-4">
+             {grammarList.map((item) => (
+              <div key={item.id} className="group flex items-center justify-between p-5 rounded-xl border-2 border-[#5CA370] bg-white hover:bg-green-50 transition-colors cursor-pointer">
+                <div className="font-bold text-gray-800 text-lg">{item.text}</div>
+                <button onClick={(e) => {e.stopPropagation(); toggleSave(item.id, 'grammar');}} className="p-2 transition-transform active:scale-90">
+                  <Star size={24} className={item.saved ? "text-yellow-400 fill-yellow-400" : "text-yellow-400"} strokeWidth={2}/>
+                </button>
+              </div>
+            ))}
+           </div>
+        )}
+
+        {/* 3. COMMUNICATION */}
+        {activeTab === "communication" && (
+           <div className="flex flex-col gap-4">
+             {commList.map((item) => (
+              <div key={item.id} className="group flex items-center justify-between p-5 rounded-xl border-2 border-[#5CA370] bg-white hover:bg-green-50 transition-colors cursor-pointer">
+                <div className="font-bold text-gray-800 text-lg">{item.text}</div>
+                <button onClick={(e) => {e.stopPropagation(); toggleSave(item.id, 'comm');}} className="p-2 transition-transform active:scale-90">
+                  <Star size={24} className={item.saved ? "text-yellow-400 fill-yellow-400" : "text-yellow-400"} strokeWidth={2}/>
+                </button>
+              </div>
+            ))}
+           </div>
+        )}
+
+        {/* 4. STARRED */}
+        {activeTab === "starred" && (
+          <div className="flex flex-col gap-4">
+            {starredList.length === 0 ? (
+               <div className="flex flex-col items-center justify-center h-64 text-gray-400">
+                  <Bookmark size={48} className="mb-4 opacity-20"/>
+                  <p>Bạn chưa lưu mục nào.</p>
+               </div>
+            ) : (
+               starredList.map((item) => (
+                  <div key={`${item.type}-${item.id}`} className="group flex items-center justify-between p-5 rounded-xl border-2 border-yellow-300 bg-white hover:bg-yellow-50 transition-colors cursor-pointer shadow-sm">
+                    <div>
+                        <div className="font-bold text-gray-800 text-lg">{item.text}</div>
+                        <span className="text-xs font-bold text-yellow-600 bg-yellow-100 px-2 py-1 rounded-md mt-1 inline-block">{item.typeName}</span>
+                    </div>
+                    <button onClick={(e) => {e.stopPropagation(); toggleSave(item.id, item.type);}} className="p-2 transition-transform active:scale-90">
+                      <Star size={24} className="text-yellow-400 fill-yellow-400" strokeWidth={2}/>
+                    </button>
+                  </div>
+               ))
+            )}
+          </div>
+        )}
+
       </div>
     </div>
   );
+};
 
-
-  return (
-    <MainLayout2>
-      <div className="bg-gray-50 max-h-[80vh] py-8 md:py-12 px-4 md:px-0">
-        <AnimateOnView>
-          <section className="max-w-4xl mx-auto">
-            <h1 className="text-2xl md:text-3xl font-extrabold text-gray-900 mb-6 text-center md:text-left">
-              {`${unitId}. ${unitStudy.title}`}
-            </h1>
-
-            {/* Desktop / Tablet Tabs */}
-            <div className="hidden md:flex justify-center mb-[-2px]">
-              {tabs.map((tab) => (
-                <button
-                  key={tab}
-                  onClick={() => setActiveTab(tab)}
-                  className={`w-1/3 px-8 py-4 text-lg rounded-t-lg font-bold transition-all duration-200
-                    ${activeTab === tab
-                      ? "bg-green-600 text-white shadow border-t-2 border-l-2 border-r-2 border-green-600"
-                      : "bg-white text-gray-700 shadow border-b-2 border-green-600 hover:bg-gray-100"
-                    }
-                  `}
-                >
-                  {tab.charAt(0).toUpperCase() + tab.slice(1)}
-                </button>
-              ))}
-            </div>
-
-            {/* Mobile Tabs */}
-            <div className="flex flex-col space-y-3 md:hidden">
-              {tabs.map((tab) => (
-                <button
-                  key={tab}
-                  onClick={() => setMobileModal(tab)}
-                  className="w-full px-6 py-3 text-base font-bold rounded-lg bg-white shadow border-2 border-green-600 hover:bg-green-50 text-gray-800"
-                >
-                  {tab.charAt(0).toUpperCase() + tab.slice(1)}
-                </button>
-              ))}
-            </div>
-
-            {/* Content Desktop / Tablet */}
-            <div className="hidden md:block border-2 border-green-600 rounded-b-md rounded-tl-none rounded-tr-none p-4 bg-white mt-[-2px]">
-              {renderList(activeTab)}
-            </div>
-
-            {/* Mobile Modal */}
-            {mobileModal && (
-              <div className="fixed inset-0 bg-black/50 z-50 flex justify-center items-start pt-24 px-4">
-                <div className="bg-white rounded-lg w-full max-w-md p-4 relative shadow-lg">
-                  <button
-                    onClick={() => setMobileModal(null)}
-                    className="absolute top-3 right-3 text-gray-500 hover:text-gray-800"
-                  >
-                    <X size={24} />
-                  </button>
-                  <h2 className="text-xl font-bold mb-4">
-                    {mobileModal.charAt(0).toUpperCase() + mobileModal.slice(1)}
-                  </h2>
-                  {renderList(mobileModal)}
-                </div>
-              </div>
-            )}
-          </section>
-        </AnimateOnView>
-      </div>
-    </MainLayout2>
-  );
-}
+export default StudyPage;

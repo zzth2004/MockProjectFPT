@@ -1,198 +1,322 @@
-// src/pages/Dashboard.jsx
 import React from "react";
-import { Home, BookOpen, CirclePoundSterling, Trophy, Coins, Medal, ChevronLeft, ChevronRight, NotebookPen, ClipboardList, GraduationCap } from "lucide-react";
-import { Line } from "react-chartjs-2";
-import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, Tooltip, Legend } from "chart.js";
-import MainLayout2 from "../../layout/MainLayout2";
-import NestedDonutChart from "../../components/ChartComponent/NestedDonutChart";
+import {
+  Medal,
+  Star,
+  Coins,
+  ChevronLeft,
+  ChevronRight,
+  Heart,
+  BookOpen,
+  Globe,
+  Timer
+} from "lucide-react";
+import { Line, Doughnut } from "react-chartjs-2";
+import {
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  ArcElement,
+  Tooltip,
+  Legend,
+  Filler,
+} from "chart.js";
+
+// Import ảnh của bạn (Giữ nguyên)
 import testImg from "../../assets/test.png";
 import quizzImg from "../../assets/quizz.png";
 import vocabImg from "../../assets/vocab.png";
 
-ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Tooltip, Legend);
-
-const PRIMARY = "#008236";
+// Đăng ký ChartJS
+ChartJS.register(
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  ArcElement,
+  Tooltip,
+  Legend,
+  Filler
+);
 
 const Dashboard = () => {
-    const chartData = {
-        labels: ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"],
-        datasets: [
-            {
-                label: "My Vocabulary",
-                data: [2, 3, 2.5, 4, 3.8, 4.5, 3.2, 4, 4.5, 4.2, 4, 3.5],
-                borderColor: PRIMARY,
-                tension: 0.4,
-                fill: false,
-            },
-            {
-                label: "Repeat",
-                data: [1, 2, 1.5, 2.5, 2, 3, 2.2, 2.8, 2.5, 3, 2.8, 2],
-                borderColor: "#FF4C4C",
-                tension: 0.4,
-                fill: false,
-            },
-        ],
-    };
+  // --- 1. Config Biểu đồ Đường (Statistics) ---
+  const lineChartData = {
+    labels: ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"],
+    datasets: [
+      {
+        label: "Points",
+        data: [20, 45, 35, 60, 55, 70, 65, 80, 75, 60, 50, 40],
+        borderColor: "#C084FC", // Tím
+        backgroundColor: "rgba(192, 132, 252, 0.0)", // Transparent fill
+        tension: 0.4, // Đường cong mềm
+        pointRadius: 0,
+        pointHoverRadius: 6,
+        pointHoverBackgroundColor: "#C084FC",
+        pointHoverBorderColor: "#fff",
+        pointHoverBorderWidth: 2,
+        borderWidth: 3,
+      },
+      {
+        label: "Average",
+        data: [30, 25, 40, 35, 50, 45, 60, 55, 70, 85, 75, 65],
+        borderColor: "#22D3EE", // Cyan (Xanh sáng)
+        backgroundColor: "rgba(34, 211, 238, 0.0)",
+        tension: 0.4,
+        pointRadius: 0,
+        pointHoverRadius: 6,
+        pointHoverBackgroundColor: "#22D3EE",
+        pointHoverBorderColor: "#fff",
+        pointHoverBorderWidth: 2,
+        borderWidth: 3,
+      },
+    ],
+  };
 
-    const chartOptions = {
-        plugins: { legend: { display: false } },
-        responsive: true,
-        maintainAspectRatio: false,
-    };
+  const lineChartOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: { display: false },
+      tooltip: {
+        backgroundColor: "#1F2937",
+        titleColor: "#fff",
+        bodyColor: "#fff",
+        padding: 10,
+        cornerRadius: 8,
+        displayColors: false,
+        callbacks: {
+            label: (context) => `${context.parsed.y} Points` // Custom tooltip text
+        }
+      },
+    },
+    scales: {
+      x: { 
+        grid: { display: false }, 
+        ticks: { color: "#9CA3AF", font: { size: 11 } } 
+      },
+      y: { 
+        display: false, // Ẩn trục Y như ảnh mẫu
+        min: 0,
+        max: 100
+      },
+    },
+    interaction: {
+        mode: 'index',
+        intersect: false,
+    },
+  };
 
-    return (
-        <MainLayout2>
-            <div className="max-h-[80vh]">
-                {/* Main content */}
-                <main className="flex-1 p-8">
-                    <div className="grid grid-cols-1 md:grid-cols-12 gap-6 mb-8 items-stretch">
-                        <div className="flex flex-col gap-6 md:col-span-3">
-                            {/* Card 1: Unit Homework */}
-                            <div className="bg-white p-6 rounded-2xl shadow hover:shadow-lg transition transform hover:-translate-y-1 flex flex-col">
-                                <div className="flex justify-between items-center">
-                                    <div>
-                                        <h3 className="text-xl font-bold text-gray-800">Unit 1.2</h3>
-                                        <p className="text-gray-500 flex items-center gap-1 mt-1 text-base">
-                                            Homework <Medal className="w-5 h-5 text-yellow-500" />
-                                        </p>
-                                    </div>
-                                    <NotebookPen className="w-12 h-12 text-green-600" />
-                                </div>
-                                <div className="w-full h-2 bg-gray-200 rounded mt-4">
-                                    <div className="h-2 bg-green-600 rounded w-1/2"></div>
-                                </div>
-                                <p className="mt-2 text-base text-gray-400">50% completed</p>
-                            </div>
+  // --- 2. Config Biểu đồ Tròn (Total Word) ---
+  const doughnutData = {
+    labels: ["My Vocabulary", "Repeat"],
+    datasets: [
+      {
+        data: [3500, 1500],
+        backgroundColor: ["#22C55E", "#EF4444"], // Green, Red
+        borderWidth: 0,
+        cutout: "82%", // Độ mỏng của vòng tròn
+        borderRadius: 20, // Bo tròn đầu mút (quan trọng để giống ảnh)
+        spacing: 5 // Khoảng cách giữa các đoạn
+      },
+    ],
+  };
 
-                            {/* Card 2: Coins & Scores */}
-                            <div className="bg-white p-6 rounded-2xl shadow hover:shadow-lg transition transform hover:-translate-y-1 flex flex-col">
-                                <div className="flex justify-between items-center mb-4">
-                                    <h3 className="text-xl font-bold text-gray-800">Achievements</h3>
-                                    <Medal className="w-12 h-12 text-yellow-500" />
-                                </div>
-                                <div className="flex justify-between items-center text-2xl font-extrabold text-gray-700">
-                                    <span>320</span>
-                                    <span>850</span>
-                                </div>
-                                <div className="flex justify-between mt-3 text-gray-600 text-base">
-                                    <div className="flex items-center gap-1">
-                                        <CirclePoundSterling className="w-5 h-5 text-amber-400" />
-                                        <span>Coins</span>
-                                    </div>
-                                    <div className="flex items-center gap-1">
-                                        <Trophy className="w-5 h-5 text-green-500" />
-                                        <span>Scores</span>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
+  const doughnutOptions = {
+    plugins: { legend: { display: false }, tooltip: { enabled: false } },
+    maintainAspectRatio: false,
+    rotation: -90,
+    circumference: 360,
+  };
 
-                        {/* Middle: Chart */}
-                        <div className="md:col-span-6">
-                            <NestedDonutChart
-                                centerValue="5000"
-                                data={[
-                                    { label: "Từ vựng đã học", color: "#16a34a", value: 70 },
-                                    { label: "Ngữ pháp đã học", color: "#3b82f6", value: 45 },
-                                ]}
-                            />
-                        </div>
-
-                        {/* Right: Study Goals */}
-                        <div className="bg-white p-6 rounded-2xl shadow hover:shadow-lg transition transform hover:-translate-y-1 flex flex-col md:col-span-3">
-                            <h3 className="text-xl font-bold text-gray-800 mb-4">🎯 Mục tiêu học tập</h3>
-                            <ul className="space-y-4">
-                                {[
-                                    { label: "Học 200 từ mới", color: "bg-green-600", progress: 70 },
-                                    { label: "Ôn 50 cấu trúc ngữ pháp", color: "bg-blue-500", progress: 45 },
-                                    { label: "Hoàn thành 10 quiz", color: "bg-amber-400", progress: 30 },
-                                    { label: "Nghe 5 podcast", color: "bg-purple-500", progress: 20 },
-                                    { label: "Test 5 quizz", color: "bg-red-500", progress: 40 },
-                                ].map((item, i) => (
-                                    <li key={i} className="flex flex-col">
-                                        <div className="flex items-center gap-2">
-                                            <span className={`w-3 h-3 rounded-full ${item.color}`}></span>
-                                            <span className="text-gray-700 text-base">{item.label}</span>
-                                        </div>
-                                        <div className="w-full h-2 bg-gray-200 rounded mt-1">
-                                            <div
-                                                className={`h-2 rounded ${item.color}`}
-                                                style={{ width: `${item.progress}%` }}
-                                            ></div>
-                                        </div>
-
-                                    </li>
-                                ))}
-                            </ul>
-                        </div>
-                    </div>
-                    {/* Chart */}
-                    <h2 className="text-xl font-bold mb-4 flex items-center justify-between">
-                        <span>Statistics</span>
-                        <div className="flex items-center gap-2">
-                            <button className="p-2 transition">
-                                <ChevronLeft className="w-5 h-5 text-gray-600 hover:text-blue-400" />
-                            </button>
-                            <span>2022</span>
-                            <button className="p-2  transition">
-                                <ChevronRight className="w-5 h-5 text-gray-600 hover:text-blue-400" />
-                            </button>
-                        </div>
-                    </h2>
-                    <div className="bg-white p-6 rounded-2xl shadow hover:shadow-lg transition mb-8 h-64">
-                        <Line data={chartData} options={chartOptions} />
-                    </div>
-
-                    {/* Word Sets */}
-                    <h2 className="text-xl font-bold mb-4 flex items-center justify-between">
-                        <span>Word Sets</span>
-                        <div className="flex items-center gap-2">
-                            <button className="p-2 transition">
-                                <ChevronLeft className="w-5 h-5 text-gray-600 hover:text-blue-400" />
-                            </button>
-                            <span>|</span>
-                            <button className="p-2  transition">
-                                <ChevronRight className="w-5 h-5 text-gray-600 hover:text-blue-400" />
-                            </button>
-                        </div>
-                    </h2>
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-                        {[
-                            { label: "Vocabulary", img: vocabImg, gradient: "from-green-600/70 via-emerald-500/60 to-teal-600/70", icon: BookOpen },
-                            { label: "Quizzet", img: quizzImg, gradient: "from-purple-600/70 via-pink-500/60 to-fuchsia-600/70", icon: ClipboardList },
-                            { label: "Test", img: testImg, gradient: "from-blue-600/70 via-cyan-500/60 to-sky-600/70", icon: GraduationCap },
-                        ].map((item, idx) => {
-                            const Icon = item.icon;
-                            return (
-                                <div
-                                    key={idx}
-                                    className="relative rounded-2xl overflow-hidden group cursor-pointer shadow-md hover:shadow-xl transition transform hover:-translate-y-1 h-48"
-                                >
-                                    {/* Full background image */}
-                                    <img
-                                        src={item.img}
-                                        alt={item.label}
-                                        className="absolute inset-0 w-full h-full object-cover"
-                                    />
-
-                                    {/* Gradient overlay */}
-                                    <div
-                                        className={`absolute inset-0 bg-gradient-to-r ${item.gradient} opacity-80 group-hover:opacity-90 transition`}
-                                    ></div>
-
-                                    {/* Center content */}
-                                    <div className="relative z-10 flex flex-col items-center justify-center h-full text-white">
-                                        <Icon className="w-10 h-10 mb-2 drop-shadow-lg" />
-                                        <p className="text-lg font-bold drop-shadow-md">{item.label}</p>
-                                    </div>
-                                </div>
-                            );
-                        })}
-                    </div>
-                </main>
+  return (
+    // LƯU Ý: Không dùng <MainLayout2> ở đây nữa vì đã bọc ở Router rồi.
+    <div className="w-full min-h-screen font-sans">
+        
+      {/* --- TOP ROW: 3 CARDS --- */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        
+        {/* Card 1: Homework Unit */}
+        <div className="bg-white p-6 rounded-[2rem] shadow-sm flex flex-col justify-between h-52 hover:shadow-md transition-shadow">
+          <div className="flex justify-between items-start">
+            <div>
+              <h3 className="text-2xl font-bold text-gray-800">Unit 1.2</h3>
+              <p className="text-gray-500 font-medium mt-1">Homework</p>
             </div>
-        </MainLayout2>
-    );
+            <div className="bg-blue-50 p-3 rounded-2xl">
+                {/* Icon Medal */}
+                <Medal className="w-8 h-8 text-blue-500" />
+            </div>
+          </div>
+          <div>
+            {/* Thanh Progress */}
+            <div className="w-full h-3 bg-gray-100 rounded-full overflow-hidden">
+              <div className="h-full bg-[#5B6CF9] w-[65%] rounded-full shadow-lg shadow-blue-200"></div>
+            </div>
+            {/* Text ẩn hoặc hiện tùy ý, trong ảnh mẫu không có text % */}
+          </div>
+        </div>
+
+        {/* Card 2: Coins & Scores */}
+        <div className="bg-white p-6 rounded-[2rem] shadow-sm flex items-center h-52 hover:shadow-md transition-shadow">
+          <div className="flex-1 flex flex-col items-center justify-center gap-2">
+            <div className="w-14 h-14 bg-yellow-50 rounded-full flex items-center justify-center mb-1">
+               <Coins className="w-7 h-7 text-yellow-500 fill-yellow-500" />
+            </div>
+            <span className="text-3xl font-bold text-gray-800">320</span>
+            <span className="text-sm font-semibold text-gray-400">Coins</span>
+          </div>
+          
+          {/* Divider */}
+          <div className="w-[2px] h-24 bg-gray-100 rounded-full"></div>
+
+          <div className="flex-1 flex flex-col items-center justify-center gap-2">
+            <div className="w-14 h-14 bg-orange-50 rounded-full flex items-center justify-center mb-1">
+               <Star className="w-7 h-7 text-orange-400 fill-orange-400" />
+            </div>
+            <span className="text-3xl font-bold text-gray-800">850</span>
+            <span className="text-sm font-semibold text-gray-400">Scores</span>
+          </div>
+        </div>
+
+        {/* Card 3: Total Word Chart */}
+        <div className="bg-white p-6 rounded-[2rem] shadow-sm flex items-center gap-6 h-52 hover:shadow-md transition-shadow">
+           {/* Chart */}
+          <div className="relative w-36 h-36 flex-shrink-0">
+            <Doughnut data={doughnutData} options={doughnutOptions} />
+            <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+               <span className="text-2xl font-bold text-gray-800">5000</span>
+               <span className="text-xs font-semibold text-gray-400">Total Word</span>
+            </div>
+          </div>
+          
+          {/* Legend */}
+          <div className="flex flex-col gap-4">
+             <div className="flex items-center gap-2">
+                <span className="w-8 h-2 rounded-full bg-green-500"></span>
+                <div>
+                    <p className="text-xs font-bold text-gray-800">My Vocabulary</p>
+                </div>
+             </div>
+             <div className="flex items-center gap-2">
+                <span className="w-8 h-2 rounded-full bg-red-500"></span>
+                <div>
+                    <p className="text-xs font-bold text-gray-800">Repeat</p>
+                </div>
+             </div>
+          </div>
+        </div>
+      </div>
+
+      {/* --- MIDDLE ROW: STATISTICS CHART --- */}
+      <div className="bg-white p-8 rounded-[2rem] shadow-sm mb-8 relative">
+        <div className="flex justify-between items-center mb-6">
+          <h2 className="text-xl font-bold text-gray-800">Statistics</h2>
+          <div className="flex items-center gap-3">
+            <button className="p-2 hover:bg-gray-100 rounded-full transition text-gray-400 hover:text-gray-600">
+               <ChevronLeft size={20} />
+            </button>
+            <span className="text-lg font-bold text-gray-700">2022</span>
+            <button className="p-2 hover:bg-gray-100 rounded-full transition text-gray-400 hover:text-gray-600">
+               <ChevronRight size={20} />
+            </button>
+          </div>
+        </div>
+        
+        {/* Chart Container */}
+        <div className="h-64 w-full">
+           <Line data={lineChartData} options={lineChartOptions} />
+        </div>
+
+        {/* Floating Tooltip Label (Giả lập cái mác đen 4.5 Points trong ảnh) */}
+        <div className="hidden md:block absolute top-[35%] left-[60%] transform -translate-x-1/2 -translate-y-full">
+            <div className="bg-[#1F2937] text-white px-3 py-1.5 rounded-lg shadow-lg text-center relative mb-2">
+                <p className="text-xs text-gray-300">Points</p>
+                <p className="text-lg font-bold">4.5</p>
+                {/* Mũi tên trỏ xuống */}
+                <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 translate-y-1 w-2 h-2 bg-[#1F2937] rotate-45"></div>
+            </div>
+            <div className="w-3 h-3 bg-[#1F2937] rounded-full mx-auto ring-4 ring-white shadow-sm"></div>
+        </div>
+      </div>
+
+      {/* --- BOTTOM ROW: WORD SETS --- */}
+      <div className="mb-4">
+         <div className="flex justify-between items-center mb-6">
+            <h2 className="text-xl font-bold text-gray-800">Word Sets</h2>
+            <div className="flex gap-2">
+                <button className="p-2 text-gray-400 hover:text-gray-800 transition"><ChevronLeft /></button>
+                <button className="p-2 text-gray-400 hover:text-gray-800 transition"><ChevronRight /></button>
+            </div>
+         </div>
+
+         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {/* Card 1: Vocabulary (Gradient Hồng Cam) */}
+            <div className="relative h-44 rounded-[2rem] overflow-hidden group cursor-pointer hover:scale-[1.02] transition-transform duration-300">
+                {/* Background Gradient */}
+                <div className="absolute inset-0 bg-gradient-to-br from-[#FF9A9E] to-[#FECFEF]"></div>
+                
+                {/* Heart Button */}
+                <button className="absolute top-4 right-4 bg-white/30 backdrop-blur-sm p-2 rounded-full hover:bg-white/50 transition">
+                    <Heart className="w-5 h-5 text-white fill-white" />
+                </button>
+                
+                {/* Content */}
+                <div className="absolute inset-0 p-6 flex flex-col justify-end">
+                    {/* Icon Container */}
+                    <div className="mb-2">
+                        {/* Nếu không có ảnh thật thì dùng icon này */}
+                        {!vocabImg && <BookOpen className="w-12 h-12 text-white drop-shadow-md" />} 
+                    </div>
+                    <h3 className="text-white text-xl font-bold tracking-wide drop-shadow-sm">Vocabulary</h3>
+                </div>
+
+                {/* Image Overlay (Nếu có ảnh 3D thật) */}
+                <img src={vocabImg} className="absolute bottom-4 right-4 w-24 h-24 object-contain drop-shadow-2xl opacity-90 group-hover:scale-110 transition-transform duration-500" alt="vocab" />
+            </div>
+
+            {/* Card 2: Quizzet (Gradient Tím) */}
+            <div className="relative h-44 rounded-[2rem] overflow-hidden group cursor-pointer hover:scale-[1.02] transition-transform duration-300">
+                <div className="absolute inset-0 bg-gradient-to-br from-[#C471ED] to-[#F64F59]"></div>
+                {/* Gradient tím pha chút đỏ/hồng cho giống ảnh */}
+                <div className="absolute inset-0 bg-gradient-to-tr from-violet-400 to-fuchsia-300"></div>
+
+                <button className="absolute top-4 right-4 bg-white/30 backdrop-blur-sm p-2 rounded-full hover:bg-white/50 transition">
+                    <Heart className="w-5 h-5 text-white fill-white" />
+                </button>
+
+                <div className="absolute inset-0 p-6 flex flex-col justify-end z-10">
+                    <h3 className="text-white text-xl font-bold tracking-wide drop-shadow-sm">Quizzet</h3>
+                </div>
+                 {/* Ảnh 3D */}
+                <img src={quizzImg} className="absolute bottom-2 right-2 w-28 h-28 object-contain drop-shadow-2xl opacity-90 group-hover:rotate-12 transition-transform duration-500" alt="quizz" />
+                 {/* Fallback Icon */}
+                 {!quizzImg && <Globe className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-20 h-20 text-white/50" />}
+            </div>
+
+            {/* Card 3: Test (Gradient Xanh Hồng) */}
+            <div className="relative h-44 rounded-[2rem] overflow-hidden group cursor-pointer hover:scale-[1.02] transition-transform duration-300">
+                <div className="absolute inset-0 bg-gradient-to-br from-[#4facfe] to-[#00f2fe]"></div>
+                {/* Lớp phủ gradient nhẹ để tạo màu giống ảnh */}
+                <div className="absolute inset-0 bg-gradient-to-bl from-blue-300 to-pink-300 opacity-80"></div>
+
+                <button className="absolute top-4 right-4 bg-white/30 backdrop-blur-sm p-2 rounded-full hover:bg-white/50 transition">
+                    <Heart className="w-5 h-5 text-white fill-white" />
+                </button>
+
+                <div className="absolute inset-0 p-6 flex flex-col justify-end z-10">
+                    <h3 className="text-white text-xl font-bold tracking-wide drop-shadow-sm">Test</h3>
+                </div>
+                 {/* Ảnh 3D */}
+                <img src={testImg} className="absolute bottom-4 right-4 w-24 h-24 object-contain drop-shadow-2xl opacity-90 group-hover:-translate-y-2 transition-transform duration-500" alt="test" />
+                {!testImg && <Timer className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-20 h-20 text-white/50" />}
+            </div>
+         </div>
+      </div>
+
+    </div>
+  );
 };
 
 export default Dashboard;
