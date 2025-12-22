@@ -25,18 +25,37 @@ import Logout from "../page/mainpage/Settings/Logout.jsx";
 import Account from "../page/mainpage/Account/Account.jsx";
 import DemoVideoPlayer from "../page/mainpage/Courses/DemoPlan.jsx";
 import ScheduleDetail from "../page/mainpage/Schedule/ScheduleDetail.jsx";
-import Lesson from "../page/mainpage/Courses/MyCourse/Lesson.jsx"
+
 import StudyPage from "../page/mainpage/Courses/MyCourse/StudyPage.jsx";
 import StudyVocab from "../page/mainpage/Courses/MyCourse/StudyVocab.jsx";
 import QuizzPlaypage from "../page/mainpage/Quizzes/QuizzPlayPage.jsx";
 import Page404 from "../page/error/PageNotFound2.jsx";
 import CatchAll404 from "./CatchAll404.jsx";
+// Thêm/Sửa các import này vào đoạn giữa file Router/index.jsx
+import MainLayout2 from "../layout/MainLayout2.jsx";
+import GeneralLearning from "../page/mainpage/Courses/general-learning/general-learning.jsx";
+import LessonDetail from "../page/mainpage/Courses/MyCourse/LessonDetail.jsx";
+import HomeworkSubmission from "../page/mainpage/Courses/MyCourse/HomeworkSubmission.jsx";
 
+import FlashcardLibrary from "../page/mainpage/Flashcard/FlashcardLibrary.jsx";
+import FolderDetail from "../page/mainpage/Flashcard/FolderDetail.jsx";
+import CreateSetPage from "../page/mainpage/Flashcard/CreateSetPage.jsx";
+import StudyFlashcard from "../page/mainpage/Flashcard/StudyFlashcard.jsx";
+
+import ActiveCourses from "../page/mainpage/ActiveCourse/ActiveCourses.jsx";
+import CourseDetail from "../page/mainpage/ActiveCourse/CourseDetail.jsx";
+import PaymentPage from "../page/mainpage/Payment/Payment.jsx";
+
+import AiSupportConsole from "../page/mainpage/AISupport/AiSupportConsole.jsx";
+import SupportPage from "../page/mainpage/Settings/Support.jsx";
+import UpgradePage from "../page/mainpage/Upgrade/Upgrade.jsx";
+import ChatPage from "../page/mainpage/Chats/ChatPages.jsx";
+import BlogManagement from "../AdminControl/Admin/Blog/blog.ui.jsx"; // Kiểm tra lại đường dẫn này
 
 import AdminLayout from "../layout/adminLayout.jsx"; // Import Layout mới
 import DashboardHome from "../AdminControl/Admin/dashboardHome.jsx";
 
-
+// admin
 import UserList from "../AdminControl/Admin/User/user.ui.jsx";
 import CourseList from "../AdminControl/Admin/Course/course.ui.jsx";
 import CourseClassList from "../AdminControl/Admin/Course/course-class.ui.jsx";
@@ -50,7 +69,7 @@ import AttemptList from "../AdminControl/Admin/Course/Lesson/Material/exercise-a
 import SubscriptionPlanList from "../AdminControl/Admin/Subscription/subscription.ui.jsx";
 import BookManagement from "../AdminControl/Admin/Book/book.ui.jsx";
 import LateDevPage from "../AdminControl/Admin/latedev.ui.jsx";
-import BlogManagement from "../AdminControl/Admin/Blog/blog.ui.jsx";
+import TeacherDashboardHome from "../AdminControl/teacherDashboard.ui.jsx";
 
 function AnimatedRoutes() {
   const location = useLocation();
@@ -80,9 +99,57 @@ function AnimatedRoutes() {
         <Route path="/homeindex/courses" element={<PageWrapper><Course /></PageWrapper>} />
 
 
+        <Route element={<MainLayout2 />}>
+          <Route path="/user/dashboard" element={<PageWrapper><Dashboard /></PageWrapper>} />
+
+          {/* Courses */}
+          <Route path="/courses" element={<PageWrapper><Courses /></PageWrapper>} />
+          <Route path="/courses/general-learning" element={<PageWrapper><GeneralLearning /></PageWrapper>} />
+          <Route path="/courses/mycourses" element={<PageWrapper><MyCourse /></PageWrapper>} />
+
+          {/* General Learning Detail */}
+          <Route path="/courses/general-learning/:unitId" element={<PageWrapper><StudyPage /></PageWrapper>} />
+          <Route path="/courses/general-learning/:unitId/vocabulary" element={<PageWrapper><StudyVocab /></PageWrapper>} />
+          <Route path="/courses/general-learning/:unitId/quiz" element={<PageWrapper><QuizzPlaypage /></PageWrapper>} />
+
+          {/* MyCourse Detail */}
+          <Route path="/courses/mycourses/:bookId" element={<PageWrapper><LessonDetail /></PageWrapper>} />
+          <Route path="/courses/mycourses/:bookId/homework/:homeworkId" element={<PageWrapper><HomeworkSubmission /></PageWrapper>} />
+          <Route path="/courses/mycourses/:bookId/:unitId" element={<PageWrapper><StudyPage /></PageWrapper>} />
+          <Route path="/courses/mycourses/:bookId/:unitId/vocabulary" element={<PageWrapper><StudyVocab /></PageWrapper>} />
+
+         {/* flashcard */}
+          <Route path="/user/flashcards" element={<PageWrapper><FlashcardLibrary /></PageWrapper>} />
+          <Route path="/user/flashcards/folder/:folderId" element={<PageWrapper><FolderDetail /></PageWrapper>} />
+          <Route path="/user/flashcards/create-set" element={<PageWrapper><CreateSetPage /></PageWrapper>} />
+          <Route path="/user/flashcards/study/:setId" element={<PageWrapper><StudyFlashcard /></PageWrapper>} />
+
+          <Route path="/user/mycourses" element={<PageWrapper><ActiveCourses /></PageWrapper>} />
+          <Route path="/user/mycourses/detail/:courseId" element={<PageWrapper><CourseDetail /></PageWrapper>} />
+          <Route path="/user/mycourses/payment/:courseId" element={<PageWrapper><PaymentPage /></PageWrapper>} />
+
+          {/* AI */}
+          <Route path="/user/ai-support" element={<PageWrapper><AiSupportConsole /></PageWrapper>} />
+
+          {/* Features */}
+          <Route path="/user/message" element={<PageWrapper><ChatUI /></PageWrapper>} />
+          <Route path="/user/schedule" element={<PageWrapper><Schedule /></PageWrapper>} />
+          <Route path="/user/schedule/:id" element={<PageWrapper><ScheduleDetail /></PageWrapper>} />
+
+          {/* Account */}
+          {/* <Route path="/user/account" element={<PageWrapper><Account /></PageWrapper>} /> */}
+          <Route path="/user/settings" element={<PageWrapper><Settings /></PageWrapper>} />
+          <Route path="/user/logout" element={<PageWrapper><Logout /></PageWrapper>} />
+          <Route path="/user/support" element={<PageWrapper><SupportPage /></PageWrapper>} />
+          <Route path="/user/upgrade" element={<PageWrapper><UpgradePage /></PageWrapper>} />
+          <Route path="/user/chats" element={<PageWrapper><ChatPage /></PageWrapper>} />
+          <Route path="/user/chats/:id" element={<PageWrapper><ChatPage /></PageWrapper>} />
+
+        </Route>
+
         {/* --- ADMIN ROUTES (Cải tiến) --- */}
         <Route path="/admin" element={
-          <ProtectedRoute allowedRoles={['admin']}>
+          <ProtectedRoute allowedRoles={['admin', 'teacher']}>
             <AdminLayout />
           </ProtectedRoute>
         }>
@@ -200,10 +267,11 @@ function AnimatedRoutes() {
             path="blog"
             element={
               <PageWrapper>
-                <BlogManagement  />
+                <BlogManagement />
               </PageWrapper>
             }
           />
+          <Route path="teacher/dashboard" element={<TeacherDashboardHome />} />
 
         </Route>
 

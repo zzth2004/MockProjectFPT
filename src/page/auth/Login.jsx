@@ -65,24 +65,8 @@ export default function Login() {
 
             const { user, jwt } = resData;
             login(user, jwt);
-            console.log(resData);
-            const role = user.role?.toLowerCase();
-            console.log("User role:", role);
+            navigate("/user/dashboard", { replace: true });
 
-            switch (role) {
-                case "admin":
-                    navigate("/admin", { replace: true });
-                    break;
-                case "teacher":
-                    navigate("/teacher/dashboard", { replace: true });
-                    break;
-                case "student":
-                    navigate("/user/dashboard", { replace: true });
-                    break;
-                default:
-                    navigate("/", { replace: true });
-                    break;
-            }
         } catch (err) {
             console.error("Google login error:", err);
             alert("Đăng nhập Google thất bại ❌");

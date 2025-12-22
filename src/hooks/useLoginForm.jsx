@@ -23,6 +23,7 @@ export function useLoginForm() {
     validators: {
       email: (val) => Validator.validateEmail(val),
       password: (val) => Validator.validatePassword(val),
+      
     },
     apiFn: call,
     onSuccess: (res) => {
@@ -36,23 +37,7 @@ export function useLoginForm() {
 
       const { user, jwt } = res;
       login(user, jwt);
-      const role = user.role?.toLowerCase();
-
-
-      switch (role) {
-        case "admin":
-          navigate("/admin", { replace: true });
-          break;
-        case "teacher":
-          navigate("/teacher/dashboard", { replace: true });
-          break;
-        case "student":
-          navigate("/user/dashboard", { replace: true });
-          break;
-        default:
-          navigate("/", { replace: true });
-          break;
-      }
+       navigate("/user/dashboard", { replace: true });
     },
     onError: (err) => {
       console.error("Login failed:", err);

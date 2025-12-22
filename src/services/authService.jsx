@@ -73,25 +73,29 @@ export async function loginApi({ email, password }) {
       firebaseToken: idToken,
     });
 
-    console.log("✅ [loginApi] Raw Response:", res.data);
-
-    if (res.status !== "success") {
-      throw new Error("Login failed!");
+    // --- SỬA TẠI ĐÂY ---
+    // res.status là mã HTTP (201), res.data.status mới là chuỗi "success"
+    if (res.data.status !== "success") {
+      throw new Error("Login failed from backend logic!");
     }
 
-    const finalData = res.data; // { user, jwt }
+    // Backend trả về: { status: "success", data: { jwt: "...", user: {...} } }
+    // Vì vậy ta cần lấy res.data.data
+    const finalData = res.data.data; 
 
-    console.log("🟢 [loginApi] Final Data:", finalData);
+    console.log("🟢 [loginApi] Login Success:", finalData);
 
     return finalData;
 
   } catch (err) {
-    console.error("❌ [loginApi] Error:", err.response?.data || err.message);
-    throw new Error(err.response?.data?.message || 'Email hoặc mật khẩu không đúng');
+    // Log lỗi chi tiết từ Server nếu có
+    const serverMessage = err.response?.data?.message || err.message;
+    console.error("❌ [loginApi] Error:", serverMessage);
+    
+    // Quăng lỗi ra cho useLoginForm xử lý
+    throw new Error(serverMessage || 'Email hoặc mật khẩu không đúng');
   }
 }
-
-
 // ================= LOGIN GOOGLE =================
 export async function loginWithGoogle() {
   try {

@@ -6,6 +6,7 @@ import {
   Layers, Bot, Trophy, Rss, Book as BookIcon, 
   MessageSquare, ShieldCheck, ListChecks, CreditCard, Tag, Hammer
 } from "lucide-react";
+import { useAuth } from '../../context/authContext'
 
 const COLORS = {
   primary: "#2d5a2d",
@@ -17,9 +18,13 @@ const COLORS = {
 };
 
 // Nhận thêm prop onLogoutClick từ AdminLayout
-export default function Sidebar({ isMobile, onClose, role = "admin", onLogoutClick }) {
+export default function Sidebar({ isMobile, onClose, onLogoutClick }) {
   const location = useLocation();
   const [openMenus, setOpenMenus] = useState({});
+  
+  // --- LẤY ROLE TỪ AUTH CONTEXT ---
+  const { user } = useAuth();
+  const role = user?.role?.toLowerCase() || "guest"; 
   const isTeacher = role === "teacher";
 
   const toggleMenu = (label) => {
@@ -55,7 +60,6 @@ export default function Sidebar({ isMobile, onClose, role = "admin", onLogoutCli
           icon: FileText, label: "Nội dung học tập",
           children: [
             { label: "Danh sách bài học", to: "/admin/lessons" },
-            { label: "Tiến độ học tập", to: "/admin/lesson-progress", isLateDev: true }, 
             { label: "Ngữ pháp (Grammar)", to: "/admin/grammar" },
             { label: "Từ vựng (Vocab)", to: "/admin/vocabulary" },
           ]
@@ -117,58 +121,39 @@ export default function Sidebar({ isMobile, onClose, role = "admin", onLogoutCli
     }
   ];
 
+  // Component phụ NavItem (Giữ nguyên logic render của bạn)
   const NavItem = ({ item, depth = 0 }) => {
     if (item.isHidden) return null;
-
     const hasChildren = item.children && item.children.length > 0;
     const isOpen = openMenus[item.label];
     const finalTo = item.isLateDev ? "/admin/late-dev" : item.to;
-    const isActive = location.pathname === finalTo || 
-                     (hasChildren && item.children.some(child => location.pathname === (child.isLateDev ? "/admin/late-dev" : child.to)));
-    
+    const isActive = location.pathname === finalTo || (hasChildren && item.children.some(child => location.pathname === (child.isLateDev ? "/admin/late-dev" : child.to)));
     const Icon = item.icon;
     const isSubItem = depth > 0;
-
-    // --- LOGIC ĐĂNG XUẤT ---
     const isLogout = item.to === "/logout";
 
-    const commonClasses = `
-      flex items-center gap-3 px-4 py-3 mx-3 rounded-xl transition-all duration-200 mb-1 group
-      ${isActive ? "shadow-lg bg-[#E4FBE1]" : "hover:bg-gray-100"}
-    `;
-
+    const commonClasses = `flex items-center gap-3 px-4 py-3 mx-3 rounded-xl transition-all duration-200 mb-1 group ${isActive ? "shadow-lg bg-[#E4FBE1]" : "hover:bg-gray-100"}`;
     const commonStyles = {
       color: isActive ? COLORS.primary : (isLogout ? "#ef4444" : COLORS.textInactive),
       marginLeft: isSubItem ? "3rem" : "0.75rem",
       width: isSubItem ? "calc(100% - 3.75rem)" : "calc(100% - 1.5rem)"
     };
 
-    // Trường hợp là Menu cha (Dropdown)
     if (hasChildren) {
       return (
         <div className="w-full">
-          <button
-            onClick={() => toggleMenu(item.label)}
-            className={`w-[calc(100%-24px)] group flex items-center justify-between px-4 py-3 mx-3 rounded-xl transition-all duration-200 mb-1 ${isActive ? "shadow-md bg-[#E4FBE1]" : "hover:bg-gray-100"}`}
-            style={{ color: isActive ? COLORS.primary : COLORS.textInactive }}
-          >
+          <button onClick={() => toggleMenu(item.label)} className={`w-[calc(100%-24px)] group flex items-center justify-between px-4 py-3 mx-3 rounded-xl transition-all duration-200 mb-1 ${isActive ? "shadow-md bg-[#E4FBE1]" : "hover:bg-gray-100"}`} style={{ color: isActive ? COLORS.primary : COLORS.textInactive }}>
             <div className="flex items-center gap-3">
               {Icon && <Icon size={22} strokeWidth={isActive ? 3 : 2.5} />}
               <span className="text-[15px] font-black tracking-tight">{item.label}</span>
-              {item.isLateDev && <span className="bg-orange-100 text-orange-600 text-[8px] px-1.5 py-0.5 rounded-md font-black uppercase">Soon</span>}
             </div>
             {isOpen ? <ChevronDown size={18} strokeWidth={3} /> : <ChevronRight size={18} strokeWidth={3} />}
           </button>
-          {isOpen && (
-            <div className="flex flex-col animate-in fade-in slide-in-from-top-1 duration-200">
-              {item.children.map((child) => <NavItem key={child.label} item={child} depth={depth + 1} />)}
-            </div>
-          )}
+          {isOpen && <div className="flex flex-col animate-in fade-in slide-in-from-top-1 duration-200">{item.children.map((child) => <NavItem key={child.label} item={child} depth={depth + 1} />)}</div>}
         </div>
       );
     }
 
-    // Trường hợp là nút Đăng xuất (Dùng button để gọi prop)
     if (isLogout) {
       return (
         <button onClick={onLogoutClick} className={commonClasses} style={commonStyles}>
@@ -178,14 +163,11 @@ export default function Sidebar({ isMobile, onClose, role = "admin", onLogoutCli
       );
     }
 
-    // Trường hợp Link thông thường
     return (
       <Link to={finalTo} onClick={isMobile ? onClose : undefined} className={commonClasses} style={commonStyles}>
         {Icon && <Icon size={22} strokeWidth={location.pathname === finalTo ? 3 : 2.5} />}
         <div className="flex items-center justify-between flex-1">
-          <span className={`tracking-tight ${isSubItem ? "text-sm font-bold" : "text-[15px] font-black"}`}>
-            {item.label}
-          </span>
+          <span className={`tracking-tight ${isSubItem ? "text-sm font-bold" : "text-[15px] font-black"}`}>{item.label}</span>
           {item.isLateDev && <Hammer size={12} className="text-orange-400 animate-pulse" />}
         </div>
       </Link>
@@ -222,13 +204,21 @@ export default function Sidebar({ isMobile, onClose, role = "admin", onLogoutCli
         ))}
       </div>
 
-      {/* FOOTER PROFILE */}
+      {/* FOOTER PROFILE - Cập nhật thông tin từ User Context */}
       <div className="p-4 border-t border-gray-100 bg-gray-50/50">
         <div className="flex items-center gap-3 p-3 rounded-2xl bg-white shadow-md border border-gray-100">
-          <img src={`https://ui-avatars.com/api/?name=${isTeacher ? 'Teacher' : 'Admin'}&background=2d5a2d&color=fff&bold=true`} className="w-10 h-10 rounded-xl object-cover" alt="Profile" />
+          <img 
+            src={user?.avatar || `https://ui-avatars.com/api/?name=${user?.fullName || 'User'}&background=2d5a2d&color=fff&bold=true`} 
+            className="w-10 h-10 rounded-xl object-cover" 
+            alt="Profile" 
+          />
           <div className="flex flex-col min-w-0 text-left">
-            <span className="text-sm font-black text-gray-900 truncate leading-none mb-1">{isTeacher ? "Giáo viên" : "Quản trị viên"}</span>
-            <span className="text-[10px] font-bold text-gray-400 truncate uppercase tracking-tighter">{role} portal</span>
+            <span className="text-sm font-black text-gray-900 truncate leading-none mb-1">
+                {user?.fullName || (isTeacher ? "Giáo viên" : "Quản trị")}
+            </span>
+            <span className="text-[10px] font-black text-[#2d5a2d] truncate uppercase tracking-tighter">
+                {role} portal
+            </span>
           </div>
         </div>
       </div>

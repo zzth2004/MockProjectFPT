@@ -18,6 +18,7 @@ export const KLStatsCard = ({ title, value, icon: Icon, trend, color = "primary"
     blue: "from-blue-600 to-blue-400 shadow-blue-100",
     orange: "from-orange-600 to-orange-400 shadow-orange-100",
     red: "from-red-600 to-red-400 shadow-red-100",
+    green: "from-[#2d5a2d] to-[#4a8a4a] shadow-green-100"
   };
 
   return (
