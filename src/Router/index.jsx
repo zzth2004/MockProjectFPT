@@ -39,14 +39,17 @@ import ScheduleDetail from "../page/mainpage/Schedule/ScheduleDetail.jsx";
 import Settings from "../page/mainpage/Settings/Settings.jsx";
 import Logout from "../page/mainpage/Settings/Logout.jsx";
 import Account from "../page/mainpage/Account/Account.jsx";
-import TopikPage from "../page/mainpage/Topik/TopikPage.jsx";
-import TopikIDetail from "../page/mainpage/Topik/TopikI_Detail.jsx";
-import TopikQuizStart from "../page/mainpage/Topik/TopikQuizStart.jsx";
-import TopikTestPage from "../page/mainpage/Topik/TopikTestPage.jsx";
-import TopikIIDetail from "../page/mainpage/Topik/TopikII_Detail.jsx";
+import FlashcardLibrary from "../page/mainpage/Flashcard/FlashcardLibrary.jsx";
+import CreateSetPage from "../page/mainpage/Flashcard/CreateSetPage.jsx";
+import FolderDetail from "../page/mainpage/Flashcard/FolderDetail.jsx";
+import StudyFlashcard from "../page/mainpage/Flashcard/StudyFlashcard";
+
 import ActiveCourses from "../page/mainpage/ActiveCourse/ActiveCourses.jsx";
 import CourseDetail from "../page/mainpage/ActiveCourse/CourseDetail.jsx";
 import PaymentPage from "../page/mainpage/Payment/Payment.jsx";
+import UpgradePage from "../page/mainpage/Upgrade/Upgrade.jsx";
+import ChatPage from "../page/mainpage/Chats/ChatPages.jsx";
+import AiSupportConsole from "../page/mainpage/AISupport/AiSupportConsole.jsx";
 
 // Admin & Error
 import AdminDashboard from "../AdminControl/Admin/admin.jsx";
@@ -102,16 +105,18 @@ function AnimatedRoutes() {
           <Route path="/courses/mycourses/:bookId/:unitId" element={<PageWrapper><StudyPage /></PageWrapper>} />
           <Route path="/courses/mycourses/:bookId/:unitId/vocabulary" element={<PageWrapper><StudyVocab /></PageWrapper>} />
 
-          {/* Topik */}
-          <Route path="/user/topik" element={<PageWrapper><TopikPage /></PageWrapper>} />
-          <Route path="/user/topik/topik-1" element={<PageWrapper><TopikIDetail /></PageWrapper>} />
-          <Route path="/user/topik/start/:partId" element={<PageWrapper><TopikQuizStart /></PageWrapper>} />
-          <Route path="/user/topik/test/:partId" element={<PageWrapper><TopikTestPage /></PageWrapper>} />
-          <Route path="/user/topik/topik-2" element={<PageWrapper><TopikIIDetail /></PageWrapper>} />
+         {/* flashcard */}
+          <Route path="/user/flashcards" element={<PageWrapper><FlashcardLibrary /></PageWrapper>} />
+          <Route path="/user/flashcards/folder/:folderId" element={<PageWrapper><FolderDetail /></PageWrapper>} />
+          <Route path="/user/flashcards/create-set" element={<PageWrapper><CreateSetPage /></PageWrapper>} />
+          <Route path="/user/flashcards/study/:setId" element={<PageWrapper><StudyFlashcard /></PageWrapper>} />
 
           <Route path="/user/mycourses" element={<PageWrapper><ActiveCourses /></PageWrapper>} />
           <Route path="/user/mycourses/detail/:courseId" element={<PageWrapper><CourseDetail /></PageWrapper>} />
           <Route path="/user/mycourses/payment/:courseId" element={<PageWrapper><PaymentPage /></PageWrapper>} />
+
+          {/* AI */}
+          <Route path="/user/ai-support" element={<PageWrapper><AiSupportConsole /></PageWrapper>} />
 
           {/* Features */}
           <Route path="/user/message" element={<PageWrapper><ChatUI /></PageWrapper>} />
@@ -123,6 +128,11 @@ function AnimatedRoutes() {
           <Route path="/user/settings" element={<PageWrapper><Settings /></PageWrapper>} />
           <Route path="/user/logout" element={<PageWrapper><Logout /></PageWrapper>} />
           <Route path="/user/support" element={<PageWrapper><SupportPage /></PageWrapper>} />
+          <Route path="/user/upgrade" element={<PageWrapper><UpgradePage /></PageWrapper>} />
+          <Route path="/user/chats" element={<PageWrapper><ChatPage /></PageWrapper>} />
+          <Route path="/user/chats/:id" element={<PageWrapper><ChatPage /></PageWrapper>} />
+          
+
         </Route>
 
         {/* --- NHÓM 2: FULL MÀN HÌNH (Không Sidebar) --- */}
