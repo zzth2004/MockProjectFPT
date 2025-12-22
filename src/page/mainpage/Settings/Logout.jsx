@@ -1,15 +1,28 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
 import { LogOut, X } from "lucide-react";
+import { useAuth } from "../../../context/authContext";
+import { authLogout } from "../../../services/authService";
 
 export default function Logout() {
   const navigate = useNavigate();
 
+  const { logout } = useAuth(); // Lấy hàm logout từ useAuth
+  const [isExiting, setIsExiting] = useState(false);
+
   const handleCancel = () => navigate(-1);
-  const handleConfirm = () => {
-    // Xóa Token/Session tại đây nếu có
-    console.log("Đã logout");
-    navigate("/login");
+
+  const handleConfirm = async () => {
+    setIsExiting(true);
+    try {
+      await authLogout()
+      console.log("🚀 Đã logout thành công");
+      navigate("/login", { replace: true });
+    } catch (error) {
+      console.error("Lỗi khi đăng xuất:", error);
+    } finally {
+      setIsExiting(false);
+    }
   };
 
   return (

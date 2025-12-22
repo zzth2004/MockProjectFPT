@@ -8,6 +8,7 @@ import {
   deleteUser, updatePassword,
 } from "firebase/auth";
 import { auth } from "../firebase/firebase.js"; 
+import { signOut } from "firebase/auth";
 
 export async function registerApi({ name, email, password, phone, address }) {
   let firebaseUser = null;
@@ -113,7 +114,7 @@ export async function loginWithGoogle() {
 
   } catch (err) {
     console.error("❌ [GoogleLogin] Error:", err);
-    throw new Error(err.response?.data?.message || 'Đăng nhập Google thất bại');
+    throw err;
   }
 }
 export async function verifyCodeApi(payload) {
@@ -180,3 +181,22 @@ export async function updatePasswordAPI({ email, newPassword, code}) {
       throw new Error(err.response?.data?.message || 'Cập nhật mật khẩu thất bại');
     }   
 }
+
+export async function authLogout() {
+  try {
+    // 1. Đăng xuất khỏi Firebase (Nếu bạn dùng Google Login)
+    if (auth) {
+      await signOut(auth);
+    }
+    // 3. Xóa sạch sessionStorage theo yêu cầu của bạn
+    sessionStorage.clear();
+
+    // 4. Đưa người dùng về trang Login và xóa lịch sử điều hướng
+    window.location.replace("/login");
+    
+    console.log("🚀 [Auth] Đã đăng xuất và xóa sạch bộ nhớ.");
+  } catch (error) {
+    console.error("❌ [Auth] Lỗi khi đăng xuất:", error);
+  }
+}
+

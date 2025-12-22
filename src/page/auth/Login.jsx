@@ -52,16 +52,20 @@ export default function Login() {
     const handleGoogleLogin = async () => {
         try {
             const res = await loginWithGoogle();
-            console.log("Login Success Data:", res);
+            console.log("Dữ liệu phản hồi:", res);
 
-            if (!res || !res.user || !res.jwt) {
+            // 🚩 SỬA TẠI ĐÂY: Lấy phần data thực sự từ vỏ bọc của NestJS
+            const resData = res.data;
+
+            if (!resData || !resData.user || !resData.jwt) {
                 console.error("Dữ liệu trả về thiếu user hoặc jwt:", res);
                 alert("Lỗi hệ thống: Không nhận được thông tin người dùng.");
                 return;
             }
 
-            const { user, jwt } = res;
+            const { user, jwt } = resData;
             login(user, jwt);
+            console.log(resData);
             const role = user.role?.toLowerCase();
             console.log("User role:", role);
 

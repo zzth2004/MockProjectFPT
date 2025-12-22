@@ -1,120 +1,207 @@
+import React from "react";
 import {
-  Users,
-  BookOpen,
-  FileQuestion,
-  MessageSquarePlus,
-  PlusCircle,
-  TrendingUp,
-  Activity,
-  CalendarDays,
+  Users, BookOpen, FileQuestion, MessageSquarePlus,
+  PlusCircle, TrendingUp, Activity, CalendarDays,
+  Zap, GraduationCap
 } from "lucide-react";
-import Card from "../ui/Card";
-import Button from "../ui/Button";
-import Table from "../ui/Table";
+
+
+import { useEffect, useCallback } from "react";
+
+// Import bộ UI Components của bạn
+import { KLCard, KLStatsCard } from "../Component/Card";
+import { KLTable } from "../Component/Table";
+import { KLButton } from "../Component/Button";
+import { KLBadge } from "../Component/Badge";
+
+import useCallApiHandler from "../../hooks/HookHander/useCallApiHandler";
+
+// Import bộ biểu đồ Recharts
+import { KLAreaChart, KLDonutChart } from "../Chart/chart";
+import { getTimeData } from '../Service/timeService';
+import userService from "../Service/API/userServiceAPI/user.service";
 
 export default function DashboardHome() {
-  const userColumns = [
-    { key: "name", title: "Name" },
-    { key: "email", title: "Email" },
-    { key: "role", title: "Role" },
-  ];
+  const timeData = getTimeData();
 
-  const userData = [
-    { name: "John Doe", email: "john@example.com", role: "Student" },
-    { name: "Jane Smith", email: "jane@example.com", role: "Instructor" },
-    { name: "Alice Johnson", email: "alice@example.com", role: "Student" },
-    { name: "Bob Brown", email: "bob@example.com", role: "Admin" },
-  ];
+  // 🛠️ SỬ DỤNG HOOK CỦA BẠN
+  // Lấy thống kê tổng quan
+  // --- SỬA LẠI ĐOẠN NÀY ---
+
+  // 1. Memoize hàm lấy stats (Bạn đã làm nhưng cần chắc chắn userService không đổi)
+  const fetchData = useCallback(() => {
+    return userService.getAdminStats();
+  }, []);
+
+  const {
+    data: stats,
+    loading: statsLoading,
+    error: statsError,
+    call: fetchStats
+  } = useCallApiHandler(fetchData);
+
+  // 2. QUAN TRỌNG: Sửa hàm lấy danh sách học viên
+  const fetchStudentsData = useCallback(() => {
+    return userService.getStudents(1, 5);
+  }, []); // Dependency array trống để hàm không bị tạo lại
+
+  const {
+    data: students,
+    loading: studentsLoading,
+    call: fetchStudents
+  } = useCallApiHandler(fetchStudentsData); // Truyền hàm đã được memoize vào đây
+
+  useEffect(() => {
+    fetchStats();
+    fetchStudents();
+  }, [fetchStats, fetchStudents]);
+  // --- UI KHI ĐANG LOADING ---
+  if (statsLoading || studentsLoading) {
+    return (
+      <div className="flex flex-col items-center justify-center h-64 space-y-4">
+        <div className="w-12 h-12 border-8 border-gray-100 border-t-[#2d5a2d] rounded-full animate-spin"></div>
+        <p className="font-black text-gray-400 uppercase tracking-widest animate-pulse">Đang nạp dữ liệu hệ thống...</p>
+      </div>
+    );
+  }
+
+  // --- UI KHI CÓ LỖI ---
+  if (statsError) {
+    return (
+      <KLCard className="bg-red-50 border-red-200">
+        <p className="text-red-600 font-black">Lỗi kết nối: {statsError.message || "Không thể lấy dữ liệu"}</p>
+        <KLButton className="mt-4" onClick={fetchStats}>Thử lại</KLButton>
+      </KLCard>
+    );
+  }
 
   return (
-    <div className="flex flex-col h-screen p-6 bg-gradient-to-br from-gray-50 to-gray-100 space-y-6 overflow-y-auto">
-      {/* HEADER */}
-      <header className="flex items-center justify-between">
-        <h1 className="text-3xl font-extrabold text-gray-800 flex items-center gap-2">
-          📊 Admin Dashboard
-        </h1>
-        <Button variant="primary" className="flex items-center gap-2 shadow">
-          <PlusCircle className="w-5 h-5" /> Add New
-        </Button>
-      </header>
+    <div className="space-y-10 animate-in fade-in duration-700">
 
-      {/* STAT CARDS */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <Card className="p-4 text-white bg-gradient-to-r from-blue-600 to-blue-400 hover:-translate-y-1">
-          <div className="flex items-center justify-between">
-            <div>
-              <div className="text-xs opacity-80">Total Users</div>
-              <div className="text-2xl font-extrabold">1,230</div>
+      {/* 1. HERO SECTION (Giữ nguyên phần chào Admin của bạn) */}
+      <KLCard className="relative overflow-hidden border-none shadow-2xl transition-all duration-500">
+        {/* Đốm màu trang trí thay đổi theo thời gian */}
+        <div className={`absolute top-0 right-0 w-48 h-48 rounded-full -mr-20 -mt-20 opacity-20 blur-3xl bg-current`}
+          style={{ color: timeData.color.split(' ')[1].replace('to-', '') }}></div>
+
+        <div className="relative flex flex-col md:flex-row md:items-center justify-between gap-8">
+          <div className="flex items-center gap-8">
+
+            {/* Icon lớn thay đổi theo giờ */}
+            <div className={`hidden sm:flex w-24 h-24 rounded-[2.5rem] bg-gradient-to-br ${timeData.color} items-center justify-center shadow-2xl shrink-0 animate-bounce-slow`}>
+              <span className="text-4xl drop-shadow-lg">{timeData.icon}</span>
             </div>
-            <Users className="w-6 h-6 opacity-90" />
-          </div>
-        </Card>
 
-        <Card className="p-4 text-white bg-gradient-to-r from-green-500 to-green-400 hover:-translate-y-1">
-          <div className="flex items-center justify-between">
             <div>
-              <div className="text-xs opacity-80">Courses</div>
-              <div className="text-2xl font-extrabold">34</div>
+              <div className="flex items-center gap-3 mb-2">
+                <span className={`px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest text-white bg-gradient-to-r ${timeData.color}`}>
+                  System Active
+                </span>
+                <span className="text-gray-400 font-black text-[10px] uppercase tracking-widest">
+                  {new Date().toLocaleDateString('vi-VN')}
+                </span>
+              </div>
+
+              <h1 className="text-5xl font-black text-gray-950 tracking-tighter uppercase leading-none">
+                {timeData.text}, <span className="text-[#2d5a2d]">Admin!</span>
+              </h1>
+
+              <p className="text-gray-500 font-bold mt-3 uppercase text-xs tracking-[0.2em] flex items-center gap-2">
+                <span className="w-12 h-[3px] bg-[#2d5a2d]"></span>
+                {timeData.sub}
+              </p>
             </div>
-            <BookOpen className="w-6 h-6 opacity-90" />
           </div>
-        </Card>
 
-        <Card className="p-4 text-white bg-gradient-to-r from-purple-500 to-purple-400 hover:-translate-y-1">
-          <div className="flex items-center justify-between">
-            <div>
-              <div className="text-xs opacity-80">Quizzes</div>
-              <div className="text-2xl font-extrabold">89</div>
-            </div>
-            <FileQuestion className="w-6 h-6 opacity-90" />
+          {/* Nút hành động nhanh */}
+          <div className="flex flex-wrap gap-4">
+            <KLButton
+              variant="outline"
+              icon={Zap}
+              className="border-gray-200 text-gray-800 hover:border-[#2d5a2d]"
+            >
+              Tải báo cáo
+            </KLButton>
+            <KLButton
+              icon={PlusCircle}
+              className="bg-[#2d5a2d] hover:shadow-green-200 hover:-translate-y-1"
+            >
+              Tạo khóa học mới
+            </KLButton>
           </div>
-        </Card>
-
-        <Card className="p-4 text-white bg-gradient-to-r from-pink-500 to-pink-400 hover:-translate-y-1">
-          <div className="flex items-center justify-between">
-            <div>
-              <div className="text-xs opacity-80">Feedback</div>
-              <div className="text-2xl font-extrabold">152</div>
-            </div>
-            <MessageSquarePlus className="w-6 h-6 opacity-90" />
-          </div>
-        </Card>
-      </div>
-
-      {/* CONTENT SECTIONS */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 flex-1 min-h-[300px]">
-        {/* Chart Section */}
-        <Card className="col-span-2 flex flex-col p-4 bg-gradient-to-b from-indigo-50 to-indigo-100">
-          <div className="text-gray-700 mb-3 font-semibold flex items-center gap-2">
-            <TrendingUp className="w-4 h-4 text-indigo-500" /> User Growth (Last
-            30 days)
-          </div>
-          <div className="flex-1 flex items-center justify-center text-gray-400 text-lg animate-pulse">
-            📈 Chart Coming Soon
-          </div>
-        </Card>
-
-        {/* Quick Activity */}
-        <Card className="flex flex-col p-4">
-          <div className="text-gray-700 mb-3 font-semibold flex items-center gap-2">
-            <Activity className="w-4 h-4 text-pink-500" /> Quick Activity
-          </div>
-          <ul className="space-y-2 text-sm text-gray-700">
-            <li>✅ New course published</li>
-            <li>👤 User John Doe signed up</li>
-            <li>📧 3 new feedback messages</li>
-            <li>📆 Meeting scheduled tomorrow</li>
-          </ul>
-        </Card>
-      </div>
-
-      {/* Recent Users Table */}
-      <Card className="p-4 max-h-64 overflow-auto">
-        <div className="text-gray-700 mb-3 font-semibold flex items-center gap-2">
-          <CalendarDays className="w-4 h-4 text-blue-500" /> Recent Users
         </div>
-        <Table columns={userColumns} data={userData} />
-      </Card>
+      </KLCard>
+
+      {/* 2. STATS CARDS (Dữ liệu từ API) */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+        <KLStatsCard
+          title="Tổng học viên"
+          value={stats?.totalUsers || 0}
+          icon={Users}
+          trend={stats?.userTrend}
+        />
+        <KLStatsCard
+          title="Khóa học"
+          value={stats?.totalCourses || 0}
+          icon={BookOpen}
+          color="blue"
+        />
+        <KLStatsCard
+          title="Bài tập"
+          value={stats?.totalQuizzes || 0}
+          icon={FileQuestion}
+          color="orange"
+        />
+        <KLStatsCard
+          title="Phản hồi"
+          value={stats?.totalFeedbacks || 0}
+          icon={MessageSquarePlus}
+          color="red"
+        />
+      </div>
+
+      {/* 3. CHARTS (Dữ liệu từ API) */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <KLCard className="lg:col-span-2" title="Tăng trưởng học viên">
+          <KLAreaChart
+            data={stats?.growthData || []}
+            xKey="month"
+            dataKey="count"
+          />
+        </KLCard>
+
+        <KLCard title="Phân bổ trình độ">
+          <KLDonutChart data={stats?.distributionData || []} />
+        </KLCard>
+      </div>
+
+      {/* 4. RECENT STUDENTS TABLE */}
+      <KLCard title="Học viên mới đăng ký" subtitle="Dữ liệu thời gian thực từ Database">
+        <KLTable
+          columns={[
+            {
+              key: "fullName",
+              title: "Tên học sinh",
+              render: (val, row) => val || row.username || row.email
+            },
+            { key: "email", title: "Email" },
+            {
+              key: "level",
+              title: "Trình độ",
+              render: (v) => <KLBadge type="info">{v?.toUpperCase()}</KLBadge>
+            },
+            {
+              key: "createdAt",
+              title: "Ngày gia nhập",
+              render: (date) => date ? new Date(date).toLocaleDateString('vi-VN') : "---"
+            }
+          ]}
+          // 🚩 QUAN TRỌNG NHẤT: students là object, students.data mới là mảng
+          data={students?.data || []}
+          showAction={false}
+        />
+      </KLCard>
+
     </div>
   );
 }
