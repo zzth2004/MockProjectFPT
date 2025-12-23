@@ -52,7 +52,7 @@ const Course = () => {
     );
 
     return (
-        <MainLayout>
+        <main>
             <AnimateOnView>
                 <section className="bg-gray-50 py-16">
                     <div className="max-w-6xl mx-auto px-6 space-y-12">
@@ -75,7 +75,7 @@ const Course = () => {
                     </div>
                 </section>
             </AnimateOnView>
-        </MainLayout>
+        </main>
     );
 };
 

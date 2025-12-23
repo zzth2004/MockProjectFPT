@@ -45,7 +45,7 @@ const personas = [
 
 const Feature = () => {
   return (
-    <MainLayout>
+    <main>
       <section className="bg-gray-50 py-16">
         <div className="max-w-6xl mx-auto px-6">
           <h1 className="text-4xl font-extrabold text-gray-900 mb-12 text-center">
@@ -111,7 +111,7 @@ const Feature = () => {
           </div>
         </div>
       </section>
-    </MainLayout>
+    </main>
   );
 };
 

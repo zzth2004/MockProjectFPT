@@ -36,14 +36,14 @@ const PRIMARY = "#008236";
 
 export default function KoreanHomepage() {
   return (
-    <MainLayout>
+    <main>
       <Hero />
       <Features />
       <Courses />
       <Fees />
       <CTA />
      
-    </MainLayout>
+    </main>
   );
 }
 

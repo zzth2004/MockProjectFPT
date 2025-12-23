@@ -43,7 +43,7 @@ const posts = [
 
 const Community = () => {
     return (
-        <MainLayout>
+        <main>
             {/* Hero Section */}
             <section className="bg-gradient-to-r from-green-50 to-green-100 py-24">
                 <div className="max-w-7xl mx-auto px-6 grid md:grid-cols-2 gap-10 items-center">
@@ -122,7 +122,7 @@ const Community = () => {
                     </AnimateOnView>
                 </div>
             </section>
-        </MainLayout>
+        </main>
     );
 };
 

@@ -1,33 +1,76 @@
-import React, { useState, useEffect } from 'react';
-import Header from '../components/PageComponent/Header';
-import Footer from '../components/PageComponent/Footer';
+import React, { useState, useEffect } from "react";
+import { Outlet, useLocation } from "react-router-dom";
+
+// Components
+import Header from "../components/PageComponent/Header";
+import Footer from "../components/PageComponent/Footer";
 import ScrollToTopButton from "../components/ScrollToTop";
-import { LoadingComponent } from '../components/LoadingComponent'; // import component loading
+import { LoadingComponent } from "../components/LoadingComponent";
 
-export default function MainLayout({ children }) {
+// Popups & Overlays
+import LogoutPopup from "../components/PopupComponent/LogoutPopup";
+
+export default function MainLayout() {
+  const location = useLocation();
+  
+  // --- 1. STATES ---
   const [loading, setLoading] = useState(true);
+  const [isLogoutOpen, setIsLogoutOpen] = useState(false);
 
-  // Giả lập loading khi mount (bạn có thể thay bằng fetch API)
+  // --- 2. LOGIC LOADING ---
+  // Giả lập nạp dữ liệu khi chuyển trang hoặc lần đầu vào web
   useEffect(() => {
-    const timer = setTimeout(() => setLoading(false), 1500); // 1.5s loading
+    setLoading(true);
+    const timer = setTimeout(() => {
+      setLoading(false);
+    }, 1200); // 1.2s để tạo cảm giác mượt mà
     return () => clearTimeout(timer);
-  }, []);
+  }, [location.pathname]); // Chạy lại khi đổi URL
 
   return (
-    <div className="flex flex-col min-h-screen">
-      {/* Loading overlay */}
+    <div className="flex flex-col min-h-screen bg-white font-sans text-gray-900 selection:bg-[#2d5a2d]/10 selection:text-[#2d5a2d]">
+      
+      {/* 1. LOADING OVERLAY */}
       <LoadingComponent
         isVisible={loading}
-        onComplete={() => console.log("Loading complete")}
+        onComplete={() => console.log("KoreanLab - Content Ready")}
       />
 
-      {/* Nội dung chính */}
-      <Header />
-      <main className={`${loading ? "pointer-events-none opacity-50" : ""}`}>
-        {children}
+      {/* 2. HEADER SECTION */}
+      {/* Sử dụng sticky để header luôn ở trên cùng khi cuộn */}
+      <header className="sticky top-0 z-40 bg-white/80 backdrop-blur-md border-b border-gray-100">
+        <Header onLogoutClick={() => setIsLogoutOpen(true)} />
+      </header>
+
+      {/* 3. MAIN CONTENT AREA */}
+      {/* pointer-events-none giúp tránh user click nhầm khi đang loading */}
+      <main className={`
+        flex-1 flex flex-col transition-all duration-500
+        ${loading ? "opacity-0 scale-[0.98] pointer-events-none" : "opacity-100 scale-100"}
+      `}>
+        {/* Container cho nội dung chính */}
+        <div className="flex-1 w-full max-w-[1440px] mx-auto">
+          {/* Hiệu ứng animate-in khi nội dung xuất hiện */}
+          <div className="animate-in fade-in slide-in-from-bottom-3 duration-700 ease-out">
+            <Outlet /> 
+          </div>
+        </div>
       </main>
-      <Footer />
+
+      {/* 4. FOOTER SECTION */}
+      <footer className="bg-[#f8fafc] border-t border-gray-100">
+        <Footer />
+      </footer>
+
+      {/* 5. FLOATING ELEMENTS */}
       <ScrollToTopButton />
+
+      {/* 6. SYSTEM POPUPS */}
+      <LogoutPopup 
+        isOpen={isLogoutOpen} 
+        onClose={() => setIsLogoutOpen(false)} 
+      />
+
     </div>
   );
 }

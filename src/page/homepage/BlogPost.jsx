@@ -112,7 +112,7 @@ const BlogPost = () => {
   const [replyText, setReplyText] = useState("");
 
   return (
-    <MainLayout>
+    <main>
       {/* Hero */}
       <section className="bg-white py-16">
         <div className="max-w-5xl mx-auto px-6">
@@ -237,7 +237,7 @@ const BlogPost = () => {
           </div>
         </div>
       </section>
-    </MainLayout>
+    </main>
   );
 };
 
