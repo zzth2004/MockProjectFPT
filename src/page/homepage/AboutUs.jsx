@@ -39,8 +39,8 @@ const faqData = [
 
 const AboutUs = () => {
   return (
-    <MainLayout>
-      {/* Hero Section */}
+    <main>
+            {/* Hero Section */}
       <section className="bg-gradient-to-r from-green-50 to-green-100 py-32 relative overflow-hidden">
         <div className="absolute -top-32 -right-32 w-96 h-96 bg-green-200 rounded-full opacity-30 animate-pulse blur-3xl"></div>
         <div className="max-w-7xl mx-auto px-6 grid md:grid-cols-2 gap-10 items-center relative z-10">
@@ -211,7 +211,7 @@ const AboutUs = () => {
           </AnimateOnView>
         </div>
       </section>
-    </MainLayout>
+    </main>
   );
 };
 

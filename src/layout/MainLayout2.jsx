@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Outlet } from "react-router-dom"; // QUAN TRỌNG: Dùng Outlet
+import { Outlet, useLocation } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { X } from "lucide-react";
 
@@ -13,64 +13,52 @@ import DraggableAIButton from "../components/Chatbot/DraggableAIButton";
 export default function MainLayout2() {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(true);
+  const location = useLocation(); // Thêm hook này
 
+  // Logic bật loading mỗi khi đổi trang con
   useEffect(() => {
-    const timer = setTimeout(() => setLoading(false), 1000);
+    setLoading(true);
+    const timer = setTimeout(() => setLoading(false), 800);
     return () => clearTimeout(timer);
-  }, []);
+  }, [location.pathname]);
 
   return (
-    // Container chính: Full màn hình, background hơi xám nhẹ để nổi bật Sidebar trắng
-    <div className="flex h-screen w-full bg-[#F7F9F8] overflow-hidden font-sans text-gray-900">
+    <div className="flex h-screen w-full bg-[#F7F9F8] overflow-hidden font-sans">
       
-      {/* Loading */}
-      <LoadingComponent isVisible={loading} />
-
-      {/* --- SIDEBAR DESKTOP --- */}
+      {/* 1. SIDEBAR DESKTOP - Luôn hiện, không bị đè */}
       <div className="hidden lg:block h-full shadow-sm z-30">
         <Sidebar isMobile={false} />
       </div>
 
       {/* --- SIDEBAR MOBILE --- */}
-      <AnimatePresence>
-        {open && (
-          <div className="fixed inset-0 z-50 flex lg:hidden">
-            <motion.div
-              className="fixed inset-0 bg-black/30 backdrop-blur-sm"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setOpen(false)}
-            />
-            <motion.aside
-              className="relative h-full w-[280px] bg-white shadow-2xl flex flex-col"
-              initial={{ x: "-100%" }}
-              animate={{ x: 0 }}
-              exit={{ x: "-100%" }}
-              transition={{ type: "spring", damping: 25, stiffness: 200 }}
-            >
-              <Sidebar isMobile={true} onClose={() => setOpen(false)} />
-            </motion.aside>
-          </div>
-        )}
-      </AnimatePresence>
+      {/* ... giữ nguyên code Sidebar Mobile của bạn ... */}
 
-      {/* --- MAIN CONTENT WRAPPER --- */}
+      {/* --- CỘT NỘI DUNG CHÍNH --- */}
       <div className="flex-1 flex flex-col min-w-0 h-full relative">
         
-        {/* Header */}
-        <MainHeader onMenuClick={() => setOpen(true)} />
+        {/* 2. HEADER - Luôn hiện, z-index cao hơn loader trang con */}
+        <MainHeader onMenuClick={() => setOpen(true)} className="z-40" />
 
-        {/* Scrollable Content Area */}
-        <main className="flex-1 overflow-x-hidden overflow-y-auto scroll-smooth p-4 sm:p-6 lg:p-8">
-          <div className="mx-auto max-w-7xl flex flex-col min-h-[calc(100vh-8rem)]">
-             {/* Outlet: Nơi nội dung các trang con hiển thị. 
-                Sidebar và Header sẽ KHÔNG bị render lại.
-             */}
-             <Outlet />
+        {/* 3. VÙNG NỘI DUNG BIẾN ĐỔI (MAIN) */}
+        {/* PHẢI CÓ 'relative' Ở ĐÂY để "giam" absolute loader */}
+        <main className="flex-1 overflow-x-hidden overflow-y-auto relative scroll-smooth bg-white">
+          
+          {/* LOADER: Chỉ nằm trong vùng main này */}
+          <AnimatePresence>
+            {loading && (
+              <div className="absolute inset-0 z-20">
+                <LoadingComponent isVisible={loading} />
+              </div>
+            )}
+          </AnimatePresence>
 
-             {/* Footer nằm ở cuối nội dung cuộn */}
-             
+          <div className={`
+            mx-auto max-w-7xl p-4 sm:p-6 lg:p-8 min-h-full
+            transition-all duration-500
+            ${loading ? "opacity-0 translate-y-4" : "opacity-100 translate-y-0"}
+          `}>
+             <Outlet /> 
+             <Footer />
           </div>
         </main>
       </div>

@@ -37,7 +37,7 @@ export function LoadingComponent({ isVisible = true, onComplete }) {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="fixed inset-0 z-50 flex items-center justify-center bg-white/30 backdrop-blur-sm"
+          className="absolute inset-0 z-20 flex items-center justify-center bg-white/30 backdrop-blur-sm"
         >
           <div className="relative flex items-center justify-center">
             {/* Vòng tròn quay */}

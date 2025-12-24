@@ -71,6 +71,7 @@ import SubscriptionPlanList from "../AdminControl/Admin/Subscription/subscriptio
 import BookManagement from "../AdminControl/Admin/Book/book.ui.jsx";
 import LateDevPage from "../AdminControl/Admin/latedev.ui.jsx";
 import TeacherDashboardHome from "../AdminControl/teacherDashboard.ui.jsx";
+<<<<<<< HEAD
 import CreateCourse from "../AdminControl/Admin/Course/CreateCourse.jsx";
 import CourseDetailAdmin from "../AdminControl/Admin/Course/course-detail.jsx";
 import EditCourse from "../AdminControl/Admin/Course/edit-course.jsx";
@@ -80,6 +81,11 @@ import EditLesson from "../AdminControl/Admin/Course/Lesson/edit-lesson.jsx";
 import ClassDetail from "../AdminControl/Admin/Class/class-detail.jsx";
 import EditClass from "../AdminControl/Admin/Class/edit-class.jsx";
 import UserDetail from "../AdminControl/Admin/User/user-detail.jsx";
+=======
+
+import MainLayout from "../layout/MainLayout.jsx";
+
+>>>>>>> 9f537dae582771b5d0c1b241af8b6656259c251e
 function AnimatedRoutes() {
   const location = useLocation();
 
@@ -88,25 +94,30 @@ function AnimatedRoutes() {
       <Routes location={location} key={location.pathname}>
         {/* Public routes */}
         <Route path="/" element={<Navigate to="/homeindex" replace />} />
-        <Route path="/reset-pass" element={<PageWrapper><ResetPassword /></PageWrapper>} />
-        <Route path="/login" element={<PageWrapper><Login /></PageWrapper>} />
-        <Route path="/register" element={<PageWrapper><Register /></PageWrapper>} />
-        <Route path="/verify" element={<PageWrapper><VerifyAccount /></PageWrapper>} />
-        // Routes
-        <Route path="/404-1" element={<PageWrapper><PageNotFound /></PageWrapper>} />
-        <Route path="/404-2" element={<PageWrapper><Page404 /></PageWrapper>} />
 
+        {/* --- 2. MAIN USER ROUTES (Bao bởi MainLayout) --- */}
+        <Route element={<MainLayout />}>
+          {/* Trang chủ */}
+          <Route path="/homeindex" element={<PageWrapper><KoreanHomepage /></PageWrapper>} />
+          
+          {/* Giới thiệu & Tính năng */}
+          <Route path="/homeindex/aboutus" element={<PageWrapper><AboutUs /></PageWrapper>} />
+          <Route path="/homeindex/features" element={<PageWrapper><Feature /></PageWrapper>} />
+          <Route path="/homeindex/demo" element={<PageWrapper><DemoVideoPlayer /></PageWrapper>} />
+          
+          {/* Đào tạo & Khóa học */}
+          <Route path="/homeindex/courses" element={<PageWrapper><Course /></PageWrapper>} />
+          
+          {/* Cộng đồng & Blog */}
+          <Route path="/homeindex/community" element={<PageWrapper><Community /></PageWrapper>} />
+          <Route path="/homeindex/community/:id" element={<PageWrapper><BlogPost /></PageWrapper>} />
 
-
-        {/* Home pages */}
-        <Route path="/homeindex" element={<PageWrapper><KoreanHomepage /></PageWrapper>} />
-        <Route path="/homeindex/aboutus" element={<PageWrapper><AboutUs /></PageWrapper>} />
-        <Route path="/homeindex/community" element={<PageWrapper><Community /></PageWrapper>} />
-        <Route path="/homeindex/community/:id" element={<PageWrapper><BlogPost /></PageWrapper>} />
-        <Route path="/homeindex/features" element={<PageWrapper><Feature /></PageWrapper>} />
-        <Route path="/homeindex/demo" element={<PageWrapper><DemoVideoPlayer /></PageWrapper>} />
-        <Route path="/homeindex/courses" element={<PageWrapper><Course /></PageWrapper>} />
-
+          {/* Xác thực (Nếu muốn hiện Header/Footer của MainLayout) */}
+          <Route path="/login" element={<PageWrapper><Login /></PageWrapper>} />
+          <Route path="/register" element={<PageWrapper><Register /></PageWrapper>} />
+          <Route path="/reset-pass" element={<PageWrapper><ResetPassword /></PageWrapper>} />
+          <Route path="/verify" element={<PageWrapper><VerifyAccount /></PageWrapper>} />
+        </Route>
 
         <Route element={<MainLayout2 />}>
           <Route path="/user/dashboard" element={<PageWrapper><Dashboard /></PageWrapper>} />
