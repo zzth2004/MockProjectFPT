@@ -50,6 +50,28 @@ const courseService = {
       return res.data.data;
     });
   },
+
+  getMyCoursebySelf: async ( page = 1, limit = 10, search = "") => {
+    console.log(`🚀 [CourseService] Fetching courses - Page: ${page}, Search: "${search}"`);
+    return axiosClient.get("/courses/teacher/my-courses", { 
+      params: { page, limit, search } 
+    }).then(res => {
+      // Bóc vỏ data của NestJS
+      console.log("✅ [CourseService] List received:", res.data.data);
+      return res.data.data; 
+    });
+  },
+  getMyCourseAandT: async (teacherId, page = 1, limit = 10, search = "") => {
+    console.log(`🚀 [CourseService] Fetching courses - Page: ${page}, Search: "${search}"`);
+    return axiosClient.get("/courses/teacher/courses", { 
+      params: { teacherId,page, limit, search } 
+    }).then(res => {
+      // Bóc vỏ data của NestJS
+      console.log("ID đang lấy là: " ,teacherId);
+      console.log("✅ [CourseService] List received:", res.data.data, teacherId);
+      return res.data.data; 
+    });
+  },
 };
 
 export default courseService;

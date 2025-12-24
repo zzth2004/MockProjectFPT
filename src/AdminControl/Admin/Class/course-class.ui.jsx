@@ -9,12 +9,15 @@ import { KLCard } from "../../Component/Card";
 import { KLTable } from "../../Component/Table";
 import { KLButton } from "../../Component/Button";
 import { KLBadge } from "../../Component/Badge";
+import { useNavigate } from "react-router-dom";
+
 
 // Logic
 import useCallApiHandler from "../../../hooks/HookHander/useCallApiHandler";
 import courseClassService from "../../Service/API/courseServiceAPI/course-class.service";
 
 export default function CourseClassList() {
+    const navigate = useNavigate();
     // --- 1. STATES ---
     const [searchTerm, setSearchTerm] = useState("");
     const [showFilters, setShowFilters] = useState(false);
@@ -74,102 +77,115 @@ export default function CourseClassList() {
     useEffect(() => { setCurrentPage(1); }, [searchTerm, filters, showFilters]);
 
     // --- 5. ACTION HANDLERS ---
-    const handleAction = async (type, item) => {
-        switch (type) {
-            case 'edit':
-                console.log("Mở modal sửa lớp:", item.id);
-                break;
-            case 'delete':
-                if (window.confirm("⚠️ Chỉ xóa được lớp CHƯA CÓ HỌC VIÊN. Bạn chắc chắn muốn xóa?")) {
-                    try {
-                        await courseClassService.deleteClass(item.id);
-                        alert("✅ Đã xóa lớp học!");
-                        refreshClasses();
-                    } catch (error) {
-                        alert("❌ Không thể xóa (Lớp có học viên hoặc lỗi hệ thống)");
-                    }
+    // --- 5. ACTION HANDLERS ---
+const handleAction = async (type, item) => {
+    switch (type) {
+        case 'view': // 👇 Xử lý khi nhấn nút Chi tiết (Eye icon)
+            navigate(`/admin/classes/${item.id}`);
+            break;
+
+        case 'edit': // 👇 Xử lý khi nhấn nút Sửa
+            navigate(`/admin/classes/edit/${item.id}`);
+            break;
+
+        case 'delete':
+            if (window.confirm("⚠️ Chỉ xóa được lớp CHƯA CÓ HỌC VIÊN. Bạn chắc chắn muốn xóa?")) {
+                try {
+                    await courseClassService.deleteClass(item.id);
+                    alert("✅ Đã xóa lớp học!");
+                    refreshClasses();
+                } catch (error) {
+                    alert("❌ Không thể xóa (Lớp có học viên hoặc lỗi hệ thống)");
                 }
-                break;
-            default: break;
-        }
-    };
+            }
+            break;
+        default: break;
+    }
+};
 
     // --- 6. ĐỊNH NGHĨA CỘT ---
-    const columns = [
-        {
-            key: "name",
-            title: "Lớp học",
-            render: (val, row) => (
-                <div className="flex flex-col text-left">
-                    <span className="text-[15px] font-black text-gray-800 leading-tight">{val}</span>
-                    <span className="text-[10px] text-[#2d5a2d] font-bold uppercase tracking-tighter">
-                        Khóa: {row.course?.title}
-                    </span>
+   const columns = [
+    {
+        key: "name",
+        title: "Lớp học",
+        render: (val, row) => (
+            // 👇 Thêm onClick và class hover
+            <div 
+                className="flex flex-col text-left cursor-pointer group" 
+                onClick={() => navigate(`/admin/classes/${row.id}`)}
+            >
+                <span className="text-[15px] font-black text-gray-800 leading-tight group-hover:text-[#2d5a2d] transition-colors">
+                    {val}
+                </span>
+                <span className="text-[10px] text-[#2d5a2d] font-bold uppercase tracking-tighter">
+                    Khóa: {row.course?.title}
+                </span>
+            </div>
+        )
+    },
+    // ... giữ nguyên các cột khác (teacher, startDate, googleMeetLink, status)
+    {
+        key: "teacher",
+        title: "Giáo viên",
+        render: (teacher) => (
+            <div className="flex items-center gap-2">
+                <User size={14} className="text-gray-400" />
+                <span className="text-sm font-bold text-gray-600">{teacher?.fullName || "Chưa gán"}</span>
+            </div>
+        )
+    },
+    {
+        key: "startDate",
+        title: "Lịch khai giảng",
+        render: (date) => (
+            <div className="flex flex-col text-left">
+                <div className="flex items-center gap-1 text-gray-700 font-bold text-[13px]">
+                    <Calendar size={12} />
+                    {new Date(date).toLocaleDateString('vi-VN')}
                 </div>
-            )
-        },
-        {
-            key: "teacher",
-            title: "Giáo viên",
-            render: (teacher) => (
-                <div className="flex items-center gap-2">
-                    <User size={14} className="text-gray-400" />
-                    <span className="text-sm font-bold text-gray-600">{teacher?.fullName || "Chưa gán"}</span>
-                </div>
-            )
-        },
-        {
-            key: "startDate",
-            title: "Lịch khai giảng",
-            render: (date) => (
-                <div className="flex flex-col text-left">
-                    <div className="flex items-center gap-1 text-gray-700 font-bold text-[13px]">
-                        <Calendar size={12} />
-                        {new Date(date).toLocaleDateString('vi-VN')}
-                    </div>
-                </div>
-            )
-        },
-        {
-            key: "googleMeetLink",
-            title: "Liên kết",
-            render: (val, row) => (
-                <div className="flex gap-2">
-                    {val && (
-                        <a href={val} target="_blank" rel="noreferrer" title="Vào học Meet">
-                            <Video size={18} className="text-red-500 hover:scale-110 transition-transform" />
-                        </a>
-                    )}
-                    {row.googleClassroomLink && (
-                        <a href={row.googleClassroomLink} target="_blank" rel="noreferrer" title="Vào Classroom">
-                            <School size={18} className="text-green-600 hover:scale-110 transition-transform" />
-                        </a>
-                    )}
-                </div>
-            )
-        },
-        {
-            key: "status",
-            title: "Trạng thái",
-            render: (status) => {
-                const configs = {
-                    UPCOMING: { type: 'info', text: 'Sắp mở' },
-                    ONGOING: { type: 'success', text: 'Đang học' },
-                    FINISHED: { type: 'default', text: 'Kết thúc' },
-                    CANCELLED: { type: 'danger', text: 'Đã hủy' }
-                };
-                const config = configs[status] || configs.UPCOMING;
-                return <KLBadge type={config.type}>{config.text}</KLBadge>;
-            }
+            </div>
+        )
+    },
+    {
+        key: "googleMeetLink",
+        title: "Liên kết",
+        render: (val, row) => (
+            <div className="flex gap-2">
+                {val && (
+                    <a href={val} target="_blank" rel="noreferrer" title="Vào học Meet" onClick={(e) => e.stopPropagation()}>
+                        <Video size={18} className="text-red-500 hover:scale-110 transition-transform" />
+                    </a>
+                )}
+                {row.googleClassroomLink && (
+                    <a href={row.googleClassroomLink} target="_blank" rel="noreferrer" title="Vào Classroom" onClick={(e) => e.stopPropagation()}>
+                        <School size={18} className="text-green-600 hover:scale-110 transition-transform" />
+                    </a>
+                )}
+            </div>
+        )
+    },
+    {
+        key: "status",
+        title: "Trạng thái",
+        render: (status) => {
+            const configs = {
+                UPCOMING: { type: 'info', text: 'Sắp mở' },
+                ONGOING: { type: 'success', text: 'Đang học' },
+                FINISHED: { type: 'default', text: 'Kết thúc' },
+                CANCELLED: { type: 'danger', text: 'Đã hủy' }
+            };
+            const config = configs[status] || configs.UPCOMING;
+            return <KLBadge type={config.type}>{config.text}</KLBadge>;
         }
-    ];
+    }
+];
 
     return (
         <div className="space-y-6 p-4 animate-in fade-in duration-700">
             {/* HEADER */}
             <div className="flex justify-between items-center">
                 <h1 className="text-3xl font-black text-gray-900 uppercase italic">Quản lý <span className="text-[#2d5a2d]">Lớp học</span></h1>
-                <KLButton icon={Plus} className="bg-[#2d5a2d]">Tạo lớp mới</KLButton>
+                <KLButton onClick={() => navigate("/admin/classes/create")} icon={Plus} className="bg-[#2d5a2d]">Tạo lớp mới</KLButton>
             </div>
 
             {/* BỘ LỌC TÌM KIẾM */}

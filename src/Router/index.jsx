@@ -58,7 +58,8 @@ import DashboardHome from "../AdminControl/Admin/dashboardHome.jsx";
 // admin
 import UserList from "../AdminControl/Admin/User/user.ui.jsx";
 import CourseList from "../AdminControl/Admin/Course/course.ui.jsx";
-import CourseClassList from "../AdminControl/Admin/Course/course-class.ui.jsx";
+import CourseClassList from "../AdminControl/Admin/Class/course-class.ui.jsx";
+import CreateClass from "../AdminControl/Admin/Class/CreateClass.jsx";
 import UserEnrollmentList from "../AdminControl/Admin/Course/user-enrollment.ui.jsx";
 import LessonList from "../AdminControl/Admin/Course/Lesson/lesson.ui.jsx";
 import LessonProgressList from "../AdminControl/Admin/Course/Lesson/lesson-progress.ui.jsx";
@@ -70,7 +71,15 @@ import SubscriptionPlanList from "../AdminControl/Admin/Subscription/subscriptio
 import BookManagement from "../AdminControl/Admin/Book/book.ui.jsx";
 import LateDevPage from "../AdminControl/Admin/latedev.ui.jsx";
 import TeacherDashboardHome from "../AdminControl/teacherDashboard.ui.jsx";
-
+import CreateCourse from "../AdminControl/Admin/Course/CreateCourse.jsx";
+import CourseDetailAdmin from "../AdminControl/Admin/Course/course-detail.jsx";
+import EditCourse from "../AdminControl/Admin/Course/edit-course.jsx";
+import CourseLessons from "../AdminControl/Admin/Course/course-lesson.jsx";
+import CreateLesson from "../AdminControl/Admin/Course/Lesson/create-lesson.jsx";
+import EditLesson from "../AdminControl/Admin/Course/Lesson/edit-lesson.jsx";
+import ClassDetail from "../AdminControl/Admin/Class/class-detail.jsx";
+import EditClass from "../AdminControl/Admin/Class/edit-class.jsx";
+import UserDetail from "../AdminControl/Admin/User/user-detail.jsx";
 function AnimatedRoutes() {
   const location = useLocation();
 
@@ -155,7 +164,31 @@ function AnimatedRoutes() {
         }>
           {/* Đây là các Route con sẽ hiển thị vào <Outlet /> trong AdminLayout */}
           <Route index element={<DashboardHome />} />
+          <Route path="/admin/courses/:id/detail" element={<PageWrapper><CourseDetailAdmin /></PageWrapper>} />
+          <Route path="/admin/courses/edit/:id" element={<PageWrapper><EditCourse /></PageWrapper>} />
+          <Route path="/admin/courses/:id/lessons" element={<PageWrapper><CourseLessons /></PageWrapper>} />
+          <Route path="/admin/lessons/create" element={<PageWrapper><CreateLesson /></PageWrapper>} />
+          <Route path="/admin/lessons/edit/:lessonId" element={<PageWrapper><EditLesson /></PageWrapper>} />
+          <Route path="/admin/classes/create" element={<PageWrapper><CreateClass /></PageWrapper>} />
+          <Route path="/admin/classes/:id" element={<PageWrapper><ClassDetail /></PageWrapper>} />
+          <Route 
+          path="/admin/classes/edit/:id" 
+          element={
+             <PageWrapper>
+                <EditClass />
+             </PageWrapper>
+          } 
+       />
+       <Route 
+        path="/admin/users/:id" 
+        element={
+          <PageWrapper>
+             <UserDetail />
+          </PageWrapper>
+        } 
+      />
 
+         
 
           <Route path="classes" element={<PageWrapper><CourseClassList /></PageWrapper>} />
           <Route
@@ -271,6 +304,7 @@ function AnimatedRoutes() {
               </PageWrapper>
             }
           />
+          <Route path="/admin/courses/create" element={<PageWrapper><CreateCourse /></PageWrapper>} />
           <Route path="teacher/dashboard" element={<TeacherDashboardHome />} />
 
         </Route>

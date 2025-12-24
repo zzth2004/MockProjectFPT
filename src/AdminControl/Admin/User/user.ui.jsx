@@ -9,6 +9,7 @@ import { KLCard } from "../../Component/Card";
 import { KLTable } from "../../Component/Table";
 import { KLButton } from "../../Component/Button";
 import { KLBadge } from "../../Component/Badge";
+import { useNavigate } from "react-router-dom";
 
 // Logic
 import useCallApiHandler from "../../../hooks/HookHander/useCallApiHandler";
@@ -16,6 +17,7 @@ import userService from "../../Service/API/userServiceAPI/user.service";
 // import authService from "../../../services/authService"
 
 export default function UserList() {
+    const navigate = useNavigate();
     // --- 1. STATES ---
     const [searchTerm, setSearchTerm] = useState("");
     const [showFilters, setShowFilters] = useState(false);
@@ -108,6 +110,12 @@ export default function UserList() {
     // Trong UserList.jsx
     const handleAction = async (type, user) => {
         switch (type) {
+            case 'view': // 👇 Thêm case này
+                navigate(`/admin/users/${user.id}`);
+                break;
+            case 'edit': // 👇 Thêm case này
+                navigate(`/admin/users/edit/${user.id}`);
+                break;
             case 'reset':
                 if (window.confirm(`Reset mật khẩu cho ${user.email}?`)) {
                     try {
@@ -161,12 +169,17 @@ export default function UserList() {
             key: "fullName",
             title: "Người dùng",
             render: (val, row) => (
-                <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-2xl bg-[#E4FBE1] text-[#2d5a2d] flex items-center justify-center font-black uppercase border-2 border-[#E4FBE1]">
+                <div 
+                    className="flex items-center gap-3 cursor-pointer group" 
+                    onClick={() => navigate(`/admin/users/${row.id}`)} // 👈 Thêm click
+                >
+                    <div className="w-10 h-10 rounded-2xl bg-[#E4FBE1] text-[#2d5a2d] flex items-center justify-center font-black uppercase border-2 border-[#E4FBE1] group-hover:bg-white transition-colors">
                         {(val || row.username || "U")[0]}
                     </div>
                     <div className="flex flex-col text-left">
-                        <span className="text-[15px] font-black text-gray-800 leading-tight">{val || row.username}</span>
+                        <span className="text-[15px] font-black text-gray-800 leading-tight group-hover:text-[#2d5a2d] transition-colors">
+                            {val || row.username}
+                        </span>
                         <span className="text-[10px] text-gray-400 font-bold uppercase tracking-tighter text-left">ID: #{row.id}</span>
                     </div>
                 </div>
@@ -280,7 +293,7 @@ export default function UserList() {
                             /* 🚩 BỔ SUNG: Truyền hàm handleAction vào Table */
                             onAction={handleAction}
                             /* 🚩 BỔ SUNG: Chỉ hiện Mật khẩu, Khóa, Xóa */
-                            hiddenActions={['view', 'edit']}
+                            hiddenActions={['edit']}
                         />
 
                         {/* --- FOOTER & PAGINATION UI --- */}
