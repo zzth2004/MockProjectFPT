@@ -4,7 +4,8 @@ import {
   LayoutDashboard, BookOpen, User, Settings, LogOut, X, 
   ChevronDown, ChevronRight, ShoppingCart, FileText, 
   Layers, Bot, Trophy, Rss, Book as BookIcon, 
-  MessageSquare, ShieldCheck, ListChecks, CreditCard, Tag, Hammer
+  MessageSquare, ShieldCheck, ListChecks, CreditCard, Tag, Hammer,
+  Calendar // 1️⃣ IMPORT ICON CALENDAR
 } from "lucide-react";
 import { useAuth } from '../../context/authContext'
 
@@ -17,7 +18,6 @@ const COLORS = {
   groupLabel: "#020617",
 };
 
-// Nhận thêm prop onLogoutClick từ AdminLayout
 export default function Sidebar({ isMobile, onClose, onLogoutClick }) {
   const location = useLocation();
   const [openMenus, setOpenMenus] = useState({});
@@ -27,21 +27,31 @@ export default function Sidebar({ isMobile, onClose, onLogoutClick }) {
   const role = user?.role?.toLowerCase() || "guest"; 
   const isTeacher = role === "teacher";
 
+  // XÁC ĐỊNH BASE PATH
+  const basePath = isTeacher ? "/teacher" : "/admin";
+
   const toggleMenu = (label) => {
     setOpenMenus((prev) => ({ ...prev, [label]: !prev[label] }));
   };
 
+  // --- MENU CONFIGURATION ---
   const menuConfig = [
     {
       group: "Hệ thống & Người dùng",
       items: [
-        { icon: LayoutDashboard, label: "Tổng quan", to: "/admin", isHidden: false },
+        { icon: LayoutDashboard, label: "Tổng quan", to: isTeacher ? "/teacher/dashboard" : "/admin", isHidden: false },
         { 
           icon: User, 
           label: isTeacher ? "Học sinh" : "Người dùng", 
           children: [
-            { label: isTeacher ? "Danh sách học sinh" : "Danh sách User", to: "/admin/users" },
+            { label: isTeacher ? "Danh sách học sinh" : "Danh sách User", to: `${basePath}/users` },
           ]
+        },
+         { 
+            icon: Calendar, 
+            label: "Lịch dạy", 
+            to: "/teacher/scheduleteacher", // Đường dẫn trỏ đến trang Schedule
+            isHidden: !isTeacher // 👈 QUAN TRỌNG: Chỉ hiện nếu là Teacher
         },
       ]
     },
@@ -51,27 +61,32 @@ export default function Sidebar({ isMobile, onClose, onLogoutClick }) {
         {
           icon: BookOpen, label: "Khóa học & Lớp",
           children: [
-            { label: "Tất cả khóa học", to: "/admin/courses" },
-            { label: "Quản lý lớp học", to: "/admin/classes" },
-            { label: "Ghi danh (Enrollment)", to: "/admin/enrollments" },
+            { label: "Tất cả khóa học", to: `${basePath}/courses` },
+            { label: "Quản lý lớp học", to: `${basePath}/classes` },
+            { label: "Ghi danh (Enrollment)", to: `${basePath}/enrollments`, isHidden: isTeacher },
           ]
         },
+        
+        // 🟢 2️⃣ THÊM MỤC LỊCH DẠY VÀO ĐÂY
+        // Nó sẽ tự động trỏ tới /teacher/schedule hoặc /admin/schedule tùy role
+     
+
         {
           icon: FileText, label: "Nội dung học tập",
           children: [
-            { label: "Danh sách bài học", to: "/admin/lessons" },
-            { label: "Ngữ pháp (Grammar)", to: "/admin/grammar" },
-            { label: "Từ vựng (Vocab)", to: "/admin/vocabulary" },
+            { label: "Danh sách bài học", to: `${basePath}/lessons` },
+            { label: "Ngữ pháp (Grammar)", to: `${basePath}/grammar` },
+            { label: "Từ vựng (Vocab)", to: `${basePath}/vocabulary` },
           ]
         },
         {
           icon: ListChecks, label: "Bài tập & Đánh giá",
           children: [
-            { label: "Ngân hàng câu hỏi", to: "/admin/exercises" },
-            { label: "Kết quả làm bài", to: "/admin/exercise-attempts" },
+            { label: "Ngân hàng câu hỏi", to: `${basePath}/exercises` },
+            { label: "Kết quả làm bài", to: `${basePath}/exercise-attempts` },
           ]
         },
-        { icon: Layers, label: "Flashcards", to: "/admin/flashcards", isHidden: false },
+        { icon: Layers, label: "Flashcards", to: `${basePath}/flashcards`, isHidden: false },
       ]
     },
     {
@@ -81,16 +96,16 @@ export default function Sidebar({ isMobile, onClose, onLogoutClick }) {
         {
           icon: CreditCard, label: "Gói học & Đăng ký",
           children: [
-            { label: "Gói Subscription", to: "/admin/plans" },
-            { label: "User Subscriptions", to: "/admin/user-subs" },
+            { label: "Gói Subscription", to: `${basePath}/plans` },
+            { label: "User Subscriptions", to: `${basePath}/user-subs` },
           ]
         },
-        { icon: ShoppingCart, label: "Đơn hàng (Orders)", to: "/admin/orders" },
+        { icon: ShoppingCart, label: "Đơn hàng (Orders)", to: `${basePath}/orders` },
         { 
           icon: Tag, label: "Khuyến mãi", isLateDev: true,
           children: [
-            { label: "Mã giảm giá (Coupon)", to: "/admin/coupons" },
-            { label: "Lịch sử sử dụng", to: "/admin/coupon-usage" },
+            { label: "Mã giảm giá (Coupon)", to: `${basePath}/coupons` },
+            { label: "Lịch sử sử dụng", to: `${basePath}/coupon-usage` },
           ]
         },
       ]
@@ -98,36 +113,40 @@ export default function Sidebar({ isMobile, onClose, onLogoutClick }) {
     {
       group: "Tính năng mở rộng",
       items: [
-        { icon: Bot, label: "AI Learning", to: "/admin/ai", isLateDev: true },
+        { icon: Bot, label: "AI Learning", to: `${basePath}/ai`, isLateDev: true },
         { 
           icon: Trophy, label: "Gamification", isHidden: isTeacher, isLateDev: true,
           children: [
-            { label: "Điểm thưởng", to: "/admin/points" },
-            { label: "Huy hiệu", to: "/admin/badges" },
+            { label: "Điểm thưởng", to: `${basePath}/points` },
+            { label: "Huy hiệu", to: `${basePath}/badges` },
           ]
         },
-        { icon: Rss, label: "Blog & Tin tức", to: "/admin/blog", isHidden: false },
-        { icon: BookIcon, label: "Thư viện sách", to: "/admin/books", isHidden: isTeacher },
+        { icon: Rss, label: "Blog & Tin tức", to: `${basePath}/blog`, isHidden: false },
+        { icon: BookIcon, label: "Thư viện sách", to: `${basePath}/books`, isHidden: isTeacher },
       ]
     },
     {
       group: "Cài đặt & Hỗ trợ",
       items: [
-        { icon: ShieldCheck, label: "Classroom Sync", to: "/admin/google-sync", isLateDev: true },
-        { icon: MessageSquare, label: "Support Tickets", to: "/admin/tickets", isHidden: isTeacher,  isLateDev: true },
-        { icon: Settings, label: "Cài đặt hệ thống", to: "/admin/settings", isHidden: false },
+        { icon: ShieldCheck, label: "Classroom Sync", to: `${basePath}/google-sync`, isLateDev: true },
+        { icon: MessageSquare, label: "Support Tickets", to: `${basePath}/tickets`, isHidden: isTeacher,  isLateDev: true },
+        { icon: Settings, label: "Cài đặt hệ thống", to: `${basePath}/settings`, isHidden: false },
         { icon: LogOut, label: "Đăng xuất", to: "/logout", isHidden: false },
       ]
     }
   ];
 
-  // Component phụ NavItem (Giữ nguyên logic render của bạn)
+  // ... (Phần render NavItem và return giữ nguyên không đổi) ...
+  
   const NavItem = ({ item, depth = 0 }) => {
     if (item.isHidden) return null;
     const hasChildren = item.children && item.children.length > 0;
     const isOpen = openMenus[item.label];
-    const finalTo = item.isLateDev ? "/admin/late-dev" : item.to;
-    const isActive = location.pathname === finalTo || (hasChildren && item.children.some(child => location.pathname === (child.isLateDev ? "/admin/late-dev" : child.to)));
+    
+    const finalTo = item.isLateDev ? `${basePath}/late-dev` : item.to;
+    
+    const isActive = location.pathname === finalTo || (hasChildren && item.children.some(child => location.pathname === (child.isLateDev ? `${basePath}/late-dev` : child.to)));
+    
     const Icon = item.icon;
     const isSubItem = depth > 0;
     const isLogout = item.to === "/logout";
@@ -176,9 +195,8 @@ export default function Sidebar({ isMobile, onClose, onLogoutClick }) {
 
   return (
     <aside className={`flex flex-col h-full bg-white border-r border-gray-200 ${isMobile ? "w-full" : "w-[280px] shadow-2xl"}`}>
-      {/* LOGO */}
       <div className="h-20 flex items-center px-6 justify-between border-b border-gray-100">
-        <Link to="/admin/dashboard" className="flex items-center gap-3">
+        <Link to={isTeacher ? "/teacher/dashboard" : "/admin"} className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl flex items-center justify-center text-white shadow-xl" style={{ backgroundColor: COLORS.primary }}>
             <span className="font-black text-xl italic">KL</span>
           </div>
@@ -190,7 +208,6 @@ export default function Sidebar({ isMobile, onClose, onLogoutClick }) {
         {isMobile && <button onClick={onClose} className="p-2 text-gray-500"><X size={24} strokeWidth={3} /></button>}
       </div>
 
-      {/* MENU */}
       <div className="flex-1 overflow-y-auto py-6 custom-scrollbar">
         {menuConfig.map((group, idx) => (
           !group.isHidden && (
@@ -204,7 +221,6 @@ export default function Sidebar({ isMobile, onClose, onLogoutClick }) {
         ))}
       </div>
 
-      {/* FOOTER PROFILE - Cập nhật thông tin từ User Context */}
       <div className="p-4 border-t border-gray-100 bg-gray-50/50">
         <div className="flex items-center gap-3 p-3 rounded-2xl bg-white shadow-md border border-gray-100">
           <img 

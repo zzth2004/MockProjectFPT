@@ -2,21 +2,28 @@ import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { 
   ArrowLeft, Edit3, Trash2, BookOpen, Users, Layers, DollarSign, 
-  Video, FileText, PlayCircle, School, Calendar, ChevronRight 
+  Video, FileText, PlayCircle, School, Calendar, ChevronRight, Plus 
 } from "lucide-react";
 
 // Components
 import { KLBadge } from "../../Component/Badge";
 
-// Services
+// Services & Context
 import courseService from "../../Service/API/courseServiceAPI/course.service";
 import courseClassService from "../../Service/API/courseServiceAPI/course-class.service";
+import { useAuth } from "../../../context/authContext"; // ✅ 1. Import Auth
 
 export default function CourseDetailAdmin() {
   const { id } = useParams();
   const navigate = useNavigate();
+  
+  // ✅ 2. Xác định Role & BasePath
+  const { user } = useAuth();
+  const isTeacher = user?.role === 'teacher';
+  const basePath = isTeacher ? "/teacher" : "/admin";
+
   const [course, setCourse] = useState(null);
-  const [classes, setClasses] = useState([]); // State lưu danh sách lớp học
+  const [classes, setClasses] = useState([]); 
   const [loading, setLoading] = useState(true);
 
   // --- FETCH DATA ---
@@ -32,21 +39,16 @@ export default function CourseDetailAdmin() {
         // 2. Lấy danh sách lớp học
         let listClasses = [];
         
-        // Ưu tiên 1: Nếu API getDetail đã trả về sẵn mảng classes
         if (courseData.classes && Array.isArray(courseData.classes)) {
             listClasses = courseData.classes;
-        } 
-        // Ưu tiên 2: Gọi API riêng để lấy lớp theo khóa học
-        else {
-            console.log("🔄 Đang gọi API lấy danh sách lớp...");
+        } else {
+            // Teacher chỉ nên thấy lớp mình dạy (nếu cần logic riêng), 
+            // nhưng ở trang chi tiết khóa học thì thường hiển thị hết các lớp của khóa đó.
             const response = await courseClassService.getClassesByCourse(id);
-            console.log("🔍 Kết quả API lớp học:", response);
-
-            // 👇 LOGIC FIX: Kiểm tra kỹ xem response là mảng hay object
             if (Array.isArray(response)) {
-                listClasses = response; // Nếu service trả về mảng luôn
+                listClasses = response;
             } else if (response && Array.isArray(response.data)) {
-                listClasses = response.data; // Nếu service trả về object bọc data
+                listClasses = response.data;
             }
         }
 
@@ -54,14 +56,26 @@ export default function CourseDetailAdmin() {
 
       } catch (error) {
         console.error("Lỗi tải dữ liệu:", error);
-        // alert("Có lỗi khi tải dữ liệu!"); // Có thể bỏ alert để đỡ phiền
       } finally {
         setLoading(false);
       }
     };
     
     if (id) fetchDetail();
-  }, [id, navigate]);
+  }, [id]);
+
+  // Handler Xóa khóa học
+  const handleDelete = async () => {
+      if(window.confirm("⚠️ Bạn có chắc chắn muốn xóa khóa học này không? Hành động này không thể hoàn tác.")){
+          try {
+              await courseService.deleteCourse(id);
+              alert("✅ Đã xóa khóa học thành công!");
+              navigate(`${basePath}/courses`);
+          } catch (error) {
+              alert("❌ Lỗi khi xóa: " + (error.response?.data?.message || "Không thể xóa"));
+          }
+      }
+  }
 
   if (loading) return <div className="min-h-screen flex items-center justify-center font-bold text-gray-500">Đang tải dữ liệu...</div>;
   if (!course) return null;
@@ -77,17 +91,25 @@ export default function CourseDetailAdmin() {
            </button>
            <div>
               <h1 className="text-2xl font-black text-gray-900 uppercase italic">Chi tiết khóa học</h1>
-              <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">ID: {course.id} • Created by {course.createdBy?.fullName || "Admin"}</p>
+              <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">
+                  {isTeacher ? "TEACHER VIEW" : "ADMIN VIEW"} • ID: {course.id}
+              </p>
            </div>
         </div>
         <div className="flex gap-3">
+           {/* ✅ Nút Sửa: Điều hướng theo basePath */}
            <button 
-             onClick={() => navigate(`/admin/courses/edit/${course.id}`)}
+             onClick={() => navigate(`${basePath}/courses/edit/${course.id}`)}
              className="px-5 py-2.5 rounded-xl font-bold text-gray-700 bg-white border border-gray-200 hover:bg-gray-50 shadow-sm flex items-center gap-2"
            >
               <Edit3 size={18} /> Chỉnh sửa
            </button>
-           <button className="px-5 py-2.5 rounded-xl font-bold text-white bg-red-500 hover:bg-red-600 shadow-lg shadow-red-500/20 flex items-center gap-2">
+           
+           {/* ✅ Nút Xóa: Đã gắn hàm handleDelete */}
+           <button 
+             onClick={handleDelete}
+             className="px-5 py-2.5 rounded-xl font-bold text-white bg-red-500 hover:bg-red-600 shadow-lg shadow-red-500/20 flex items-center gap-2"
+           >
               <Trash2 size={18} /> Xóa
            </button>
         </div>
@@ -131,19 +153,31 @@ export default function CourseDetailAdmin() {
               </div>
            </div>
 
-           {/* 👇 2. DANH SÁCH LỚP HỌC (MỚI THÊM) */}
+           {/* 2. DANH SÁCH LỚP HỌC */}
            <div className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-gray-100">
               <div className="flex items-center justify-between mb-6">
                   <h3 className="text-lg font-black text-gray-900 flex items-center gap-2">
                      <School className="text-[#2d5a2d]" /> Lớp học đang mở
                   </h3>
-                
+                  
+                  {/* ✅ NÚT TẠO LỚP NHANH (Dẫn sang trang tạo lớp với courseId có sẵn) */}
+                  <button 
+                    onClick={() => navigate(`${basePath}/classes/create`)} 
+                    className="text-xs font-bold bg-[#E4FBE1] text-[#2d5a2d] px-3 py-1.5 rounded-xl hover:bg-[#2d5a2d] hover:text-white transition-all flex items-center gap-1"
+                  >
+                      <Plus size={14} /> Mở lớp mới
+                  </button>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {classes.length > 0 ? (
                       classes.map((cls) => (
-                          <div key={cls.id} className="p-4 rounded-2xl bg-gray-50 border border-transparent hover:border-gray-200 transition-all group cursor-pointer" onClick={() => navigate(`/admin/classes/edit/${cls.id}`)}>
+                          <div 
+                            key={cls.id} 
+                            // ✅ Điều hướng sửa lớp theo basePath
+                            onClick={() => navigate(`${basePath}/classes/edit/${cls.id}`)}
+                            className="p-4 rounded-2xl bg-gray-50 border border-transparent hover:border-gray-200 transition-all group cursor-pointer" 
+                          >
                               <div className="flex justify-between items-start mb-2">
                                   <span className={`text-[10px] font-black px-2 py-1 rounded uppercase ${cls.status === 'ONGOING' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'}`}>
                                       {cls.status}
@@ -171,51 +205,60 @@ export default function CourseDetailAdmin() {
               </div>
            </div>
 
-           {/* 3. DANH SÁCH BÀI HỌC (GIỮ NGUYÊN) */}
+           {/* 3. DANH SÁCH BÀI HỌC */}
            <div className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-gray-100">
               <div className="flex items-center justify-between mb-6">
                   <h3 className="text-lg font-black text-gray-900 flex items-center gap-2">
                      <BookOpen className="text-[#2d5a2d]" /> Nội dung khóa học
                   </h3>
-                  <span className="text-xs font-bold bg-gray-100 px-3 py-1 rounded-full text-gray-500">
-                      {course.lessons?.length || 0} bài
-                  </span>
+                  <div className="flex gap-2">
+                      <span className="text-xs font-bold bg-gray-100 px-3 py-1.5 rounded-full text-gray-500">
+                          {course.lessons?.length || 0} bài
+                      </span>
+                      {/* ✅ Nút Quản lý bài học */}
+                      <button 
+                        onClick={() => navigate(`${basePath}/courses/${id}/lessons`)}
+                        className="text-xs font-bold bg-gray-900 text-white px-3 py-1.5 rounded-full hover:bg-gray-700 transition-all flex items-center gap-1"
+                      >
+                          <Edit3 size={12}/> Quản lý bài học
+                      </button>
+                  </div>
               </div>
               
               <div className="space-y-3">
                   {course.lessons && course.lessons.length > 0 ? (
                       course.lessons.map((lesson, idx) => (
-                         <div key={lesson.id || idx} className="flex items-center gap-4 p-4 rounded-2xl bg-gray-50 hover:bg-gray-100 transition-colors border border-transparent hover:border-gray-200 group">
-                            <div className="w-10 h-10 rounded-xl bg-white flex items-center justify-center text-[#2d5a2d] shadow-sm font-black text-sm border border-gray-100">
-                               {idx + 1}
-                            </div>
-                            <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center text-blue-600">
-                               {lesson.type === 'video' ? <Video size={18} /> : <FileText size={18} />}
-                            </div>
-                            <div className="flex-1">
-                               <h4 className="font-bold text-gray-800 text-sm group-hover:text-[#2d5a2d] transition-colors">{lesson.title}</h4>
-                               <div className="flex items-center gap-2 mt-1">
-                                   {lesson.groupName && (
-                                       <span className="text-[10px] font-bold bg-white px-2 py-0.5 rounded border border-gray-200 text-gray-400 uppercase tracking-wide">
-                                           {lesson.groupName}
-                                       </span>
-                                   )}
-                                   <span className="text-[10px] font-medium text-gray-400">
-                                       {lesson.duration || "Video bài giảng"}
-                                   </span>
-                               </div>
-                            </div>
-                            <button className="p-2 bg-white rounded-full text-gray-300 hover:text-[#2d5a2d] shadow-sm hover:shadow-md transition-all">
-                               <PlayCircle size={20} />
-                            </button>
-                         </div>
+                          <div key={lesson.id || idx} className="flex items-center gap-4 p-4 rounded-2xl bg-gray-50 hover:bg-gray-100 transition-colors border border-transparent hover:border-gray-200 group">
+                             <div className="w-10 h-10 rounded-xl bg-white flex items-center justify-center text-[#2d5a2d] shadow-sm font-black text-sm border border-gray-100">
+                                {idx + 1}
+                             </div>
+                             <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center text-blue-600">
+                                {lesson.type === 'video' ? <Video size={18} /> : <FileText size={18} />}
+                             </div>
+                             <div className="flex-1">
+                                <h4 className="font-bold text-gray-800 text-sm group-hover:text-[#2d5a2d] transition-colors">{lesson.title}</h4>
+                                <div className="flex items-center gap-2 mt-1">
+                                    {lesson.groupName && (
+                                        <span className="text-[10px] font-bold bg-white px-2 py-0.5 rounded border border-gray-200 text-gray-400 uppercase tracking-wide">
+                                            {lesson.groupName}
+                                        </span>
+                                    )}
+                                    <span className="text-[10px] font-medium text-gray-400">
+                                        {lesson.duration || "Video bài giảng"}
+                                    </span>
+                                </div>
+                             </div>
+                             <button className="p-2 bg-white rounded-full text-gray-300 hover:text-[#2d5a2d] shadow-sm hover:shadow-md transition-all">
+                                <PlayCircle size={20} />
+                             </button>
+                          </div>
                       ))
                   ) : (
                       <div className="text-center py-12 flex flex-col items-center border-2 border-dashed border-gray-100 rounded-3xl">
-                         <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mb-3">
-                            <Layers size={24} className="text-gray-300" />
-                         </div>
-                         <p className="text-sm font-bold text-gray-400">Chưa có bài học nào.</p>
+                          <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mb-3">
+                             <Layers size={24} className="text-gray-300" />
+                          </div>
+                          <p className="text-sm font-bold text-gray-400">Chưa có bài học nào.</p>
                       </div>
                   )}
               </div>

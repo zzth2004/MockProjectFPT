@@ -5,18 +5,18 @@ import {
 } from "lucide-react";
 
 // UI Components
-import { KLCard, KLStatsCard } from "./Component/Card";
-import { KLTable } from "./Component/Table";
-import { KLButton } from "./Component/Button";
-import { KLBadge } from "./Component/Badge";
+import { KLCard, KLStatsCard } from "../AdminControl/Component/Card";
+import { KLTable } from "../AdminControl/Component/Table";
+import { KLButton } from "../AdminControl/Component/Button";
+import { KLBadge } from "../AdminControl/Component/Badge";
 
 // Logic & API
 import useCallApiHandler from "../hooks/HookHander/useCallApiHandler";
-import { getTimeData } from './Service/timeService';
-import teacherService from "./Service/API/userServiceAPI/teacher.service"; 
+import { getTimeData } from '../AdminControl/Service/timeService';
+import teacherService from "../AdminControl/Service/API/userServiceAPI/teacher.service"; 
 
 // Charts
-import { KLAreaChart, KLDonutChart } from "./Chart/chart";
+import { KLAreaChart, KLDonutChart } from "../AdminControl/Chart/chart";
 
 // --- DỮ LIỆU MẪU (MOCK DATA) - Sử dụng số liệu thực tế để dễ quan sát ---
 const MOCK_STATS = {

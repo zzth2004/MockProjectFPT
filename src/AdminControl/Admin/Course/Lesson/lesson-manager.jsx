@@ -4,26 +4,30 @@ import {
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
-// 👇 Import Component (Lùi 4 cấp)
 import { KLCard } from "../../../Component/Card";
 import { KLTable } from "../../../Component/Table";
 import { KLButton } from "../../../Component/Button";
 import { KLBadge } from "../../../Component/Badge";
 
-// 👇 Import Service & Hook (Lùi 4 cấp)
+
 import useCallApiHandler from "../../../../hooks/HookHander/useCallApiHandler";
+
 import lessonService from "../../../Service/API/lessonServiceAPI/lesson.service";
+import { useAuth } from "../../../../context/authContext"; // Import Auth
 
 export default function LessonManager({ courseId, courseTitle }) {
   const navigate = useNavigate();
+  
+  // Xác định Role & BasePath
+  const { user } = useAuth();
+  const isTeacher = user?.role === 'teacher';
+  const basePath = isTeacher ? "/teacher" : "/admin";
 
-  // --- 1. STATES ---
   const [searchTerm, setSearchTerm] = useState("");
   const [filters, setFilters] = useState({ isFree: "" });
   const [currentPage, setCurrentPage] = useState(1);
   const pageSize = 5;
 
-  // --- 2. FETCH DATA ---
   const fetchLessonsFn = useCallback(() => {
     const LIMIT = 100; 
     const PAGE = 1;
@@ -43,7 +47,6 @@ export default function LessonManager({ courseId, courseTitle }) {
     refreshLessons();
   }, [refreshLessons]);
 
-  // --- 3. FILTER & PAGINATION ---
   const rawData = useMemo(() => {
       if (Array.isArray(lessonsResponse)) return lessonsResponse;
       if (lessonsResponse?.data && Array.isArray(lessonsResponse.data)) return lessonsResponse.data;
@@ -65,21 +68,22 @@ export default function LessonManager({ courseId, courseTitle }) {
 
   const totalPages = Math.ceil(filteredDataset.length / pageSize);
 
-  // --- 4. HANDLERS ---
+  // --- HANDLERS ---
   const handleCreate = () => {
     if (courseId) {
-      navigate("/admin/lessons/create", {
+      // Truyền ID khóa học sang trang tạo để tự điền
+      navigate(`${basePath}/lessons/create`, {
         state: { preSelectedCourseId: courseId, courseTitle: courseTitle },
       });
     } else {
-      navigate("/admin/lessons/create");
+      navigate(`${basePath}/lessons/create`);
     }
   };
 
   const handleAction = async (type, lesson) => {
     switch (type) {
       case "edit":
-        navigate(`/admin/lessons/edit/${lesson.id}`);
+        navigate(`${basePath}/lessons/edit/${lesson.id}`);
         break;
       case "delete":
         if (window.confirm(`⚠️ Xóa bài học: ${lesson.title}?`)) {
@@ -96,7 +100,6 @@ export default function LessonManager({ courseId, courseTitle }) {
     }
   };
 
-  // --- 5. COLUMNS ---
   const columns = [
     {
       key: "orderIndex", title: "STT",
@@ -141,11 +144,13 @@ export default function LessonManager({ courseId, courseTitle }) {
           <p className="text-xs text-gray-400 font-bold">Tổng số: {filteredDataset.length} bài</p>
         </div>
         <div className="flex gap-2 w-full sm:w-auto">
-          <KLButton variant="outline" icon={Database} onClick={() => lessonService.seedData().then(refreshLessons)}>Seed</KLButton>
-          <KLButton icon={Plus} className="bg-[#2d5a2d] flex-1 sm:flex-none justify-center" onClick={handleCreate}>Thêm mới</KLButton>
+          {!isTeacher && (
+             <KLButton variant="outline" icon={Database} onClick={() => lessonService.seedData().then(refreshLessons)}>Seed</KLButton>
+          )}
+          <KLButton icon={Plus} className="bg-[#2d5a2d] flex-1 sm:flex-none justify-center" onClick={handleCreate}>Thêm bài học</KLButton>
         </div>
       </div>
-      {/* ... Phần Filter và Table giữ nguyên như cũ ... */}
+
       <div className="flex gap-4">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-300" size={16} />

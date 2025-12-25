@@ -89,7 +89,7 @@ export default function LateDevPage() {
                         <KLButton 
                             icon={LayoutDashboard} 
                             className="bg-black shadow-xl shadow-gray-200"
-                            onClick={() => navigate("/admin")}
+                            onClick={() => navigate("/user/dashboard")}
                         >
                             Về Dashboard
                         </KLButton>

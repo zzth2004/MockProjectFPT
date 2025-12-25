@@ -180,7 +180,7 @@ export default function MainHeader({ onMenuClick }) {
                     {/* DYNAMIC CONSOLE BUTTON (ADMIN/TEACHER) */}
                     {hasConsoleAccess && (
                       <button 
-                        onClick={() => {isAdmin ? navigate('/admin') : navigate("/admin/teacher/dashboard"); setIsProfileOpen(false);}} 
+                        onClick={() => {isAdmin ? navigate('/admin') : navigate("/teacher/dashboard"); setIsProfileOpen(false);}} 
                         className={`w-full px-4 py-3.5 rounded-2xl flex items-center justify-between group transition-all shadow-lg mt-2 ${
                             isAdmin ? 'bg-gray-950 hover:bg-black shadow-gray-200 text-white' : 
                             'bg-blue-600 hover:bg-blue-700 shadow-blue-100 text-white'

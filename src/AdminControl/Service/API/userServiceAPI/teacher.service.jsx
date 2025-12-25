@@ -44,7 +44,10 @@ const teacherService = {
      */
     getMyStudents: async (page = 1, limit = 10, search = "") => {
         return axiosClient.get("/courses/teacher/my-students", { params: { page, limit, search } })
-            .then(res => res.data.data);
+            .then(res => {
+                console.log("📊 Data student nhận được từ API:", res.data.data);
+                return res.data.data
+            });
     },
 
     /**

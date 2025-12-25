@@ -1,14 +1,17 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { 
-  ArrowLeft, Save, School, BookOpen, Clock, Loader2, Video, Users 
+  ArrowLeft, Save, School, BookOpen, Clock, Loader2, Video, Users,
+  CalendarCheck, ShieldCheck, GraduationCap, AlertCircle
 } from "lucide-react";
 
 import courseClassService from "../../Service/API/courseServiceAPI/course-class.service";
 import courseService from "../../Service/API/courseServiceAPI/course.service";
+import { useAuth } from "../../../context/authContext";
 
 export default function EditClass() {
-  const { id } = useParams(); // Lấy ID từ URL
+  const { id } = useParams(); // Lấy ID lớp từ URL
+  const { user } = useAuth(); // Lấy thông tin user đang login để check role
   const navigate = useNavigate();
   
   const [isLoading, setIsLoading] = useState(false);
@@ -16,34 +19,31 @@ export default function EditClass() {
 
   const [courses, setCourses] = useState([]);
   
-  // Lưu thông tin giáo viên hiện tại của lớp để hiển thị
+  // Lưu thông tin giáo viên hiện tại của lớp (để hiển thị UI)
   const [currentTeacher, setCurrentTeacher] = useState(null);
+
+  // --- 0. XÁC ĐỊNH ROLE & ĐƯỜNG DẪN ---
+  const userRole = user?.role?.toLowerCase() || "";
+  const isTeacher = userRole === "teacher";
+  const redirectPath = isTeacher ? "/teacher/classes" : "/admin/classes";
+  const roleLabel = isTeacher ? "Giảng viên" : "Quản trị viên";
 
   const [formData, setFormData] = useState({
     name: "",
     courseId: "",
-    teacherId: "", // Lưu ID để gửi lại backend
+    teacherId: "", // Quan trọng: ID này lấy từ DB về, không lấy từ User đang login
     startDate: "",
-    schedule: "", // Map với scheduleDescription
+    schedule: "", 
     googleMeetLink: "",
     maxStudents: 30,
     status: "UPCOMING"
   });
 
-  // --- HÀM HELPER: HIỂN THỊ CHỨC VỤ ---
-  const getRoleDisplayName = (role) => {
-      if (!role) return "Giáo viên";
-      const r = role.toUpperCase();
-      if (r === 'ADMIN' || r === 'QUAN_TRI') return "Quản trị viên";
-      if (r === 'TEACHER' || r === 'GIANG_VIEN') return "Giảng viên";
-      return role; 
-  };
-
   // --- 1. FETCH DATA ---
   useEffect(() => {
     const fetchData = async () => {
       try {
-        // A. Lấy danh sách khóa học (để đổ vào dropdown)
+        // A. Lấy danh sách khóa học (cho dropdown)
         const coursesRes = await courseService.getAllCourses(1, 100); 
         setCourses(coursesRes?.data || []);
 
@@ -51,7 +51,7 @@ export default function EditClass() {
         const classData = await courseClassService.getClassDetail(id);
         
         if (classData) {
-            // Xử lý ngày tháng: Cắt lấy phần YYYY-MM-DD
+            // Xử lý ngày tháng: Cắt lấy phần YYYY-MM-DD cho input type="date"
             const formattedDate = classData.startDate 
                 ? new Date(classData.startDate).toISOString().split('T')[0] 
                 : "";
@@ -59,28 +59,28 @@ export default function EditClass() {
             setFormData({
                 name: classData.name || "",
                 courseId: classData.course?.id || classData.courseId,
-                teacherId: classData.teacher?.id || classData.teacherId, // Giữ nguyên ID giáo viên cũ
+                teacherId: classData.teacher?.id || classData.teacherId, // Giữ ID giáo viên cũ
                 startDate: formattedDate,
-                schedule: classData.scheduleDescription || "", // Map ngược từ DB về form
+                schedule: classData.scheduleDescription || "", 
                 googleMeetLink: classData.googleMeetLink || "",
                 maxStudents: classData.maxStudents || 30,
                 status: classData.status || "UPCOMING"
             });
 
-            // Lưu object giáo viên để hiển thị UI
+            // Lưu object giáo viên để hiển thị avatar/tên
             setCurrentTeacher(classData.teacher);
         }
 
       } catch (error) {
         console.error("Lỗi:", error);
-        alert("Không tìm thấy thông tin lớp học!");
-        navigate("/admin/classes");
+        alert("Không tìm thấy thông tin lớp học hoặc bạn không có quyền truy cập!");
+        navigate(redirectPath);
       } finally {
         setIsFetching(false);
       }
     };
     fetchData();
-  }, [id, navigate]);
+  }, [id, navigate, redirectPath]);
 
   // --- 2. HANDLERS ---
   const handleChange = (field, value) => {
@@ -96,37 +96,27 @@ export default function EditClass() {
 
     setIsLoading(true);
     try {
-      // 2. TẠO PAYLOAD "SẠCH" (Không dùng ...formData để tránh gửi dữ liệu thừa)
+      // 2. Prepare Payload
       const payload = {
-          id: Number(id), // Gửi kèm ID cho chắc chắn
-          
-          // Các trường cơ bản
+          id: Number(id),
           name: formData.name,
-          courseId: Number(formData.courseId),      // Ép kiểu Số
-          maxStudents: Number(formData.maxStudents), // Ép kiểu Số
-          
-          // 👇 QUAN TRỌNG: Ép status thành CHỮ HOA (Backend Enum thường là UPCOMING)
-          status: formData.status.toUpperCase(), 
-
-          // 👇 QUAN TRỌNG: Map đúng tên trường trong Entity
+          courseId: Number(formData.courseId),
+          maxStudents: Number(formData.maxStudents),
+          status: formData.status.toUpperCase(), // Enum thường là uppercase
           scheduleDescription: formData.schedule, 
-          
-          // Convert ngày sang ISO String
           startDate: new Date(formData.startDate).toISOString(), 
-          
           googleMeetLink: formData.googleMeetLink,
-          
-          // Ép kiểu TeacherId thành Số
-          teacherId: Number(formData.teacherId)
+          teacherId: Number(formData.teacherId) // Giữ nguyên giáo viên cũ
       };
       
-      console.log("📡 Payload CHUẨN gửi đi:", payload); 
+      console.log("📡 Updating Class Payload:", payload); 
       
-      // Gọi API
       await courseClassService.updateClass(id, payload);
       
-      alert("✅ Cập nhật thành công!");
-      navigate("/admin/classes");
+      alert("✅ Cập nhật thông tin lớp học thành công!");
+      
+      // Navigate về đúng trang danh sách theo Role
+      navigate(redirectPath);
       
     } catch (error) {
       console.error("Lỗi Update:", error);
@@ -137,7 +127,19 @@ export default function EditClass() {
     }
   };
 
-  if (isFetching) return <div className="min-h-screen flex items-center justify-center font-bold text-gray-500">Đang tải dữ liệu lớp...</div>;
+  // Helper hiển thị Role giáo viên
+  const getRoleDisplayName = (role) => {
+      if (!role) return "Giáo viên";
+      const r = role.toUpperCase();
+      if (r === 'ADMIN' || r === 'QUAN_TRI') return "Quản trị viên";
+      return "Giảng viên"; 
+  };
+
+  if (isFetching) return (
+    <div className="flex items-center justify-center min-h-[400px]">
+        <Loader2 size={30} className="animate-spin text-[#2d5a2d]" />
+    </div>
+  );
 
   return (
     <div className="min-h-screen bg-[#F8F9FC] font-sans pb-20 p-4 md:p-6 animate-in fade-in duration-500">
@@ -145,67 +147,109 @@ export default function EditClass() {
       {/* HEADER */}
       <div className="flex justify-between gap-4 mb-8 sticky top-0 z-30 bg-[#F8F9FC]/90 backdrop-blur-sm py-2">
         <div className="flex items-center gap-4">
-           <button onClick={() => navigate(-1)} className="w-10 h-10 rounded-xl bg-white hover:bg-gray-100 flex items-center justify-center shadow-sm text-gray-500"><ArrowLeft size={20} /></button>
+           {/* Back Button điều hướng thông minh */}
+           <button onClick={() => navigate(redirectPath)} className="w-10 h-10 rounded-xl bg-white hover:bg-gray-100 flex items-center justify-center shadow-sm text-gray-500 transition-all">
+               <ArrowLeft size={20} />
+           </button>
            <div>
-              <h1 className="text-2xl font-black text-gray-900 uppercase italic">Sửa <span className="text-[#2d5a2d]">Lớp học</span></h1>
-              <p className="text-[10px] font-bold text-gray-400 uppercase tracking-[0.2em]">ID: {id}</p>
+              <h1 className="text-2xl font-black text-gray-900 uppercase italic">
+                  Chỉnh sửa <span className="text-[#2d5a2d]">Lớp học</span>
+              </h1>
+              <div className="flex items-center gap-2 text-[10px] font-bold text-gray-400 mt-1 uppercase tracking-wider">
+                  <span>ID: {id}</span>
+                  <span>•</span>
+                  <span>{roleLabel} Portal</span>
+              </div>
            </div>
         </div>
-        <button disabled={isLoading} onClick={handleUpdate} className="px-6 py-2.5 rounded-xl font-bold text-white bg-[#2d5a2d] hover:bg-[#1a3d1a] shadow-lg flex items-center gap-2">
-           {isLoading ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} />} Lưu thay đổi
+        <button 
+            disabled={isLoading} 
+            onClick={handleUpdate} 
+            className="px-6 py-2.5 rounded-xl font-bold text-white bg-[#2d5a2d] hover:bg-[#1a3d1a] shadow-lg hover:shadow-xl flex items-center gap-2 transition-all disabled:opacity-70"
+        >
+           {isLoading ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} />} 
+           Lưu Thay Đổi
         </button>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 max-w-[1600px] mx-auto">
         
-        {/* CỘT TRÁI */}
+        {/* CỘT TRÁI: THÔNG TIN CHÍNH */}
         <div className="lg:col-span-2 space-y-8">
-           <div className="bg-white p-6 rounded-[2rem] border-none shadow-sm space-y-6">
-              <h2 className="text-lg font-black text-gray-900 uppercase flex items-center gap-2"><School size={24} className="text-[#2d5a2d]"/> Thông tin lớp học</h2>
+           <div className="bg-white p-6 md:p-8 rounded-[2rem] border-none shadow-sm space-y-6 relative overflow-hidden">
+              <div className="absolute top-0 right-0 w-32 h-32 bg-[#2d5a2d]/5 rounded-bl-[100px] -z-0 pointer-events-none"></div>
+
+              <h2 className="text-lg font-black text-gray-900 uppercase flex items-center gap-2 z-10 relative">
+                  <School size={24} className="text-[#2d5a2d]"/> Thông tin chung
+              </h2>
               
-              <div>
-                 <label className="text-[11px] font-black uppercase text-gray-400">Tên lớp học</label>
-                 <input className="w-full p-4 bg-gray-50 rounded-2xl font-bold border-none outline-none focus:ring-2 focus:ring-[#2d5a2d]/20" value={formData.name} onChange={(e) => handleChange("name", e.target.value)} />
+              <div className="z-10 relative">
+                 <label className="text-[11px] font-black uppercase text-gray-400 ml-1 mb-1 block">Tên lớp hiển thị</label>
+                 <input 
+                    className="w-full p-4 bg-gray-50 hover:bg-white transition-colors rounded-2xl font-bold border border-transparent focus:border-[#2d5a2d] outline-none text-gray-800" 
+                    value={formData.name} 
+                    onChange={(e) => handleChange("name", e.target.value)} 
+                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 z-10 relative">
                  <div>
-                    <label className="text-[11px] font-black uppercase text-gray-400">Lịch học</label>
-                    <div className="flex items-center bg-gray-50 p-4 rounded-2xl gap-2">
-                        <Clock size={18} className="text-gray-400"/>
-                        <input className="bg-transparent font-medium outline-none w-full" value={formData.schedule} onChange={(e) => handleChange("schedule", e.target.value)} placeholder="VD: Tối 2-4-6..." />
+                    <label className="text-[11px] font-black uppercase text-gray-400 ml-1 mb-1 block">Lịch học</label>
+                    <div className="flex items-center bg-gray-50 p-4 rounded-2xl gap-3 border border-transparent focus-within:border-[#2d5a2d]/50">
+                        <Clock size={20} className="text-gray-400"/>
+                        <input 
+                            className="bg-transparent font-medium outline-none w-full" 
+                            value={formData.schedule} 
+                            onChange={(e) => handleChange("schedule", e.target.value)} 
+                            placeholder="VD: Tối 2-4-6..." 
+                        />
                     </div>
                  </div>
                  <div>
-                    <label className="text-[11px] font-black uppercase text-gray-400">Sĩ số</label>
-                    <div className="flex items-center bg-gray-50 p-4 rounded-2xl gap-2">
-                        <Users size={18} className="text-gray-400"/>
-                        <input type="number" className="bg-transparent font-bold outline-none w-full" value={formData.maxStudents} onChange={(e) => handleChange("maxStudents", e.target.value)} />
+                    <label className="text-[11px] font-black uppercase text-gray-400 ml-1 mb-1 block">Sĩ số tối đa</label>
+                    <div className="flex items-center bg-gray-50 p-4 rounded-2xl gap-3 border border-transparent focus-within:border-[#2d5a2d]/50">
+                        <Users size={20} className="text-gray-400"/>
+                        <input 
+                            type="number" 
+                            className="bg-transparent font-bold outline-none w-full" 
+                            value={formData.maxStudents} 
+                            onChange={(e) => handleChange("maxStudents", e.target.value)} 
+                        />
                     </div>
                  </div>
               </div>
 
-              <div>
-                 <label className="text-[11px] font-black uppercase text-gray-400">Link Meet/Zoom</label>
-                 <div className="flex items-center bg-blue-50 p-4 rounded-2xl gap-2 text-blue-700">
-                    <Video size={18}/>
-                    <input className="bg-transparent font-medium outline-none w-full placeholder-blue-300" value={formData.googleMeetLink} onChange={(e) => handleChange("googleMeetLink", e.target.value)} />
+              <div className="z-10 relative">
+                 <label className="text-[11px] font-black uppercase text-gray-400 ml-1 mb-1 block">Link Meet/Zoom</label>
+                 <div className="flex items-center bg-blue-50/50 p-4 rounded-2xl gap-3 text-blue-700 border border-blue-100 focus-within:border-blue-300">
+                    <Video size={20}/>
+                    <input 
+                        className="bg-transparent font-medium outline-none w-full placeholder-blue-300" 
+                        value={formData.googleMeetLink} 
+                        onChange={(e) => handleChange("googleMeetLink", e.target.value)} 
+                    />
                  </div>
               </div>
            </div>
         </div>
 
-        {/* CỘT PHẢI */}
+        {/* CỘT PHẢI: CẤU HÌNH */}
         <div className="space-y-6">
            <div className="bg-white p-6 rounded-[2rem] border-none shadow-sm space-y-6">
-              <h3 className="font-black text-gray-900 uppercase">Thiết lập</h3>
+              <h3 className="font-black text-gray-900 uppercase flex items-center gap-2">
+                  <CalendarCheck size={20} className="text-orange-500"/> Thiết lập
+              </h3>
 
               {/* 1. KHÓA HỌC */}
               <div>
                  <label className="text-[10px] font-black uppercase text-gray-400 mb-2 block">Thuộc khóa học</label>
-                 <div className="relative">
+                 <div className="relative group">
                      <BookOpen className="absolute left-4 top-1/2 -translate-y-1/2 text-[#2d5a2d]" size={18}/>
-                     <select className="w-full pl-12 pr-4 py-4 bg-[#2d5a2d]/5 rounded-2xl font-bold text-[#2d5a2d] outline-none cursor-pointer appearance-none" value={formData.courseId} onChange={(e) => handleChange("courseId", e.target.value)}>
+                     <select 
+                        className="w-full pl-12 pr-4 py-4 bg-[#2d5a2d]/5 hover:bg-[#2d5a2d]/10 rounded-2xl font-bold text-[#2d5a2d] outline-none cursor-pointer appearance-none transition-colors border border-transparent focus:border-[#2d5a2d]" 
+                        value={formData.courseId} 
+                        onChange={(e) => handleChange("courseId", e.target.value)}
+                     >
                         <option value="">-- Chọn khóa học --</option>
                         {courses.map(c => <option key={c.id} value={c.id}>{c.title}</option>)}
                      </select>
@@ -214,46 +258,60 @@ export default function EditClass() {
 
               {/* 2. GIÁO VIÊN (READ-ONLY) */}
               <div>
-                 <label className="text-[10px] font-black uppercase text-gray-400 mb-2 block">Người phụ trách (Hiện tại)</label>
+                 <label className="text-[10px] font-black uppercase text-gray-400 mb-2 block">
+                    Người phụ trách (Cố định)
+                 </label>
                  
                  {currentTeacher ? (
-                     <div className="flex items-center gap-3 bg-white p-2 rounded-2xl border border-gray-100 shadow-sm opacity-80">
-                        <div className="w-12 h-12 rounded-full bg-blue-50 flex items-center justify-center text-blue-600 font-black text-xl border-2 border-white shadow-sm flex-shrink-0">
-                            {currentTeacher.fullName ? currentTeacher.fullName.charAt(0).toUpperCase() : "T"}
-                        </div>
-                        <div className="flex flex-col overflow-hidden">
-                            <span className="text-[15px] font-black text-[#1e293b] truncate">
-                                {currentTeacher.fullName || "Unknown Teacher"}
-                            </span>
-                            <span className="text-[11px] font-bold text-gray-400 italic uppercase tracking-wider">
-                                {getRoleDisplayName(currentTeacher.role)}
-                            </span>
-                        </div>
-                     </div>
+                      <div className="flex items-center gap-3 bg-gray-50 p-3 rounded-2xl border border-gray-200 opacity-70">
+                         <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center text-gray-600 font-black text-sm border-2 border-white shadow-sm flex-shrink-0">
+                             {currentTeacher.fullName ? currentTeacher.fullName.charAt(0).toUpperCase() : "T"}
+                         </div>
+                         <div className="flex flex-col overflow-hidden">
+                             <span className="text-sm font-black text-[#1e293b] truncate">
+                                 {currentTeacher.fullName || "Unknown Teacher"}
+                             </span>
+                             <span className="text-[10px] font-bold text-gray-400 italic">
+                                 ID: {currentTeacher.id} • {getRoleDisplayName(currentTeacher.role)}
+                             </span>
+                         </div>
+                      </div>
                  ) : (
-                     <div className="p-4 bg-gray-50 text-gray-400 rounded-xl text-xs font-bold text-center border border-gray-200">
-                        Chưa gán giáo viên
-                     </div>
+                      <div className="p-3 bg-red-50 text-red-400 rounded-xl text-xs font-bold flex items-center gap-2">
+                         <AlertCircle size={14} /> Chưa gán giáo viên
+                      </div>
                  )}
-                 <p className="text-[9px] text-gray-400 mt-2 ml-1 italic">
-                    * Không thể thay đổi người phụ trách khi sửa lớp.
-                 </p>
+                 {/* Chỉ hiển thị dòng note nếu user là Admin (vì Admin có thể thắc mắc sao ko sửa được) */}
+                 {!isTeacher && (
+                    <p className="text-[9px] text-gray-400 mt-2 ml-1 italic">
+                       * Để thay đổi giảng viên, vui lòng sử dụng chức năng "Chuyển lớp" (nếu có).
+                    </p>
+                 )}
               </div>
 
               {/* 3. NGÀY KHAI GIẢNG */}
               <div>
                  <label className="text-[10px] font-black uppercase text-gray-400 mb-2 block">Ngày khai giảng</label>
-                 <input type="date" className="w-full p-4 bg-gray-50 rounded-2xl font-bold cursor-pointer outline-none" value={formData.startDate} onChange={(e) => handleChange("startDate", e.target.value)} />
+                 <input 
+                    type="date" 
+                    className="w-full p-4 bg-gray-50 hover:bg-white rounded-2xl font-bold cursor-pointer outline-none border border-transparent focus:border-[#2d5a2d]" 
+                    value={formData.startDate} 
+                    onChange={(e) => handleChange("startDate", e.target.value)} 
+                 />
               </div>
 
               {/* 4. TRẠNG THÁI */}
               <div>
-                 <label className="text-[10px] font-black uppercase text-gray-400 mb-2 block">Trạng thái</label>
-                 <select className="w-full p-4 bg-gray-50 rounded-2xl font-bold cursor-pointer outline-none" value={formData.status} onChange={(e) => handleChange("status", e.target.value)}>
-                    <option value="UPCOMING">Sắp mở</option>
-                    <option value="ONGOING">Đang học</option>
-                    <option value="FINISHED">Kết thúc</option>
-                    <option value="CANCELLED">Đã hủy</option>
+                 <label className="text-[10px] font-black uppercase text-gray-400 mb-2 block">Trạng thái lớp</label>
+                 <select 
+                    className="w-full p-4 bg-gray-50 rounded-2xl font-bold cursor-pointer outline-none" 
+                    value={formData.status} 
+                    onChange={(e) => handleChange("status", e.target.value)}
+                 >
+                    <option value="UPCOMING">Sắp mở (Upcoming)</option>
+                    <option value="ONGOING">Đang học (Ongoing)</option>
+                    <option value="FINISHED">Kết thúc (Finished)</option>
+                    <option value="CANCELLED">Đã hủy (Cancelled)</option>
                  </select>
               </div>
            </div>

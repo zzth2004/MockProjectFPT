@@ -5,8 +5,9 @@ import {
   UploadCloud, DollarSign, AlertCircle, Loader2, 
   BookOpen, ChevronRight, List
 } from "lucide-react";
-import courseService from "../../Service/API/courseServiceAPI/course.service";
 
+import courseService from "../../Service/API/courseServiceAPI/course.service";
+import { useAuth } from "../../../context/authContext"; // Import Auth
 
 const CourseLevel = {
   BEGINNER: "BEGINNER",
@@ -17,19 +18,25 @@ const CourseLevel = {
 export default function EditCourse() {
   const { id } = useParams();
   const navigate = useNavigate();
+  
+  // --- 1. LẤY ROLE ĐỂ XÁC ĐỊNH BASE PATH ---
+  const { user } = useAuth();
+  const isTeacher = user?.role === 'teacher';
+  const basePath = isTeacher ? "/teacher" : "/admin";
+
   const [isLoading, setIsLoading] = useState(false);
   const [isFetching, setIsFetching] = useState(true);
 
-  // Chỉ chứa thông tin Course (Không chứa lessons array nữa)
+  // State dữ liệu khóa học
   const [courseData, setCourseData] = useState({
     title: "", slug: "", description: "", thumbnail: "",
     price: 0, salePrice: 0, level: CourseLevel.BEGINNER, isPublished: false,
   });
-  const [isFreeCourse, setIsFreeCourse] = useState(false);
   
-  // Biến đếm để hiển thị cho đẹp
+  const [isFreeCourse, setIsFreeCourse] = useState(false);
   const [stats, setStats] = useState({ lessonsCount: 0 });
 
+  // --- 2. FETCH DỮ LIỆU CŨ ---
   useEffect(() => {
     const fetchOldData = async () => {
       try {
@@ -51,14 +58,17 @@ export default function EditCourse() {
           if(data.lessons) setStats({ lessonsCount: data.lessons.length });
         }
       } catch (error) {
-        navigate("/admin/courses");
+        console.error("Lỗi tải khóa học:", error);
+        // Điều hướng về đúng danh sách nếu lỗi
+        navigate(`${basePath}/courses`);
       } finally {
         setIsFetching(false);
       }
     };
     fetchOldData();
-  }, [id, navigate]);
+  }, [id, navigate, basePath]); // Thêm basePath vào dependency
 
+  // --- 3. HANDLERS ---
   const handleChange = (field, value) => {
     setCourseData((prev) => ({ ...prev, [field]: value }));
   };
@@ -81,40 +91,54 @@ export default function EditCourse() {
               price: parseFloat(courseData.price),
               salePrice: parseFloat(courseData.salePrice),
               isPublished: publishStatus,
+              // Update không cần gửi createdById hay teacherId
           };
           await courseService.updateCourse(id, payload);
           alert("✅ Cập nhật thông tin khóa học thành công!");
       } catch (error) {
-          alert("❌ Lỗi cập nhật");
+          console.error(error);
+          alert("❌ Lỗi cập nhật: " + (error.response?.data?.message || "Lỗi Server"));
       } finally {
           setIsLoading(false);
       }
   };
 
-  // 👇 HÀM CHUYỂN HƯỚNG QUAN TRỌNG
+  // 👇 HÀM CHUYỂN HƯỚNG ĐỘNG (Dùng basePath)
   const goToLessonManager = () => {
-      navigate(`/admin/courses/${id}/lessons`);
+      navigate(`${basePath}/courses/${id}/lessons`);
   };
 
-  if (isFetching) return <div className="p-10 text-center">Đang tải...</div>;
+  if (isFetching) return (
+      <div className="min-h-screen flex flex-col items-center justify-center bg-[#F8F9FC]">
+          <Loader2 className="w-10 h-10 text-[#2d5a2d] animate-spin mb-4" />
+          <p className="text-gray-400 font-bold uppercase text-xs tracking-widest">Đang tải dữ liệu...</p>
+      </div>
+  );
 
   return (
-    <div className="min-h-screen bg-[#F8F9FC] font-sans pb-20 p-4 md:p-6 animate-in fade-in duration-500">
+    <div className="min-h-screen bg-[#F8F9FC] font-sans pb-20 p-4 md:p-6 animate-in fade-in duration-500 text-left">
       
       {/* HEADER */}
       <div className="flex justify-between gap-4 mb-8 sticky top-0 z-30 bg-[#F8F9FC]/90 backdrop-blur-sm py-2">
          <div className="flex items-center gap-4">
-            {/* 👇 Nút Back quay về trang trước (-1) */}
-            <button onClick={() => navigate("/admin/courses")} className="...">
-   <ArrowLeft size={20} />
-</button>
+            {/* 👇 Nút Back quay về đúng danh sách */}
+            <button 
+                onClick={() => navigate(`${basePath}/courses`)} 
+                className="w-10 h-10 rounded-xl bg-white hover:bg-gray-100 flex items-center justify-center shadow-sm transition-all text-gray-500"
+            >
+               <ArrowLeft size={20} />
+            </button>
             <div>
-               <h1 className="text-2xl font-black text-gray-900 uppercase italic tracking-tighter">Sửa <span className="text-[#2d5a2d]">Khóa học</span></h1>
-               <p className="text-gray-400 text-[10px] font-bold uppercase tracking-[0.2em]">EDIT COURSE ID: {id}</p>
+               <h1 className="text-2xl font-black text-gray-900 uppercase italic tracking-tighter">
+                   Sửa <span className="text-[#2d5a2d]">Khóa học</span>
+               </h1>
+               <p className="text-gray-400 text-[10px] font-bold uppercase tracking-[0.2em]">
+                   {isTeacher ? "TEACHER EDITOR" : "ADMIN EDITOR"} - ID: {id}
+               </p>
             </div>
          </div>
          <div className="flex gap-3">
-            <button disabled={isLoading} onClick={() => handleUpdate(courseData.isPublished)} className="px-5 py-2.5 rounded-xl font-bold text-white bg-[#2d5a2d] hover:bg-[#1a3d1a] shadow-lg flex items-center gap-2 transition-colors">
+            <button disabled={isLoading} onClick={() => handleUpdate(courseData.isPublished)} className="px-5 py-2.5 rounded-xl font-bold text-white bg-[#2d5a2d] hover:bg-[#1a3d1a] shadow-lg flex items-center gap-2 transition-colors active:scale-95 disabled:opacity-70">
                {isLoading ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} />} Lưu thông tin
             </button>
          </div>
@@ -162,8 +186,17 @@ export default function EditCourse() {
                         <span className="text-xs font-bold uppercase">Tải ảnh lên</span>
                     </>
                  )}
-                 <input type="file" className="absolute inset-0 opacity-0 cursor-pointer" onChange={(e) => setCourseData({...courseData, thumbnail: "https://via.placeholder.com/800x400"})} />
+                 <input type="file" className="absolute inset-0 opacity-0 cursor-pointer" onChange={(e) => setCourseData({...courseData, thumbnail: "https://picsum.photos/800/400"})} />
              </div>
+             <div className="mt-4">
+                 <label className="text-[10px] font-black uppercase text-gray-400 mb-2 block ml-1">Hoặc nhập URL Hình ảnh</label>
+                 <input 
+                   className="w-full p-3 bg-gray-50 rounded-xl font-medium text-xs border-none outline-none focus:ring-2 focus:ring-blue-500/20" 
+                   value={courseData.thumbnail} 
+                   onChange={(e) => handleChange("thumbnail", e.target.value)} 
+                   placeholder="https://example.com/image.jpg" 
+                 />
+            </div>
           </div>
 
           {/* 3. QUẢN LÝ BÀI HỌC (NÚT CHUYỂN TRANG) */}
@@ -207,7 +240,7 @@ export default function EditCourse() {
                   </select>
                </div>
 
-               {/* 👇 PHẦN GIÁ (ĐÃ ĐƯỢC THÊM LẠI) */}
+               {/* Giá */}
                <div>
                   <label className="text-[10px] font-black text-gray-400 uppercase mb-2 block ml-1">Học phí (VND)</label>
                   <div className="relative">
@@ -216,6 +249,7 @@ export default function EditCourse() {
                   </div>
                </div>
 
+               {/* Giá KM */}
                <div>
                   <label className="text-[10px] font-black text-gray-400 uppercase mb-2 block ml-1">Giá khuyến mãi</label>
                   <div className="relative">

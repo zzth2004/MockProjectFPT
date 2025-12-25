@@ -2,14 +2,15 @@ import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { 
   ArrowLeft, Edit3, Trash2, Users, Calendar, Clock, 
-  MapPin, Link as LinkIcon, User, Mail, MoreVertical, 
-  Search, UserPlus, CheckCircle, XCircle 
+  Link as LinkIcon, Mail, MoreVertical, 
+  Search, UserPlus, CheckCircle, XCircle, School 
 } from "lucide-react";
 
-// Services
+// Services & Context
 import courseClassService from "../../Service/API/courseServiceAPI/course-class.service";
-import EditClass from "./edit-class";
-// Components (Giả sử bạn có Badge, nếu không dùng span thường cũng được)
+import { useAuth } from "../../../context/authContext"; // ✅ 1. Import Auth
+
+// Component con: Badge trạng thái
 const StatusBadge = ({ status }) => {
     const styles = {
         UPCOMING: "bg-blue-50 text-blue-600 border-blue-100",
@@ -27,8 +28,14 @@ const StatusBadge = ({ status }) => {
 export default function ClassDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { user } = useAuth(); // ✅ 2. Lấy thông tin User
+  
   const [classData, setClassData] = useState(null);
   const [loading, setLoading] = useState(true);
+
+  // ✅ 3. Xác định đường dẫn cơ sở (Base Path) dựa trên Role
+  const isTeacher = user?.role?.toLowerCase() === "teacher";
+  const basePath = isTeacher ? "/teacher" : "/admin"; 
 
   // --- FETCH DATA ---
   useEffect(() => {
@@ -38,14 +45,14 @@ export default function ClassDetail() {
         setClassData(data);
       } catch (error) {
         console.error("Lỗi:", error);
-        alert("Không tìm thấy lớp học!");
-        navigate('/admin/classes');
+        alert("Không tìm thấy lớp học hoặc bạn không có quyền truy cập!");
+        navigate(`${basePath}/classes`); // Redirect về đúng danh sách
       } finally {
         setLoading(false);
       }
     };
     fetchDetail();
-  }, [id, navigate]);
+  }, [id, navigate, basePath]);
 
   // --- ACTION HANDLERS ---
   const handleDelete = async () => {
@@ -53,9 +60,9 @@ export default function ClassDetail() {
         try {
             await courseClassService.deleteClass(id);
             alert("✅ Đã xóa lớp học thành công!");
-            navigate('/admin/classes');
+            navigate(`${basePath}/classes`); // Redirect về đúng danh sách
         } catch (error) {
-            alert("❌ Không thể xóa lớp học (Có thể do đã có học viên).");
+            alert("❌ Không thể xóa lớp học (Có thể do đã có học viên hoặc lỗi Server).");
         }
     }
   };
@@ -74,7 +81,8 @@ export default function ClassDetail() {
       {/* HEADER */}
       <div className="flex justify-between items-center mb-8 sticky top-0 bg-[#F8F9FC]/90 backdrop-blur-sm z-30 py-2">
         <div className="flex items-center gap-4">
-           <button onClick={() => navigate(-1)} className="w-10 h-10 rounded-xl bg-white text-gray-500 hover:bg-gray-100 hover:text-[#2d5a2d] flex items-center justify-center shadow-sm transition-all">
+           {/* Nút Back về danh sách lớp */}
+           <button onClick={() => navigate(`${basePath}/classes`)} className="w-10 h-10 rounded-xl bg-white text-gray-500 hover:bg-gray-100 hover:text-[#2d5a2d] flex items-center justify-center shadow-sm transition-all">
               <ArrowLeft size={20} />
            </button>
            <div>
@@ -83,7 +91,7 @@ export default function ClassDetail() {
                   <StatusBadge status={classData.status} />
               </div>
               <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mt-1">
-                  Khóa: <span className="text-[#2d5a2d] cursor-pointer hover:underline" onClick={() => navigate(`/admin/courses/${classData.course?.id}`)}>
+                  Khóa: <span className="text-[#2d5a2d] cursor-pointer hover:underline" onClick={() => navigate(`${basePath}/courses/${classData.course?.id}/detail`)}>
                       {classData.course?.title || "Unknown Course"}
                   </span>
               </p>
@@ -91,14 +99,15 @@ export default function ClassDetail() {
         </div>
         
         <div className="flex gap-3">
-           {/* 👇 NÚT SỬA LỚP (Vị trí 1: Trên Header) */}
+           {/* 👇 NÚT SỬA LỚP (Đã update link động) */}
            <button 
-             onClick={() => navigate(`/admin/classes/edit/${classData.id}`)}
+             onClick={() => navigate(`${basePath}/classes/edit/${classData.id}`)}
              className="px-5 py-2.5 rounded-xl font-bold text-gray-700 bg-white border border-gray-200 hover:bg-gray-50 shadow-sm flex items-center gap-2 transition-all hover:scale-105"
            >
               <Edit3 size={18} /> <span className="hidden md:inline">Sửa lớp</span>
            </button>
 
+           {/* Nút Xóa (Chỉ hiện nếu Admin hoặc Logic của bạn cho phép Teacher xóa) */}
            <button 
              onClick={handleDelete}
              className="px-5 py-2.5 rounded-xl font-bold text-white bg-red-500 hover:bg-red-600 shadow-lg shadow-red-500/20 flex items-center gap-2 transition-all hover:scale-105"
@@ -129,6 +138,7 @@ export default function ClassDetail() {
                         <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"/>
                         <input type="text" placeholder="Tìm tên, email..." className="pl-9 pr-4 py-2 bg-gray-50 rounded-xl text-sm font-bold outline-none focus:ring-1 focus:ring-[#2d5a2d]" />
                     </div>
+                    {/* Link thêm học viên (Tùy logic Admin/Teacher mà chỉnh link này nếu cần) */}
                     <button className="bg-[#2d5a2d] text-white px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2 hover:bg-[#1a3d1a]">
                         <UserPlus size={16} /> Thêm HV
                     </button>
@@ -219,13 +229,13 @@ export default function ClassDetail() {
                 </div>
             </div>
 
-            {/* 2. THÔNG TIN CHI TIẾT (Có thêm nút Sửa nhỏ) */}
+            {/* 2. THÔNG TIN CHI TIẾT */}
             <div className="bg-white p-6 rounded-[2rem] shadow-sm border border-gray-100 space-y-5">
                 <div className="flex justify-between items-center">
                     <h3 className="text-xs font-black text-gray-400 uppercase tracking-widest">Thông tin chi tiết</h3>
-                    {/* 👇 NÚT SỬA LỚP (Vị trí 2: Nhỏ gọn trong Card) */}
+                    {/* 👇 NÚT SỬA NHỎ (Đã update link động) */}
                     <button 
-                        onClick={() => navigate(`/admin/classes/edit/${classData.id}`)}
+                        onClick={() => navigate(`${basePath}/classes/edit/${classData.id}`)}
                         className="p-1.5 bg-gray-50 text-gray-400 rounded-lg hover:bg-[#2d5a2d] hover:text-white transition-all"
                         title="Chỉnh sửa thông tin"
                     >
@@ -298,7 +308,6 @@ export default function ClassDetail() {
                         )}
                     </div>
                 </div>
-                {/* Background Decor */}
                 <div className="absolute -bottom-6 -right-6 w-32 h-32 bg-white/10 rounded-full blur-2xl"></div>
             </div>
 

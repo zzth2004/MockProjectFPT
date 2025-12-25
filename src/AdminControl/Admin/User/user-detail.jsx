@@ -42,70 +42,78 @@ export default function UserDetail() {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
-// --- FETCH DATA ---
-useEffect(() => {
-  // Biến cờ để kiểm soát việc cập nhật state khi component unmount hoặc ID thay đổi
-  let isMounted = true;
+  // --- FETCH DATA ---
+  useEffect(() => {
+    // Biến cờ để kiểm soát việc cập nhật state khi component unmount hoặc ID thay đổi
+    let isMounted = true;
 
-  const fetchDetail = async () => {
-    // 1. Khởi động trạng thái tải và XÓA DỮ LIỆU CŨ
-    setLoading(true); 
-    setUser(null); // Việc này giúp giao diện không bị "kẹt" hình ảnh của User trước đó
+    const fetchDetail = async () => {
+      // 1. Khởi động trạng thái tải và XÓA DỮ LIỆU CŨ
+      setLoading(true);
+      setUser(null); // Việc này giúp giao diện không bị "kẹt" hình ảnh của User trước đó
 
-    try {
-      // 2. Lấy thông tin User cơ bản
-      const userRes = await userService.getUserById(id);
-      const userData = userRes.data || userRes;
-      
-      // Nếu ID trong URL không tồn tại hoặc API lỗi không trả về dữ liệu
-      if (!userData) {
-        throw new Error("User not found");
-      }
+      try {
+        // 2. Lấy thông tin User cơ bản
+        const userRes = await userService.getUserById(id);
+        const userData = userRes.data || userRes;
 
-      // 3. Lấy danh sách khóa học nếu là Admin/Teacher
-      let courses = [];
-      const userRole = userData.role?.toLowerCase();
-      
-      if (['admin', 'teacher', 'quản trị viên', 'giáo viên'].includes(userRole)) {
-        try {
-          // Truyền đúng ID của User đang fetch để lấy khóa học tương ứng
-          const courseRes = await courseService.getMyCourseAandT(userData.id);
-          // Kiểm tra cấu hình trả về của API (thường là {data: []} hoặc [])
-          courses = courseRes?.data || courseRes || [];
-        } catch (err) {
-          console.warn("Không lấy được danh sách khóa học của User này:", err);
+        // Nếu ID trong URL không tồn tại hoặc API lỗi không trả về dữ liệu
+        if (!userData) {
+          throw new Error("User not found");
+        }
+
+        // 3. Lấy danh sách khóa học nếu là Admin/Teacher
+        let courses = [];
+        const userRole = userData.role?.toLowerCase();
+
+        if (
+          ["admin", "teacher", "quản trị viên", "giáo viên"].includes(userRole)
+        ) {
+          try {
+            // Truyền đúng ID của User đang fetch để lấy khóa học tương ứng
+            const courseRes = await courseService.getMyCourseAandT(
+              userData.id,
+              1,
+              100
+            );
+            // Kiểm tra cấu hình trả về của API (thường là {data: []} hoặc [])
+            courses = courseRes?.data || courseRes || [];
+          } catch (err) {
+            console.warn(
+              "Không lấy được danh sách khóa học của User này:",
+              err
+            );
+          }
+        }
+
+        // 4. CẬP NHẬT STATE (Chỉ thực hiện nếu Component vẫn đang mount với ID hiện tại)
+        if (isMounted) {
+          setUser({
+            ...userData,
+            createdCourses: courses,
+          });
+        }
+      } catch (error) {
+        console.error("Lỗi fetch user detail:", error);
+        if (isMounted) {
+          // Có thể thêm thông báo lỗi trước khi chuyển hướng
+          navigate("/admin/users");
+        }
+      } finally {
+        // 5. Kết thúc trạng thái tải
+        if (isMounted) {
+          setLoading(false);
         }
       }
+    };
 
-      // 4. CẬP NHẬT STATE (Chỉ thực hiện nếu Component vẫn đang mount với ID hiện tại)
-      if (isMounted) {
-        setUser({
-          ...userData,
-          createdCourses: courses
-        });
-      }
+    fetchDetail();
 
-    } catch (error) {
-      console.error("Lỗi fetch user detail:", error);
-      if (isMounted) {
-        // Có thể thêm thông báo lỗi trước khi chuyển hướng
-        navigate('/admin/users');
-      }
-    } finally {
-      // 5. Kết thúc trạng thái tải
-      if (isMounted) {
-        setLoading(false);
-      }
-    }
-  };
-
-  fetchDetail();
-
-  // CLEANUP FUNCTION: Chạy khi component unmount hoặc id thay đổi
-  return () => {
-    isMounted = false;
-  };
-}, [id, navigate]); // useEffect sẽ chạy lại mỗi khi ID trên URL thay đổi
+    // CLEANUP FUNCTION: Chạy khi component unmount hoặc id thay đổi
+    return () => {
+      isMounted = false;
+    };
+  }, [id, navigate]); // useEffect sẽ chạy lại mỗi khi ID trên URL thay đổi
 
   if (loading)
     return (
@@ -117,9 +125,7 @@ useEffect(() => {
 
   // 🚩 LOGIC PHÂN QUYỀN (FRONTEND ONLY)
   // Kiểm tra role có phải là Admin hoặc Teacher không
-  const isManager = ["admin", "teacher", "quản trị viên", "giáo viên"].includes(
-    user.role?.toLowerCase()
-  );
+  const isManager = ["admin", "teacher"].includes(user.role?.toLowerCase());
 
   return (
     <div className="min-h-screen bg-[#F8F9FC] font-sans pb-20 p-6 animate-in fade-in duration-500">
@@ -236,54 +242,57 @@ useEffect(() => {
             // ===============================================
             // GIAO DIỆN CHO QUẢN LÝ (ADMIN / TEACHER)
             // ===============================================
-            <div className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-gray-100">
-              <div className="flex items-center justify-between mb-6">
+            <div className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-gray-100 flex flex-col max-h-[600px]">
+              {/* HEADER (Cố định, không bị cuộn) */}
+              <div className="flex items-center justify-between mb-6 shrink-0">
                 <h3 className="text-lg font-black text-gray-900 flex items-center gap-2">
                   <Layers className="text-purple-600" /> Khóa học đang quản lý
                 </h3>
                 <span className="bg-purple-100 text-purple-700 px-3 py-1 rounded-full text-xs font-bold">
-                  {/* Dùng toán tử ?. để tránh lỗi nếu không có dữ liệu */}
+                  {/* Hiển thị tổng số lượng thực tế */}
                   {user.createdCourses?.length || 0}
                 </span>
               </div>
 
-              <div className="grid grid-cols-1 gap-4">
+              {/* LIST KHÓA HỌC (Có thanh cuộn) */}
+              <div className="overflow-y-auto pr-2 custom-scrollbar flex-1 space-y-4">
                 {user.createdCourses && user.createdCourses.length > 0 ? (
                   user.createdCourses.map((course) => (
                     <div
                       key={course.id}
-                      className="flex items-center justify-between p-4 bg-gray-50 rounded-2xl"
+                      className="flex items-center justify-between p-4 bg-gray-50 rounded-2xl hover:bg-gray-100 transition-colors border border-transparent hover:border-gray-200"
                     >
                       <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 bg-gray-200 rounded-xl flex items-center justify-center">
+                        <div className="w-12 h-12 bg-white border border-gray-200 rounded-xl flex items-center justify-center shrink-0">
                           <BookOpen size={16} className="text-gray-500" />
                         </div>
                         <div>
-                          <h4 className="font-bold text-gray-900">
+                          <h4 className="font-bold text-gray-900 line-clamp-1 text-sm md:text-base">
                             {course.title}
                           </h4>
                           <p className="text-xs text-gray-500">
-                            ID: {course.id}
+                            ID: <span className="font-mono">{course.id}</span>
                           </p>
                         </div>
                       </div>
-                      <div className="text-right">
+
+                      <div className="text-right shrink-0 pl-2">
                         <p className="text-[10px] font-bold text-gray-400 uppercase">
                           Học viên
                         </p>
-                        <p className="font-black flex items-center justify-end gap-1">
-                          <Users size={12} /> {course.enrollments?.length || 0}
+                        <p className="font-black flex items-center justify-end gap-1 text-gray-700">
+                          <Users size={14} /> {course.enrollments?.length || 0}
                         </p>
                       </div>
                     </div>
                   ))
                 ) : (
-                  <div className="p-12 text-center border-2 border-dashed border-gray-200 rounded-3xl">
+                  <div className="h-full flex flex-col items-center justify-center text-center border-2 border-dashed border-gray-200 rounded-3xl p-8">
                     <p className="text-gray-400 font-bold">
-                      Chưa có khóa học nào được tạo.
+                      Chưa có khóa học nào.
                     </p>
                     <p className="text-[10px] text-gray-300 mt-1">
-                      (Hoặc Backend chưa gửi dữ liệu này)
+                      (Hoặc chưa tạo khóa học nào trên hệ thống)
                     </p>
                   </div>
                 )}

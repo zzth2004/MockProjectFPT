@@ -13,6 +13,7 @@ import { KLCard, KLStatsCard } from "../Component/Card";
 import { KLTable } from "../Component/Table";
 import { KLButton } from "../Component/Button";
 import { KLBadge } from "../Component/Badge";
+import { useNavigate } from "react-router-dom";
 
 import useCallApiHandler from "../../hooks/HookHander/useCallApiHandler";
 
@@ -22,6 +23,7 @@ import { getTimeData } from '../Service/timeService';
 import userService from "../Service/API/userServiceAPI/user.service";
 
 export default function DashboardHome() {
+  const navigate = useNavigate();
   const timeData = getTimeData();
 
   // 🛠️ SỬ DỤNG HOOK CỦA BẠN
@@ -115,14 +117,9 @@ export default function DashboardHome() {
 
           {/* Nút hành động nhanh */}
           <div className="flex flex-wrap gap-4">
+        
             <KLButton
-              variant="outline"
-              icon={Zap}
-              className="border-gray-200 text-gray-800 hover:border-[#2d5a2d]"
-            >
-              Tải báo cáo
-            </KLButton>
-            <KLButton
+             onClick={() => navigate("/admin/courses/create")}
               icon={PlusCircle}
               className="bg-[#2d5a2d] hover:shadow-green-200 hover:-translate-y-1"
             >

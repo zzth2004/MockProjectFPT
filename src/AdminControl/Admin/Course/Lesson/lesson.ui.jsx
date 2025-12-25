@@ -4,6 +4,7 @@ import {
   Clock, ChevronLeft, ChevronRight,
   Layers, Database, BookOpen, Layout, Filter, X
 } from "lucide-react";
+import { useNavigate } from "react-router-dom"; // 1. Import useNavigate
 
 // Components
 import { KLCard } from "../../../Component/Card";
@@ -14,21 +15,27 @@ import { KLBadge } from "../../../Component/Badge";
 // Logic
 import useCallApiHandler from "../../../../hooks/HookHander/useCallApiHandler";
 import lessonService from "../../../Service/API/lessonServiceAPI/lesson.service";
+import { useAuth } from "../../../../context/authContext";
 
 export default function LessonList({ courseId, courseTitle }) {
+    const navigate = useNavigate();
+    const { user } = useAuth(); // ✅ 2. Lấy user từ context
+
+    // ✅ 3. Xác định basePath theo Role
+    const isTeacher = user?.role?.toLowerCase() === "teacher";
+    const basePath = isTeacher ? "/teacher" : "/admin";
+
     // --- 1. STATES ---
     const [searchTerm, setSearchTerm] = useState("");
     const [showFilters, setShowFilters] = useState(false);
     const [filters, setFilters] = useState({
-        isFree: "", // "true", "false" hoặc ""
+        isFree: "", 
     });
 
-    // States cho phân trang
     const [currentPage, setCurrentPage] = useState(1);
     const pageSize = 5;
 
     // --- 2. FETCH DATA ---
-    // Gọi API linh hoạt (Lấy theo Course hoặc Lấy tất cả - Tải 100 để lọc tại FE)
     const fetchLessonsFn = useCallback(() => {
         if (courseId) {
             return lessonService.getByCourse(courseId, 1, 100);
@@ -43,25 +50,22 @@ export default function LessonList({ courseId, courseTitle }) {
     }, [refreshLessons]);
 
     // --- 3. LOGIC LỌC DỮ LIỆU ---
+    const rawData = useMemo(() => {
+        if (Array.isArray(lessonsResponse)) return lessonsResponse;
+        return lessonsResponse?.data || [];
+    }, [lessonsResponse]);
 
-    // Dữ liệu gốc từ API
-    const rawData = useMemo(() => lessonsResponse?.data || [], [lessonsResponse]);
-
-    // Dữ liệu lọc tổng hợp (Search + Advanced Filter)
     const filteredDataset = useMemo(() => {
         return rawData.filter(lesson => {
             const searchMatch = !searchTerm ||
                 lesson.title?.toLowerCase().includes(searchTerm.toLowerCase());
-
             const statusMatch = filters.isFree === "" ||
                 String(lesson.isFree) === filters.isFree;
-
             return searchMatch && statusMatch;
         });
     }, [rawData, searchTerm, filters]);
 
-    // --- 4. LOGIC PHÂN TRANG (PAGINATION) ---
-
+    // --- 4. LOGIC PHÂN TRANG ---
     const paginatedData = useMemo(() => {
         const startIndex = (currentPage - 1) * pageSize;
         return filteredDataset.slice(startIndex, startIndex + pageSize);
@@ -69,15 +73,23 @@ export default function LessonList({ courseId, courseTitle }) {
 
     const totalPages = Math.ceil(filteredDataset.length / pageSize);
 
-    useEffect(() => {
-        setCurrentPage(1);
-    }, [searchTerm, filters, showFilters]);
-
     // --- 5. HANDLERS ---
+    
+    // ✅ 4. Cập nhật navigate dùng basePath động
+    const handleCreateNavigate = () => {
+        navigate(`${basePath}/lessons/create`, { 
+            state: { 
+                preSelectedCourseId: courseId, 
+                courseTitle: courseTitle       
+            }
+        });
+    };
+
     const handleAction = async (type, lesson) => {
         switch (type) {
             case 'edit':
-                console.log("Mở modal sửa bài học:", lesson.id);
+                // ✅ 5. Cập nhật navigate Edit dùng basePath động
+                navigate(`${basePath}/lessons/edit/${lesson.id}`);
                 break;
             case 'delete':
                 if (window.confirm(`⚠️ Bạn có chắc chắn muốn XÓA bài học: ${lesson.title}?`)) {
@@ -94,7 +106,7 @@ export default function LessonList({ courseId, courseTitle }) {
         }
     };
 
-    // Định nghĩa các cột
+    // Cột hiển thị
     const columns = [
         {
             key: "orderIndex",
@@ -110,7 +122,12 @@ export default function LessonList({ courseId, courseTitle }) {
             title: "Thông tin bài giảng",
             render: (val, row) => (
                 <div className="flex flex-col text-left py-1">
-                    <span className="text-[14px] font-black text-gray-900 leading-tight mb-1">{val}</span>
+                    <span 
+                        className="text-[14px] font-black text-gray-900 leading-tight mb-1 cursor-pointer hover:text-[#2d5a2d] transition-colors"
+                        onClick={() => handleAction('edit', row)}
+                    >
+                        {val}
+                    </span>
                     <div className="flex items-center gap-2">
                         {row.videoUrl ? (
                             <span className="flex items-center gap-1 text-[9px] text-blue-500 font-bold uppercase tracking-tighter">
@@ -121,10 +138,10 @@ export default function LessonList({ courseId, courseTitle }) {
                                 <FileText size={10} /> Document
                             </span>
                         )}
-                        {!courseId && (
+                        {(!courseId || !courseTitle) && row.course && (
                             <div className="flex items-center gap-1 border-l pl-2 border-gray-100">
                                 <BookOpen size={10} className="text-gray-300" />
-                                <span className="text-[9px] text-gray-400 font-bold uppercase">Khóa: {row.course?.title}</span>
+                                <span className="text-[9px] text-gray-400 font-bold uppercase">Khóa: {row.course.title}</span>
                             </div>
                         )}
                     </div>
@@ -152,7 +169,6 @@ export default function LessonList({ courseId, courseTitle }) {
         }
     ];
 
-    // Logic 5 trang liên tục
     const visiblePages = (() => {
         const totalVisible = 5;
         let start = Math.max(1, currentPage - Math.floor(totalVisible / 2));
@@ -173,12 +189,19 @@ export default function LessonList({ courseId, courseTitle }) {
                         Quản lý <span className="text-[#2d5a2d]">Bài giảng</span>
                     </h1>
                     <p className="text-gray-400 text-[10px] font-bold tracking-[0.2em] uppercase">
-                        {courseId ? `Khóa học: ${courseTitle}` : "Hệ thống học liệu KoreanLab"}
+                        {courseId ? `Khóa học: ${courseTitle}` : (isTeacher ? "Teacher Portal" : "Admin System")}
                     </p>
                 </div>
                 <div className="flex gap-2">
                     <KLButton variant="outline" icon={Database} onClick={() => lessonService.seedData().then(() => refreshLessons())}>Seed JSON</KLButton>
-                    <KLButton icon={Plus} className="bg-[#2d5a2d]">Thêm bài học</KLButton>
+                    
+                    <KLButton 
+                        icon={Plus} 
+                        className="bg-[#2d5a2d]" 
+                        onClick={handleCreateNavigate}
+                    >
+                        Thêm bài học
+                    </KLButton>
                 </div>
             </div>
 

@@ -9,38 +9,53 @@ import {
   ChevronRight,
   Users,
   Layers,
+  Loader2,
 } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 // Components
 import { KLCard } from "../../Component/Card";
 import { KLTable } from "../../Component/Table";
 import { KLButton } from "../../Component/Button";
 import { KLBadge } from "../../Component/Badge";
-import { useNavigate } from "react-router-dom";
 
-// Logic
+// Logic & Services
 import useCallApiHandler from "../../../hooks/HookHander/useCallApiHandler";
 import courseService from "../../Service/API/courseServiceAPI/course.service";
+import teacherService from "../../Service/API/userServiceAPI/teacher.service";
 import { useAuth } from "../../../context/authContext";
 
 export default function CourseList() {
   const { user: currentUser } = useAuth();
   const navigate = useNavigate();
-  // --- 1. STATES ---
+
+  // --- 1. XÁC ĐỊNH ROLE ---
+  const currentRole = currentUser?.role?.toLowerCase() || "guest";
+  const isTeacher = currentRole === "teacher";
+  const basePath = isTeacher ? "/teacher" : "/admin";
+
+  // --- 2. STATES ---
   const [searchTerm, setSearchTerm] = useState("");
   const [showFilters, setShowFilters] = useState(false);
   const [filters, setFilters] = useState({
-    isPublished: "", // "true", "false" hoặc ""
+    isPublished: "",
   });
 
   const [currentPage, setCurrentPage] = useState(1);
   const pageSize = 5;
 
-  // --- 2. FETCH DATA ---
-  const fetchCoursesFn = useCallback(
-    () => courseService.getAllCourses(1, 100),
-    []
-  );
+  // --- 3. FETCH DATA ---
+  const fetchCoursesFn = useCallback(() => {
+    // Teacher chỉ lấy khóa học CỦA MÌNH
+    if (isTeacher) {
+      return teacherService.getMyCourses(1, 100);
+    }
+    // Admin lấy TẤT CẢ
+    else {
+      return courseService.getAllCourses(1, 100);
+    }
+  }, [isTeacher]);
+
   const {
     data: coursesResponse,
     loading,
@@ -51,8 +66,10 @@ export default function CourseList() {
     refreshCourses();
   }, [refreshCourses]);
 
-  // --- 3. LOGIC LỌC ---
-  const rawData = useMemo(() => coursesResponse?.data || [], [coursesResponse]);
+  // --- 4. LOGIC LỌC ---
+  const rawData = useMemo(() => {
+    return coursesResponse?.data || coursesResponse?.items || [];
+  }, [coursesResponse]);
 
   const rawDataFiltered = useMemo(() => {
     return rawData.filter((course) => {
@@ -70,7 +87,7 @@ export default function CourseList() {
     });
   }, [rawData, searchTerm, filters]);
 
-  // --- 4. PHÂN TRANG ---
+  // --- 5. PHÂN TRANG ---
   const paginatedData = useMemo(() => {
     const startIndex = (currentPage - 1) * pageSize;
     return rawDataFiltered.slice(startIndex, startIndex + pageSize);
@@ -82,29 +99,17 @@ export default function CourseList() {
     setCurrentPage(1);
   }, [searchTerm, filters]);
 
-  // --- 5. HANDLERS ---
-
-  // 👇 Hàm xử lý chuyển đổi trạng thái Public/Private nhanh
+  // --- 6. HANDLERS ---
   const handleToggleStatus = async (course) => {
     const newStatus = !course.isPublished;
     const label = newStatus ? "PUBLIC" : "PRIVATE";
 
-    // UI xác nhận nhanh (có thể bỏ nếu muốn nhanh hơn)
-    if (
-      !window.confirm(
-        `Bạn có muốn chuyển trạng thái khóa học "${course.title}" sang ${label}?`
-      )
-    ) {
+    if (!window.confirm(`Chuyển trạng thái "${course.title}" sang ${label}?`))
       return;
-    }
 
     try {
-      // Gọi API update (Chỉ gửi trường isPublished)
       await courseService.updateCourse(course.id, { isPublished: newStatus });
-
-      // Refresh lại danh sách ngay lập tức
       await refreshCourses();
-      // alert(`✅ Đã chuyển sang ${label}`); // Optional
     } catch (error) {
       console.error(error);
       alert("❌ Lỗi cập nhật trạng thái");
@@ -114,23 +119,34 @@ export default function CourseList() {
   const handleAction = async (type, course) => {
     switch (type) {
       case "view":
-        navigate(`/admin/courses/${course.id}/detail`);
+        navigate(`${basePath}/courses/${course.id}/detail`);
         break;
+
       case "edit":
-        navigate(`/admin/courses/edit/${course.id}`);
+        // ✅ Cho phép Teacher sửa
+        navigate(`${basePath}/courses/edit/${course.id}`);
         break;
+
       case "delete":
+        // ✅ ĐÃ XÓA ĐOẠN CODE CHẶN TEACHER Ở ĐÂY
+        // Bây giờ Teacher bấm xóa được bình thường
         if (
           window.confirm(
             `⚠️ Bạn có chắc chắn muốn XÓA khóa học: ${course.title}?`
           )
         ) {
           try {
+            // Gọi API xóa (Backend cần check xem Teacher này có sở hữu khóa học không)
             await courseService.deleteCourse(course.id);
-            alert("✅ Đã xóa khóa học thành công!");
+            alert("✅ Đã xóa thành công!");
             refreshCourses();
           } catch (error) {
-            alert("❌ Lỗi khi xóa khóa học");
+            console.error(error);
+            // Thông báo lỗi chi tiết nếu backend trả về (ví dụ: "Không có quyền xóa")
+            alert(
+              "❌ Lỗi: " +
+                (error.response?.data?.message || "Không thể xóa khóa học này.")
+            );
           }
         }
         break;
@@ -139,7 +155,7 @@ export default function CourseList() {
     }
   };
 
-  // --- 6. CẤU HÌNH CỘT ---
+  // --- 7. CẤU HÌNH CỘT ---
   const columns = [
     {
       key: "title",
@@ -160,11 +176,10 @@ export default function CourseList() {
             )}
           </div>
           <div className="flex flex-col gap-0.5">
-            {/* 👇 1. Click vào tên -> Chuyển sang trang Detail */}
             <span
-              onClick={() => navigate(`/admin/courses/${row.id}/detail`)}
+              onClick={() => navigate(`${basePath}/courses/${row.id}/detail`)}
               className="text-[15px] font-black text-gray-900 leading-tight line-clamp-1 hover:text-[#2d5a2d] transition-colors cursor-pointer"
-              title="Xem chi tiết khóa học"
+              title="Xem chi tiết"
             >
               {val}
             </span>
@@ -231,41 +246,37 @@ export default function CourseList() {
         </div>
       ),
     },
-    {
+    // Admin thì hiện cột người tạo, Teacher thì ẩn (đỡ chật chỗ)
+    !isTeacher && {
       key: "createdBy",
       title: "Người tạo",
       render: (createdBy, row) => {
-        
-        // 💡 GIẢI PHÁP: Nếu API trả về null (như Row 129),
-        // nhưng ID người tạo trùng với mình, thì lấy thông tin mình hiển thị luôn.
         const isMe = row.createdById === currentUser?.id || !row.createdBy;
-
         const displayName =
-          createdBy?.fullName ||
-          (isMe ? currentUser?.fullName : "Đang cập nhật...");
+          createdBy?.fullName || (isMe ? currentUser?.fullName : "N/A");
         const displayAvatar =
           createdBy?.avatar || (isMe ? currentUser?.avatar : null);
         const displayRole =
-          createdBy?.role || (isMe ? currentUser?.role : "GIẢNG VIÊN");
+          createdBy?.role || (isMe ? currentUser?.role : "ADMIN");
 
         return (
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-[#E4FBE1] text-[#2d5a2d] flex items-center justify-center font-black overflow-hidden">
+            <div className="w-8 h-8 rounded-full bg-[#E4FBE1] text-[#2d5a2d] flex items-center justify-center font-black overflow-hidden text-xs">
               {displayAvatar ? (
                 <img
                   src={displayAvatar}
                   className="w-full h-full object-cover"
-                  alt="avatar"
+                  alt="avt"
                 />
               ) : (
-                <span>{(displayName || "U")[0]}</span>
+                (displayName || "U")[0]
               )}
             </div>
             <div className="flex flex-col text-left">
-              <span className="text-[15px] font-black text-gray-800">
+              <span className="text-xs font-black text-gray-800">
                 {displayName}
               </span>
-              <span className="text-[10px] text-gray-400 font-bold uppercase">
+              <span className="text-[9px] text-gray-400 font-bold uppercase">
                 {displayRole}
               </span>
             </div>
@@ -277,14 +288,12 @@ export default function CourseList() {
       key: "isPublished",
       title: "Trạng thái",
       render: (val, row) => (
-        // 👇 2. Click vào Badge -> Toggle trạng thái
         <div
           onClick={(e) => {
-            e.stopPropagation(); // Ngăn chặn sự kiện click lan ra ngoài (nếu row có onClick)
+            e.stopPropagation();
             handleToggleStatus(row);
           }}
           className="cursor-pointer hover:opacity-80 transition-opacity"
-          title="Nhấn để thay đổi trạng thái"
         >
           <KLBadge type={val ? "success" : "danger"}>
             {val ? "PUBLIC" : "PRIVATE"}
@@ -292,9 +301,9 @@ export default function CourseList() {
         </div>
       ),
     },
-  ];
+  ].filter(Boolean);
 
-  // Logic Pagination UI
+  // Pagination UI
   const getPaginationRange = () => {
     const totalVisible = 5;
     let start = Math.max(1, currentPage - Math.floor(totalVisible / 2));
@@ -316,12 +325,24 @@ export default function CourseList() {
             Quản lý <span className="text-[#2d5a2d]">Khóa học</span>
           </h1>
           <p className="text-gray-400 text-[10px] font-bold tracking-[0.2em] uppercase">
-            LMS Course Management System
+            {isTeacher
+              ? "Teacher Portal - My Courses"
+              : "System Admin - All Courses"}
           </p>
         </div>
+
         <div className="flex gap-2">
           <KLButton
-            onClick={() => navigate("/admin/courses/create")}
+            // Sử dụng logic kiểm tra trực tiếp hoặc fix cứng để test trước
+            onClick={() => {
+              console.log(
+                "🔥 Đang điều hướng tới:",
+                `${basePath}/courses/create`
+              );
+              navigate(
+                isTeacher ? "/teacher/courses/create" : "/admin/courses/create"
+              );
+            }}
             icon={Plus}
             className="bg-[#2d5a2d]"
           >
@@ -362,8 +383,6 @@ export default function CourseList() {
               <label className="text-[10px] font-black uppercase text-gray-400 px-1">
                 Trạng thái hiển thị
               </label>
-
-              {/* 👇 3. Cập nhật Text Bộ Lọc */}
               <select
                 className="w-full p-3.5 bg-gray-50 rounded-xl border-none font-black text-[11px] uppercase cursor-pointer"
                 value={filters.isPublished}
@@ -383,8 +402,11 @@ export default function CourseList() {
       {/* TABLE SECTION */}
       <KLCard className="p-0 overflow-hidden border-none shadow-xl bg-transparent relative">
         {loading ? (
-          <div className="py-24 text-center">
-            Đang nạp danh sách khóa học...
+          <div className="py-24 text-center flex flex-col items-center">
+            <Loader2 className="w-10 h-10 text-[#2d5a2d] animate-spin mb-4" />
+            <p className="font-black text-gray-400 uppercase tracking-widest text-[10px]">
+              Đang nạp dữ liệu...
+            </p>
           </div>
         ) : (
           <>
@@ -393,10 +415,12 @@ export default function CourseList() {
               data={paginatedData}
               showAction={true}
               onAction={handleAction}
+              /* 🚩 CẬP NHẬT: Cho phép Teacher dùng Delete và Edit */
+              /* Chỉ ẩn Reset/Lock (những tính năng này thường dùng cho User Account) */
               hiddenActions={["reset", "lock"]}
             />
 
-            {/* PAGINATION (Giữ nguyên) */}
+            {/* PAGINATION */}
             <div className="px-8 py-6 bg-white border-t border-gray-50 flex flex-col md:flex-row justify-between items-center gap-6 rounded-b-[2.5rem]">
               <div className="flex flex-col text-left">
                 <span className="text-[11px] font-black text-gray-800 uppercase tracking-widest">
