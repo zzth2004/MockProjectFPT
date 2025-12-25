@@ -22,8 +22,9 @@ const lessonService = {
   },
 
   // 3️⃣ Chi tiết bài học (Kèm thông tin Course)
-  getDetail: async (id) => {
+  getDetailLesson: async (id) => {
     return axiosClient.get(`/lessons/${id}/detail`).then(res => {
+      console.log("Lesson Detail Response:", res.data.data);
       return res.data.data;
     });
   },
@@ -52,6 +53,14 @@ const lessonService = {
   // 7️⃣ Nạp dữ liệu bài học từ file JSON (Chỉ dành cho Admin)
   seedData: async () => {
     return axiosClient.post("/lessons/admin/seed").then(res => {
+      return res.data.data;
+    });
+  },
+
+  getLessonbyCourseSlug: async (slug) => {
+    return axiosClient.get(`/lessons/${slug}/lessons-by-slug`).then(res => {
+
+      console.log("Lesson by Slug Response:", res.data.data);
       return res.data.data;
     });
   }

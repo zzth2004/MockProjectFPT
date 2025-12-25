@@ -84,6 +84,7 @@ import UserDetail from "../AdminControl/Admin/User/user-detail.jsx";
 =======
 
 import MainLayout from "../layout/MainLayout.jsx";
+import CourseListGrid from "../page/mainpage/Courses/general-learning/general-course.jsx";
 
 >>>>>>> 9f537dae582771b5d0c1b241af8b6656259c251e
 function AnimatedRoutes() {
@@ -124,12 +125,16 @@ function AnimatedRoutes() {
 
           {/* Courses */}
           <Route path="/courses" element={<PageWrapper><Courses /></PageWrapper>} />
-          <Route path="/courses/general-learning" element={<PageWrapper><GeneralLearning /></PageWrapper>} />
+          <Route path="/courses/general-course" element={<PageWrapper><CourseListGrid /></PageWrapper>} /> 
+          <Route path="/courses/:slug" element={<PageWrapper><GeneralLearning /></PageWrapper>} />
+          <Route path="/courses/learning/:lessonId" element={<PageWrapper><StudyPage /></PageWrapper>} />
+
+
           <Route path="/courses/mycourses" element={<PageWrapper><MyCourse /></PageWrapper>} />
 
           {/* General Learning Detail */}
           <Route path="/courses/general-learning/:unitId" element={<PageWrapper><StudyPage /></PageWrapper>} />
-          <Route path="/courses/general-learning/:unitId/vocabulary" element={<PageWrapper><StudyVocab /></PageWrapper>} />
+          <Route path="/courses/learning/:lessonId/vocabulary" element={<PageWrapper><StudyVocab /></PageWrapper>} />
           <Route path="/courses/general-learning/:unitId/quiz" element={<PageWrapper><QuizzPlaypage /></PageWrapper>} />
 
           {/* MyCourse Detail */}

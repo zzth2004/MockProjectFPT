@@ -21,6 +21,7 @@ export default function MainLayout2() {
     const timer = setTimeout(() => setLoading(false), 800);
     return () => clearTimeout(timer);
   }, [location.pathname]);
+  const isAiPage = location.pathname.includes('/ai');
 
   return (
     <div className="flex h-screen w-full bg-[#F7F9F8] overflow-hidden font-sans">
@@ -64,7 +65,7 @@ export default function MainLayout2() {
       </div>
 
       <ScrollToTopButton />
-      <DraggableAIButton />
+      {!isAiPage && <DraggableAIButton />}
     </div>
   );
 }

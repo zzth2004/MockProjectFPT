@@ -1,7 +1,9 @@
 import axiosClient from "../../../../api/axiosAPI";
-
+import { useAuth } from "../../../../context/authContext";
 
 const AiService = {
+  
+
   navigate: async (message) => {
     const response = await axiosClient.post('/ai/navigate', { message });
     return response.data;

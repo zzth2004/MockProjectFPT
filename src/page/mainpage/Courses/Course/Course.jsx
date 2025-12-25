@@ -53,7 +53,7 @@ const Course = () => {
       <div className="flex flex-col gap-4 max-w-4xl">
         {/* Card 1: General Learning */}
         <div
-          onClick={() => handleNavigate("/courses/general-learning")}
+          onClick={() => handleNavigate("/courses/general-course")}
           className="group bg-white h-28 px-6 rounded-2xl shadow-sm hover:shadow-md hover:-translate-y-1 transition-all cursor-pointer border border-transparent hover:border-blue-100 flex items-center gap-5"
         >
           {/* Icon Box */}

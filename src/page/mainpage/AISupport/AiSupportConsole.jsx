@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   MessageSquare, BookOpen, Search, Mic, Volume2,
-  Square, Play, Sparkles, ChevronRight, Languages, Info, X, BotMessageSquare
+  Square, Play, Sparkles, ChevronRight, Languages, Info, X, BotMessageSquare, ChevronDown
 } from "lucide-react";
 
 // Import Hooks
@@ -10,17 +10,29 @@ import { useTextToSpeech } from "../../../hooks/SpeechConvert/useTextConvert";
 import AiService from "../../../AdminControl/Service/API/aiAPI/ai.service";
 
 import { useAuth } from "../../../context/authContext";
+import WritingEvaluationView from "./components/WritingEvaluationView";
 
 export default function AiSupportConsole() {
   const [activeMode, setActiveMode] = useState("CHAT_TUTOR");
   const [inputText, setInputText] = useState("");
-  const [selectedLang, setSelectedLang] = useState("한국어");
+  const [sttLang, setSttLang] = useState("ko-KR"); // Ngôn ngữ nói vào
+  const [ttsLang, setTtsLangState] = useState("ko-KR");
   const [lastAiResponse, setLastAiResponse] = useState(""); // Lưu câu trả lời mới nhất để auto-TTS
   const [isLoading, setIsLoading] = useState(false);
 
+  const [messages, setMessages] = useState([]); // Lưu danh sách tin nhắn
+  const messagesEndRef = useRef(null);
+  const [lastUserText, setLastUserText] = useState("");
+
   const [currentSessionId, setCurrentSessionId] = useState(null);
   const { user } = useAuth(); // Lấy user và jwt từ Context
+  const [requestType, setRequestType] = useState("pronunciation"); // hoặc "chat"
 
+
+  const REQUEST_OPTIONS = [
+    { id: "pronunciation", label: "Luyện đọc", icon: <Mic size={14} /> },
+    { id: "chat", label: "Trò chuyện", icon: <MessageSquare size={14} /> },
+  ];
   // Lấy userID (tùy thuộc vào cấu trúc object user của bạn)
   const userId = user?.id || user?.userID || user?._id;
 
@@ -39,21 +51,25 @@ export default function AiSupportConsole() {
   } = useSpeechRecognition("ko-KR");
 
   // 2. Cấu hình Hook TTS (Nói)
-  const { isSpeaking, speak, stop: stopTTS, setTtsLang } = useTextToSpeech("ko-KR");
+  const { isSpeaking, speak, stop: stopTTS,
+    setTtsLang: updateTtsEngine
+  } = useTextToSpeech("ko-KR");
 
-  const langMap = {
-    "Tiếng Việt": "vi-VN",
-    "English": "en-US",
-    "한국어": "ko-KR",
-  };
+  const SUPPORTED_LANGS = [
+    { label: "한국어", code: "ko-KR" },
+    { label: "Tiếng Việt", code: "vi-VN" },
+    { label: "English", code: "en-US" },
+  ];
+  useEffect(() => {
+    setLang(sttLang); // Hook STT
+    setTtsLangState(ttsLang); // Cập nhật state TTS
+    console.log("Updated languages:", { sttLang, ttsLang });
+  }, [sttLang, setLang, ttsLang, setTtsLangState]);
 
-  const languages = ["Tiếng Việt", "English", "한국어"];
 
   useEffect(() => {
-    const code = langMap[selectedLang];
-    setLang(code);
-    setTtsLang(code);
-  }, [selectedLang]);
+    updateTtsEngine(ttsLang); // Gọi hàm của Hook bằng tên mới
+  }, [ttsLang, updateTtsEngine]);
 
   useEffect(() => {
     if (lastAiResponse) {
@@ -63,166 +79,243 @@ export default function AiSupportConsole() {
   }, [lastAiResponse]);
 
 
+  // useEffect(() => {
+
+  //   if (!userId) return;
+  //   let cancelled = false;
+  //   const initSession = async () => {
+  //     setIsLoading(true);
+  //     setLastAiResponse(null);
+  //     try {
+
+  //       const sessions = await AiService.getSessions(userId, activeMode);
+  //       if (cancelled) return;
+  //       if (sessions.length > 1) {
+
+  //         console.warn(
+
+  //           `[Session] Backend violation: multiple sessions for type ${activeMode}`,
+
+  //           sessions
+
+  //         );
+
+  //       }
+  //       const session = sessions[0];
+  //       if (session) {
+
+  //         setCurrentSessionId(session.id);
+
+  //         console.log(`[Session] Reused: ${session.id} (${activeMode})`);
+  //         fetchHistory();
+
+  //       } else {
+
+  //         const newSession = await AiService.createSession(
+
+  //           userId,
+
+  //           activeMode,
+
+  //           `Học tập ${activeMode} - ${new Date().toLocaleDateString()}`
+
+  //         );
+  //         if (cancelled) return;
+  //         setCurrentSessionId(newSession.id);
+
+  //         console.log(`[Session] Created: ${newSession.id} (${activeMode})`);
+
+  //       }
+
+  //     } catch (err) {
+
+  //       if (!cancelled) {
+
+  //         console.error("Lỗi khởi tạo session:", err);
+
+  //       }
+
+  //     } finally {
+
+  //       if (!cancelled) setIsLoading(false);
+
+  //     }
+
+  //   };
+  //   initSession();
+  //   return () => {
+
+  //     cancelled = true;
+
+  //   };
+
+  // }, [userId, activeMode]);
+
 
   useEffect(() => {
-
     if (!userId) return;
-    let cancelled = false;
+
+    // 1. DỌN DẸP NGAY LẬP TỨC: 
+    // Khi đổi mode, ta xóa messages ngay để tránh UI hiện tin nhắn cũ của mode trước.
+    setMessages([]);
+    setLastAiResponse(null);
+
+    let isMounted = true; // Flag để tránh memory leak/update state khi component unmount
+
     const initSession = async () => {
       setIsLoading(true);
-      setLastAiResponse(null);
       try {
-
+        // Lấy hoặc tạo session
         const sessions = await AiService.getSessions(userId, activeMode);
-        if (cancelled) return;
-        if (sessions.length > 1) {
+        if (!isMounted) return;
 
-          console.warn(
-
-            `[Session] Backend violation: multiple sessions for type ${activeMode}`,
-
-            sessions
-
-          );
-
+        let session = sessions[0];
+        if (!session) {
+          session = await AiService.createSession(userId, activeMode, `Session ${activeMode}`);
         }
 
+        if (!isMounted) return;
+        setCurrentSessionId(session.id);
 
-
-        const session = sessions[0];
-
-
-
-        if (session) {
-
-          setCurrentSessionId(session.id);
-
-          console.log(`[Session] Reused: ${session.id} (${activeMode})`);
-
-        } else {
-
-          const newSession = await AiService.createSession(
-
-            userId,
-
-            activeMode,
-
-            `Học tập ${activeMode} - ${new Date().toLocaleDateString()}`
-
-          );
-
-
-
-          if (cancelled) return;
-
-
-
-          setCurrentSessionId(newSession.id);
-
-          console.log(`[Session] Created: ${newSession.id} (${activeMode})`);
-
+        // 2. CHẶN FETCH HISTORY NẾU LÀ PRONUNCIATION
+        // Chúng ta lồng điều kiện ở đây để vẫn lấy được Session ID (cần cho việc gửi AI) 
+        // nhưng không tốn tài nguyên lấy tin nhắn cũ.
+        if (activeMode !== "PRONUNCIATION") {
+          const history = await AiService.getSessionMessages(session.id, userId);
+          if (isMounted) {
+            setMessages(history || []);
+          }
         }
 
       } catch (err) {
-
-        if (!cancelled) {
-
-          console.error("Lỗi khởi tạo session:", err);
-
-        }
-
+        console.error("Session Init Error:", err);
       } finally {
-
-        if (!cancelled) setIsLoading(false);
-
+        if (isMounted) setIsLoading(false);
       }
-
     };
-
-
 
     initSession();
 
-
-
-    return () => {
-
-      cancelled = true;
-
-    };
-
+    return () => { isMounted = false; }; // Cleanup function
   }, [userId, activeMode]);
-
   const menuModes = [
     { id: "PRONUNCIATION", label: "Nói chuyện với AI", icon: <MessageSquare size={20} />, desc: "Luyện nói 100% âm thanh" },
     { id: "EXPLAIN", label: "Giải thích bài học", icon: <BookOpen size={20} />, desc: "Phân tích vocab,  cấu trúc câu" },
     { id: "WRITING_CHECK", label: "Hướng dẫn viết", icon: <Search size={20} />, desc: "Tra từ & Ví dụ song ngữ" },
     { id: "CHAT_TUTOR", label: "Chat with turtor", icon: <BotMessageSquare size={20} />, desc: "AI support" },
   ];
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
 
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages, isLoading]);
   // Xử lý gửi tin nhắn
   const handleSend = async () => {
-    // ✅ Sửa: Logic lấy nội dung rõ ràng hơn
-    const finalContent = (activeMode === "PRONUNCIATION")
-      ? (transcript || interim || "").trim()
-      : inputText.trim();
+    const content = (isListening ? (transcript || interim) : inputText).trim();
+    if (!content || isLoading || !currentSessionId) return;
 
-    // ✅ Sửa: Kiểm tra điều kiện chặt chẽ hơn
-    if (!finalContent || isLoading || !currentSessionId) {
-      console.warn("Không thể gửi: thiếu nội dung hoặc session");
-      return;
-    }
+    const currentRequestMode = requestType === "pronunciation" ? "pronunciation" : "chat";
+
+    const pronouceContent = `${currentRequestMode}:${content} by ${ttsLang}`;
+
+    // 1. Thêm tin nhắn User vào danh sách
+    const userMsg = { role: "user", content, createdAt: new Date() };
+    setMessages(prev => [...prev, userMsg]);
+    setInputText("");
+    clearTranscript();
+    if (isListening) stopListening();
 
     setIsLoading(true);
     try {
+      let aiReplyText = "";
       let result;
+      setLastUserText(content);
 
+      // 2. Gọi API tùy theo Mode
       switch (activeMode) {
         case "PRONUNCIATION":
-          const effectiveTarget = lessonsentence || finalContent;
 
+          console.log("Sending Pronunciation Request:", pronouceContent);
+          // Gọi Service với Prompt toàn năng đã thiết lập ở Backend
           result = await AiService.evaluatePronunciation({
-            userTranscript: finalContent,
-            targetSentence: effectiveTarget,
-            userId: userId,
+            userTranscript: pronouceContent,
+            sessionId: currentSessionId,
+            userId,
+            targetSentence: lessonsentence // Mẫu câu cần đọc (nếu có)
           });
+          const formattedResult = {
+            ...result,
+            displayReply: result.intent === 'EVALUATION' ? result.feedback : (result.reply || result.message)
+          };
 
-          // ✅ Sửa: Cấu trúc response nhất quán
-          setLastAiResponse({
-            reply: `Độ chính xác: ${result.score}% - ${result.feedback}`,
-            detail: result
-          });
+          console.log("Pronunciation Result:", formattedResult);
+
+          setLastAiResponse(formattedResult);
+
+          // LOGIC XỬ LÝ ĐA NĂNG (Dựa trên Intent từ AI)
+          if (result.intent === 'EVALUATION') {
+            // Trường hợp: Người dùng đang luyện đọc
+            aiReplyText = `🎯 [Đánh giá] Độ chính xác: ${result.score}% \n ${result.feedback}`;
+
+            // Cập nhật lastAiResponse để hiện bảng điểm chuyên sâu (nếu cần)
+            // setLastAiResponse(result);
+
+            // Chỉ cho AI đọc phần góp ý hoặc câu mẫu
+            speak(result.feedback);
+          }
+          else if (result.intent === 'CHAT') {
+            // Trường hợp: Người dùng đang muốn nói chuyện/hỏi đáp
+            aiReplyText = `${result.reply} \n (${result.vietnameseTranslation})`;
+
+            // Ưu tiên đọc tiếng Hàn (nếu reply là tiếng Hàn)
+            speak(result.reply);
+          }
+          else {
+            // Trường hợp: CLARIFICATION - AI chưa hiểu ý hoặc yêu cầu người dùng xác nhận
+            aiReplyText = result.reply || "Tôi chưa rõ bạn muốn luyện phát âm hay trò chuyện. Bạn có thể nói rõ hơn không?";
+            speak(aiReplyText);
+          }
           break;
-
         case "CHAT_TUTOR":
-          result = await AiService.chat(currentSessionId, userId, finalContent);
-          // ✅ Sửa: Đảm bảo có reply
-          setLastAiResponse({ reply: result.reply || result.message || "Không có phản hồi" });
+          result = await AiService.chat(currentSessionId, userId, content);
+          aiReplyText = result.reply || result.message;
           break;
-
         case "EXPLAIN":
-          result = await AiService.explainWord(finalContent, "Context học tập");
-          setLastAiResponse({ reply: result.explanation || result.meaning || "Không có giải thích" });
+          result = await AiService.explainWord(content);
+          aiReplyText = result.explanation || result.meaning;
           break;
-
         case "WRITING_CHECK":
-          result = await AiService.evaluateWriting(finalContent);
-          // ✅ Sửa: Giữ nguyên object cho WRITING_CHECK
-          setLastAiResponse(result);
-          break;
+          result = await AiService.evaluateWriting(content);
 
-        default:
-          console.warn("Mode không hợp lệ");
+          // Tạo chuỗi văn bản chi tiết (String) để đưa vào bong bóng chat
+          const suggestions = result.suggestions && result.suggestions.length > 0
+            ? `\n\n📚 GỢI Ý HỌC TẬP:\n${result.suggestions.map(s => `• ${s.suggestion || s}`).join('\n')}`
+            : "";
+
+          const strengths = result.strengths && result.strengths.length > 0
+            ? `\n\n✨ ĐIỂM MẠNH:\n${result.strengths.map(s => `• ${s}`).join('\n')}`
+            : "";
+
+          // Chuỗi tổng hợp cuối cùng
+          aiReplyText = `📝 BẢN SỬA LỖI:\n"${result.correctedText}"\n\n💡 NHẬN XÉT: ${result.feedback}${strengths}${suggestions}\n\n🏆 ĐIỂM TỔNG: ${result.overallScore} (${result.grade})`;
+
+          // QUAN TRỌNG: Chỉ lưu chuỗi String vào lastAiResponse để auto-TTS đọc, không lưu Object
+          setLastAiResponse(aiReplyText);
+
+          console.log("Writing Evaluation Result:", result);
           break;
+        default: aiReplyText = "Chế độ không hợp lệ";
       }
+
+      const aiMsg = { role: "assistant", content: aiReplyText, createdAt: new Date() };
+      setMessages(prev => [...prev, aiMsg]);
+
     } catch (err) {
-      console.error("AI Service Error:", err);
-      // ✅ Thêm: Hiển thị lỗi cho user
-      setLastAiResponse({ reply: "Đã xảy ra lỗi khi xử lý yêu cầu. Vui lòng thử lại." });
+      setMessages(prev => [...prev, { role: "assistant", content: "Xin lỗi, AI đang gặp sự cố kết nối.", isError: true }]);
     } finally {
       setIsLoading(false);
-      setInputText("");
-      clearTranscript();
     }
   };
 
@@ -254,10 +347,46 @@ export default function AiSupportConsole() {
     }
 
     if (textToSpeak) {
-      speakTTS(textToSpeak);
+      speak(textToSpeak);
     }
   };
 
+  const renderMessage = (msg, index) => {
+    const isAi = msg.role === "assistant";
+
+    return (
+      <div
+        key={index}
+        className={`flex ${isAi ? "justify-start" : "justify-end"} mb-6 animate-in slide-in-from-bottom-2 duration-300`}
+      >
+        <div className={`flex max-w-[80%] ${isAi ? "flex-row" : "flex-row-reverse"} gap-3`}>
+          {/* Avatar Icon */}
+          <div className={`w-8 h-8 rounded-full flex-shrink-0 flex items-center justify-center shadow-sm 
+            ${isAi ? "bg-green-100 text-[#377437]" : "bg-gray-800 text-white"}`}>
+            {isAi ? <Sparkles size={16} /> : <span className="text-[10px] font-bold">ME</span>}
+          </div>
+
+          {/* Nội dung tin nhắn */}
+          <div className="flex flex-col gap-2">
+            <div className={`p-4 rounded-[2rem] shadow-sm border ${isAi
+              ? "bg-white border-gray-100 rounded-tl-none text-gray-800"
+              : "bg-[#377437] border-[#377437] rounded-tr-none text-white"
+              }`}>
+              <p className="text-sm font-medium leading-relaxed whitespace-pre-wrap">
+                {typeof msg.content === 'string' ? msg.content : (msg.content?.reply || msg.content?.message)}
+              </p>
+              
+            </div>
+
+            {/* Thời gian (Tùy chọn) */}
+            <span className={`text-[9px] font-bold text-gray-400 uppercase tracking-tighter ${isAi ? "text-left" : "text-right"}`}>
+              {msg.createdAt ? new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ""}
+            </span>
+          </div>
+        </div>
+      </div>
+    );
+  };
   return (
     <div className="flex h-[calc(100vh-80px)] bg-[#F8F9FC] p-4 gap-4 font-sans overflow-hidden">
       <style>{`
@@ -335,7 +464,7 @@ export default function AiSupportConsole() {
             </div>
             <div>
               <h3 className="font-black text-gray-900 text-lg uppercase tracking-tight">{menuModes.find(m => m.id === activeMode)?.label}</h3>
-              <p className="text-xs font-bold text-green-600 tracking-widest uppercase italic">Language: {selectedLang}</p>
+              <p className="text-xs font-bold text-green-600 tracking-widest uppercase italic">Language: {sttLang}</p>
             </div>
 
           </div>
@@ -353,41 +482,41 @@ export default function AiSupportConsole() {
 
         <div className="flex-1 overflow-y-auto relative custom-scrollbar">
           {/* HIỂN THỊ CÂU TRẢ LỜI CỦA AI NẾU CÓ (Để người dùng nhấn loa nghe lại) */}
-          {lastAiResponse && activeMode === "PRONUNCIATION" && (
-            <div className="absolute top-4 left-1/2 -translate-x-1/2 z-20 animate-in slide-in-from-top-4">
-              <button
-                onClick={() => handleSpeak(lastAiResponse)}
-                className={`flex items-center gap-3 px-6 py-3 rounded-full shadow-lg transition-all ${isSpeaking ? 'bg-[#377437] text-white scale-105' : 'bg-white text-gray-700'}`}
-              >
-                <Volume2 size={18} className={isSpeaking ? "animate-pulse" : ""} />
-                <span className="text-sm font-bold">Nghe lại phản hồi</span>
-              </button>
-            </div>
-          )}
-
           {activeMode === "PRONUNCIATION" ? (
             <div className="h-full flex flex-col items-center justify-between p-10 animate-in fade-in duration-500">
               <div className="flex-1 w-full flex flex-col items-center justify-center space-y-8">
 
                 <div className="w-full max-w-2xl text-center min-h-[100px] flex flex-col justify-center px-4">
-                  {transcript || interim ? (
-                    <div className="space-y-2">
-                      <p className="text-xl font-black text-gray-800 leading-tight">{transcript}</p>
-                      {interim && <p className="text-xl font-bold text-red-400 italic animate-pulse">{interim}</p>}
-                    </div>
-                  ) : (
-                    <div className="space-y-4">
-                      {lessonsentence && (
-                        <div className="bg-green-50 p-4 rounded-2xl mb-4 border border-green-100">
-                          <p className="text-[10px] uppercase font-black text-[#377437]">Mẫu câu cần đọc:</p>
-                          <p className="text-lg font-bold text-[#377437]">{lessonsentence}</p>
+                  <div className="w-full max-w-2xl text-center min-h-[150px] flex flex-col justify-center px-4">
+                    {isListening || transcript || interim ? (
+                      /* Đang nói */
+                      <div className="space-y-2">
+                        <p className="text-2xl font-black text-gray-800 leading-tight">{transcript || interim}</p>
+                        {interim && <div className="h-1 w-20 bg-[#377437] mx-auto animate-pulse rounded-full" />}
+                      </div>
+                    ) : lastUserText ? (
+                      /* Đã nói xong và có kết quả */
+                      <div className="animate-in fade-in slide-in-from-top-2 space-y-4">
+                        <div className="opacity-40">
+                          <p className="text-[10px] font-black uppercase tracking-widest mb-1">Bạn đã nói:</p>
+                          <p className="text-lg font-bold italic">"{lastUserText}"</p>
                         </div>
-                      )}
-                      <p className="text-gray-300 font-bold italic uppercase tracking-widest">
-                        {isSpeaking ? "AI đang trả lời..." : "Sẵn sàng lắng nghe..."}
-                      </p>
-                    </div>
-                  )}
+                      </div>
+                    ) : (
+                      /* Trạng thái chờ */
+                      <div className="space-y-4">
+                        {lessonsentence && (
+                          <div className="bg-green-50/50 p-6 rounded-[2rem] border border-green-100/50">
+                            <p className="text-[10px] uppercase font-black text-[#377437] mb-2 tracking-widest opacity-60">Mẫu câu cần đọc:</p>
+                            <p className="text-2xl font-black text-[#377437] leading-tight">{lessonsentence}</p>
+                          </div>
+                        )}
+                        <p className="text-gray-300 font-bold italic uppercase tracking-[0.2em] text-xs">
+                          {isSpeaking ? "AI đang trả lời..." : "Sẵn sàng lắng nghe..."}
+                        </p>
+                      </div>
+                    )}
+                  </div>
                 </div>
 
                 <div className={`w-32 h-32 rounded-full flex items-center justify-center shadow-xl transition-all duration-500 
@@ -412,8 +541,31 @@ export default function AiSupportConsole() {
                 </div>
                 {lastAiResponse && (
                   <div className="w-full max-w-2xl bg-green-50 p-6 rounded-2xl border border-green-100">
-                    <p className="text-sm font-black text-[#377437] uppercase mb-2">Kết quả:</p>
-                    <p className="text-gray-800 font-bold">{lastAiResponse.reply}</p>
+                    {lastAiResponse && (
+                      <div className="bg-white p-6 rounded-[2.5rem] border border-gray-100 shadow-xl shadow-green-100/20 animate-in zoom-in duration-500">
+                        <div className="flex items-center justify-center gap-2 mb-3">
+                          <Sparkles size={16} className="text-[#377437]" />
+                          <span className="text-[10px] font-black text-[#377437] uppercase tracking-widest">AI Analysis</span>
+                        </div>
+                        <p className="text-xl font-black text-gray-900 leading-relaxed">
+                          {lastAiResponse.displayReply}
+                        </p>
+                        <p className="text-xl font-black text-gray-900 leading-relaxed">
+                          {
+                            `VN translate: ${lastAiResponse.vietnameseTranslation}`
+
+                          }
+                        </p>
+
+                        {/* Nếu là chấm điểm, hiện thêm điểm số nhỏ */}
+                        {lastAiResponse.score && (
+                          <div className="mt-4 flex justify-center gap-4">
+                            <div className="px-4 py-1 bg-green-50 rounded-full text-[10px] font-black text-[#377437]">ACCURACY: {lastAiResponse.accuracy}%</div>
+                            <div className="px-4 py-1 bg-blue-50 rounded-full text-[10px] font-black text-blue-600">FLUENCY: {lastAiResponse.fluency}%</div>
+                          </div>
+                        )}
+                      </div>
+                    )}
                     <button
                       onClick={() => handleSpeak(lastAiResponse)}
                       className="mt-3 flex items-center gap-2 text-xs font-black text-[#377437] uppercase hover:underline"
@@ -424,75 +576,165 @@ export default function AiSupportConsole() {
                 )}
               </div>
 
-              <div className="flex flex-col items-center gap-6 mb-6 w-full max-w-sm">
-                <div className="flex items-center gap-3 bg-gray-50 border border-gray-100 px-5 py-3 rounded-3xl shadow-inner w-full">
-                  <div className="flex-1 flex items-center gap-2">
-                    <Info size={16} className="text-gray-400" />
-                    <span className="text-[10px] font-black text-gray-400 uppercase">Engine: <span className="text-[#377437]">Voice Sync Active</span></span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Languages size={18} className="text-[#377437]" />
-                    <select
-                      value={selectedLang}
-                      onChange={(e) => setSelectedLang(e.target.value)}
-                      className="bg-transparent border-none outline-none text-xs font-black text-gray-700 uppercase cursor-pointer"
-                    >
-                      {languages.map(lang => <option key={lang} value={lang}>{lang}</option>)}
-                    </select>
+              {/* Container chính: Mở rộng max-w để thanh điều khiển thanh thoát hơn */}
+              <div className="flex flex-col items-center gap-4 mb-8 w-full max-w-2xl mx-auto animate-in fade-in slide-in-from-bottom-6 duration-700">
+
+                {/* TẦNG 1: ENGINE STATUS & REQUEST TYPE */}
+                <div className="relative w-full">
+                  {/* Glow hiệu ứng nền mờ ảo cho tầng 1 */}
+                  <div className="absolute -inset-1 bg-gradient-to-r from-green-100/10 to-emerald-100/10 rounded-[2rem] blur-lg opacity-50"></div>
+
+                  <div className="relative flex flex-wrap items-center justify-between gap-4 bg-white/60 backdrop-blur-xl border border-white/80 shadow-sm px-6 py-3 rounded-[2rem]">
+
+                    {/* Badge Trạng thái */}
+                    <div className="flex items-center gap-3 px-4 py-2 bg-white/90 rounded-2xl border border-gray-100 shadow-sm">
+                      <div className="relative flex">
+                        <div className="absolute inset-0 bg-green-400 rounded-full animate-ping opacity-20"></div>
+                        <div className="relative w-2.5 h-2.5 bg-green-500 rounded-full border-2 border-white shadow-sm"></div>
+                      </div>
+                      <div className="flex flex-col">
+                        <span className="text-[9px] font-black text-gray-400 uppercase tracking-widest leading-none mb-1">System</span>
+                        <span className="text-[11px] font-black text-[#377437] uppercase">Voice Active</span>
+                      </div>
+                    </div>
+
+                    {/* Chọn Request Type (Luyện đọc / Chat) */}
+                    <div className="flex items-center gap-1 bg-gray-100/50 p-1 rounded-2xl border border-gray-100 shadow-inner">
+                      {REQUEST_OPTIONS.map((option) => (
+                        <button
+                          key={option.id}
+                          onClick={() => setRequestType(option.id)}
+                          className={`flex items-center gap-2 px-6 py-2 rounded-xl text-[10px] font-black uppercase transition-all duration-500 ${requestType === option.id
+                            ? "bg-white text-[#377437] shadow-md scale-[1.02]"
+                            : "text-gray-400 hover:text-gray-600 hover:bg-gray-50/50"
+                            }`}
+                        >
+                          {option.icon}
+                          {option.label}
+                        </button>
+                      ))}
+                    </div>
                   </div>
                 </div>
 
-                <button
-                  onClick={toggleListening}
-                  className={`z-10 w-24 h-24 rounded-[2.5rem] flex items-center justify-center transition-all shadow-2xl active:scale-90
-                    ${isListening ? "bg-red-500 text-white" : "bg-[#377437] text-white hover:shadow-green-200"}`}
-                >
-                  {isListening ? <Square size={36} fill="white" /> : <Mic size={40} strokeWidth={2.5} />}
-                </button>
-                <p className={`text-sm font-black uppercase tracking-widest ${isListening ? 'text-red-500 animate-pulse' : 'text-gray-300'}`}>
-                  {isListening ? "Đang lắng nghe..." : "Nhấn để bắt đầu"}
-                </p>
-              </div>
-            </div>
-          ) : (
-            <div className="p-10 pb-32 space-y-8 animate-in slide-in-from-bottom-4 duration-500">
-              <div className="max-w-[85%] bg-gray-50 border border-gray-100 p-8 rounded-[2.5rem] rounded-tl-none space-y-6">
-                <div className="flex items-center gap-3 text-[#377437]">
-                  {activeMode === "WRITING_CHECK" ? <Search size={20} /> : <BookOpen size={20} />}
-                  <span className="font-black uppercase tracking-widest text-sm">AI Response</span>
-                </div>
-                {lastAiResponse ? (
-                  <div className="space-y-4">
-                    {activeMode === "WRITING_CHECK" && typeof lastAiResponse === 'object' && lastAiResponse.correctedText ? (
-                      <div className="space-y-4">
-                        <div className="p-4 bg-white rounded-2xl border border-green-100">
-                          <p className="text-xs font-black text-[#377437] uppercase mb-2">Câu đã sửa:</p>
-                          <p className="text-gray-800 font-bold text-lg">{lastAiResponse.correctedText}</p>
-                        </div>
-                        {lastAiResponse.feedback && (
-                          <p className="text-gray-600 italic text-sm">{lastAiResponse.feedback}</p>
-                        )}
+                {/* TẦNG 2: LANGUAGE SELECTORS */}
+                <div className="relative w-full max-w-[90%]"> {/* Tầng 2 hơi hẹp hơn tầng 1 để tạo hình khối đẹp */}
+                  <div className="relative flex items-center justify-center gap-8 bg-white/40 backdrop-blur-2xl border border-white/40 shadow-xl shadow-gray-200/20 px-10 py-3 rounded-[2.5rem]">
+
+                    {/* Lựa chọn: Tôi nói */}
+                    <div className="flex items-center gap-4 group/item">
+                      <div className="w-9 h-9 flex items-center justify-center bg-red-50 text-red-500 rounded-2xl group-hover/item:bg-red-500 group-hover/item:text-white transition-all duration-500 shadow-sm">
+                        <Mic size={16} strokeWidth={2.5} />
                       </div>
-                    ) : (
-                      <p className="text-gray-800 font-bold text-lg">
-                        {/* ✅ Sửa: Xử lý an toàn hơn */}
-                        {typeof lastAiResponse === 'string'
-                          ? lastAiResponse
-                          : (lastAiResponse.reply || lastAiResponse.message || "Không có phản hồi")}
-                      </p>
+                      <div className="flex flex-col">
+                        <label className="text-[9px] font-black text-gray-400 uppercase tracking-tighter leading-none mb-1.5">Ngôn ngữ tôi nói</label>
+                        <div className="relative flex items-center">
+                          <select
+                            value={sttLang}
+                            onChange={(e) => setSttLang(e.target.value)}
+                            className="bg-transparent border-none outline-none text-[13px] font-black uppercase text-gray-700 cursor-pointer hover:text-[#377437] transition-colors appearance-none pr-4 z-10"
+                          >
+                            {SUPPORTED_LANGS.map(l => <option key={l.code} value={l.code}>{l.label}</option>)}
+                          </select>
+                          <ChevronDown size={12} className="text-gray-400 absolute right-0 pointer-events-none" />
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Đường chia cách nghệ thuật */}
+                    <div className="w-[1px] h-8 bg-gradient-to-b from-transparent via-gray-200 to-transparent"></div>
+
+                    {/* Lựa chọn: AI trả lời */}
+                    <div className="flex items-center gap-4 group/item">
+                      <div className="w-9 h-9 flex items-center justify-center bg-blue-50 text-blue-500 rounded-2xl group-hover/item:bg-blue-500 group-hover/item:text-white transition-all duration-500 shadow-sm">
+                        <Volume2 size={16} strokeWidth={2.5} />
+                      </div>
+                      <div className="flex flex-col">
+                        <label className="text-[9px] font-black text-gray-400 uppercase tracking-tighter leading-none mb-1.5">AI trả lời bằng</label>
+                        <div className="relative flex items-center">
+                          <select
+                            value={ttsLang}
+                            onChange={(e) => setTtsLangState(e.target.value)}
+                            className="bg-transparent border-none outline-none text-[13px] font-black uppercase text-gray-700 cursor-pointer hover:text-[#377437] transition-colors appearance-none pr-4 z-10"
+                          >
+                            {SUPPORTED_LANGS.map(l => <option key={l.code} value={l.code}>{l.label}</option>)}
+                          </select>
+                          <ChevronDown size={12} className="text-gray-400 absolute right-0 pointer-events-none" />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+
+                {/* NÚT MIC CHÍNH: Thiết kế dạng vật lý (Tactile UI) */}
+                <div className="flex flex-col items-center gap-4">
+                  <div className="relative group">
+                    {/* Vòng tròn sóng lan tỏa khi đang nghe */}
+                    {isListening && (
+                      <div className="absolute inset-0 bg-red-500 rounded-[2.5rem] animate-ping opacity-20 scale-125"></div>
                     )}
 
                     <button
-                      onClick={() => handleSpeak(lastAiResponse)}
-                      className="flex items-center gap-2 text-xs font-black text-[#377437] uppercase hover:underline"
+                      onClick={toggleListening}
+                      className={`relative z-10 w-28 h-28 rounded-[2.5rem] flex items-center justify-center transition-all duration-500 
+          ${isListening
+                          ? "bg-red-500 text-white shadow-[0_20px_50px_rgba(239,68,68,0.3)] scale-110"
+                          : "bg-white text-[#377437] shadow-[0_20px_50px_rgba(0,0,0,0.08)] hover:shadow-[0_20px_50px_rgba(55,116,55,0.15)] active:scale-95 border border-gray-100"
+                        }`}
                     >
-                      <Volume2 size={14} /> Nghe lại
+                      {isListening
+                        ? <Square size={36} fill="white" className="animate-in zoom-in duration-300" />
+                        : <Mic size={44} strokeWidth={2.5} className="animate-in zoom-in duration-300" />
+                      }
                     </button>
                   </div>
-                ) : (
-                  <p className="text-gray-400 font-bold italic">Nhập nội dung hoặc sử dụng giọng nói để AI xử lý...</p>
-                )}
+
+                  <div className="text-center">
+                    <p className={`text-sm font-black uppercase tracking-[0.2em] transition-colors duration-300
+        ${isListening ? 'text-red-500 animate-pulse' : 'text-gray-400'}`}>
+                      {isListening ? "Đang lắng nghe..." : "Chạm để nói"}
+                    </p>
+                    {/* Hiển thị gợi ý nhỏ dưới nút */}
+                    {!isListening && (
+                      <span className="text-[9px] font-bold text-gray-300 uppercase tracking-widest mt-1 block">
+                        AI Tutor sẵn sàng hỗ trợ bạn
+                      </span>
+                    )}
+                  </div>
+                </div>
               </div>
+            </div>
+          ) : (
+            <div className="max-w-4xl mx-auto w-full flex flex-col">
+              {messages.length === 0 && !isLoading ? (
+                <div className="h-full flex flex-col items-center justify-center opacity-20 py-20">
+                  <BotMessageSquare size={80} className="text-gray-400 mb-4" />
+                  <p className="font-black uppercase tracking-[0.2em] text-gray-500">Start a conversation</p>
+                </div>
+              ) : (
+                <>
+                  {/* Map qua danh sách tin nhắn */}
+                  {messages.map((msg, index) => renderMessage(msg, index))}
+
+                  {/* Loading indicator (Typing...) */}
+                  {isLoading && (
+                    <div className="flex justify-start mb-6 animate-pulse">
+                      <div className="flex gap-3 items-center bg-gray-50 px-5 py-3 rounded-full border border-gray-100">
+                        <div className="flex gap-1">
+                          <div className="w-1.5 h-1.5 bg-[#377437] rounded-full typing-dot" style={{ animationDelay: '0ms' }}></div>
+                          <div className="w-1.5 h-1.5 bg-[#377437] rounded-full typing-dot" style={{ animationDelay: '200ms' }}></div>
+                          <div className="w-1.5 h-1.5 bg-[#377437] rounded-full typing-dot" style={{ animationDelay: '400ms' }}></div>
+                        </div>
+                        <span className="text-[10px] font-black text-[#377437] uppercase tracking-widest">AI is thinking</span>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Phần tử mốc để tự động cuộn xuống */}
+                  <div ref={messagesEndRef} className="h-20" />
+                </>
+              )}
             </div>
           )}
         </div>

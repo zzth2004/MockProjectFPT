@@ -1,75 +1,135 @@
-import React from "react";
-import { useNavigate } from "react-router-dom";
-import { ChevronLeft, ChevronRight, PlayCircle } from "lucide-react";
+import React, { useEffect, useCallback, useMemo } from "react";
+import { useNavigate, useParams } from "react-router-dom";
+import { ChevronLeft, ChevronRight, PlayCircle, Loader2, BookOpen } from "lucide-react";
+
+// Logic & Services
+import useCallApiHandler from "../../../../hooks/HookHander/useCallApiHandler";
+import lessonService from "../../../../AdminControl/Service/API/lessonServiceAPI/lesson.service";
 
 const GeneralLearning = () => {
   const navigate = useNavigate();
+  const { slug } = useParams();
 
-  // Data mẫu
-  const units = [
-    { id: 1, title: "Unit 1 - Introduction - 소개하다", unitId: "unit-1" },
-    { id: 2, title: "Unit 2 - Healthy - 건강", unitId: "unit-2" },
-    { id: 3, title: "Unit 3 - Travel - 여행", unitId: "unit-3" },
-    { id: 4, title: "Unit 4 - Movies - 영화", unitId: "unit-4" },
-    { id: 5, title: "Unit 5 - Occupation - 직업", unitId: "unit-5" },
-    { id: 6, title: "SS", unitId: "ss" },
-  ];
+  // --- 1. FETCH DATA ---
+  const fetchLessonsFn = useCallback(
+    () => lessonService.getLessonbyCourseSlug(slug),
+    [slug]
+  );
 
-  const handleUnitClick = (unitId) => {
-    navigate(`/courses/general-learning/${unitId}`, { replace: false });
+  const { data: response, loading, call: refreshLessons } = useCallApiHandler(fetchLessonsFn);
+
+  useEffect(() => {
+    if (slug) refreshLessons();
+  }, [slug, refreshLessons]);
+
+  // --- 2. XỬ LÝ DỮ LIỆU ---
+  const lessons = useMemo(() => {
+    // Ưu tiên lấy items từ response nestjs chuẩn
+    return response?.items || response?.data || [];
+  }, [response]);
+
+  const handleUnitClick = (lessonId) => {
+    // Chuyển tới route học bài học chi tiết
+    console.log("Navigating to lesson ID:", lessonId);
+    navigate(`/courses/learning/${lessonId}`);
   };
 
+  // --- 3. GIAO DIỆN ---
   return (
-    <div className="w-full min-h-screen font-sans pt-2 pb-8">
-      {/* --- HEADER --- */}
-      <header className="flex items-center gap-2 mb-6 -ml-2">
-        <button
-          onClick={() => navigate("/courses")}
-          className="p-2 rounded-full bg-white text-gray-500 hover:text-gray-900 hover:shadow-sm transition-all border border-gray-200"
-        >
-          <ChevronLeft size={20} />
-        </button>
-
-        <div className="flex items-center gap-2 text-lg font-bold text-gray-800 ml-1">
-          <span
-            className="opacity-50 hover:opacity-100 cursor-pointer transition"
+    <div className="w-full min-h-screen bg-gray-50/30 font-sans pt-6 pb-12 px-4 md:px-8">
+      <div className="max-w-5xl mx-auto">
+        
+        {/* --- HEADER / BREADCRUMB --- */}
+        <header className="flex items-center gap-4 mb-8">
+          <button
             onClick={() => navigate("/courses")}
+            className="p-2.5 rounded-xl bg-white text-gray-400 hover:text-green-700 hover:shadow-md transition-all border border-gray-100 active:scale-90"
           >
-            Course
-          </span>
-          <ChevronRight size={18} className="text-gray-400" />
-          <span>General Learning</span>
-        </div>
-      </header>
+            <ChevronLeft size={22} />
+          </button>
 
-      {/* --- LIST UNITS --- */}
-      <div className="flex flex-col gap-4 max-w-4xl">
-        {units.map((unit) => (
-          <div
-            key={unit.id}
-            onClick={() => handleUnitClick(unit.unitId)}
-            className="
-                        group bg-white p-6 rounded-2xl shadow-sm cursor-pointer
-                        border border-transparent hover:border-blue-100
-                        transition-all duration-200 ease-in-out
-                        hover:-translate-y-0.5 hover:shadow-md
-                        flex items-center justify-between
-                    "
-          >
-            <div className="flex items-center gap-4">
-              <div className="w-10 h-10 rounded-full bg-gray-50 flex items-center justify-center text-gray-400 group-hover:bg-blue-50 group-hover:text-blue-600 transition-colors">
-                <PlayCircle size={20} />
-              </div>
-              <span className="font-bold text-gray-800 text-lg group-hover:text-blue-700 transition-colors">
-                {unit.title}
-              </span>
-            </div>
-            <ChevronRight
-              className="text-gray-300 group-hover:text-blue-500 transition-colors"
-              size={20}
-            />
+          <div className="flex items-center gap-2 text-sm font-black uppercase tracking-widest">
+            <span
+              className="text-gray-400 hover:text-green-700 cursor-pointer transition"
+              onClick={() => navigate("/courses")}
+            >
+              Course
+            </span>
+            <ChevronRight size={16} className="text-gray-300" />
+            <span className="text-gray-400">General Learning</span>
+            <ChevronRight size={16} className="text-gray-300" />
+            <span className="text-green-700 italic">{slug?.replace(/-/g, " ")}</span>
           </div>
-        ))}
+        </header>
+
+        {/* --- MAIN CONTENT --- */}
+        <div className="space-y-6">
+          <div className="flex items-center justify-between border-b border-dashed border-gray-200 pb-4">
+             <h2 className="text-lg font-black text-gray-800 uppercase italic tracking-tighter flex items-center gap-2">
+                <BookOpen size={20} className="text-green-700" /> 
+                Danh sách bài học 
+                <span className="text-gray-300 ml-2 font-bold not-italic text-sm">({lessons.length})</span>
+             </h2>
+          </div>
+
+          {loading ? (
+            /* --- LOADING STATE --- */
+            <div className="flex flex-col items-center justify-center py-32 gap-4">
+              <Loader2 className="animate-spin text-green-700" size={40} />
+              <p className="text-[10px] font-black uppercase text-gray-400 tracking-[0.3em]">Đang tải lộ trình...</p>
+            </div>
+          ) : lessons.length === 0 ? (
+            /* --- EMPTY STATE --- */
+            <div className="bg-white border-2 border-dashed border-gray-100 rounded-[2.5rem] py-24 text-center shadow-sm">
+              <PlayCircle size={56} strokeWidth={1} className="mx-auto text-gray-100 mb-4" />
+              <p className="text-gray-400 font-black uppercase text-xs tracking-widest">Hiện tại chưa có bài học nào</p>
+            </div>
+          ) : (
+            /* --- LIST LESSONS --- */
+            <div className="grid grid-cols-1 gap-4">
+              {lessons.map((lesson, index) => (
+                <div
+                  key={lesson.id}
+                  onClick={() => handleUnitClick(lesson.id)}
+                  className="
+                    group bg-white p-5 rounded-[1.8rem] cursor-pointer
+                    border-2 border-transparent hover:border-green-100
+                    transition-all duration-300 shadow-sm hover:shadow-xl hover:shadow-green-900/5
+                    flex items-center justify-between active:scale-[0.99]
+                  "
+                >
+                  <div className="flex items-center gap-5">
+                    {/* Số thứ tự bài học */}
+                    <div className="w-12 h-12 rounded-2xl bg-gray-50 flex flex-col items-center justify-center text-gray-300 group-hover:bg-green-100 group-hover:text-green-700 transition-all duration-300">
+                      <span className="text-[10px] font-black leading-none mb-0.5">UNIT</span>
+                      <span className="text-lg font-black leading-none">{index + 1}</span>
+                    </div>
+
+                    {/* Tiêu đề bài học */}
+                    <div className="flex flex-col text-left">
+                      <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest group-hover:text-green-700/50 transition-colors">
+                        Korea General Syllabus
+                      </span>
+                      <h3 className="font-black text-gray-800 text-lg group-hover:text-green-700 transition-colors leading-tight mt-1">
+                        {lesson.title}
+                      </h3>
+                    </div>
+                  </div>
+                  
+                  {/* Nút điều hướng bên phải */}
+                  <div className="flex items-center gap-3">
+                     <span className="hidden sm:inline text-[10px] font-black text-green-700 uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-all translate-x-4 group-hover:translate-x-0">
+                        Học ngay
+                     </span>
+                     <div className="w-10 h-10 rounded-full bg-gray-50 flex items-center justify-center group-hover:bg-green-700 group-hover:text-white transition-all duration-300">
+                        <ChevronRight size={20} />
+                     </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
