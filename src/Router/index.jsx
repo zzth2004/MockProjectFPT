@@ -71,7 +71,7 @@ import SubscriptionPlanList from "../AdminControl/Admin/Subscription/subscriptio
 import BookManagement from "../AdminControl/Admin/Book/book.ui.jsx";
 import LateDevPage from "../AdminControl/Admin/latedev.ui.jsx";
 import TeacherDashboardHome from "../AdminControl/teacherDashboard.ui.jsx";
-<<<<<<< HEAD
+
 import CreateCourse from "../AdminControl/Admin/Course/CreateCourse.jsx";
 import CourseDetailAdmin from "../AdminControl/Admin/Course/course-detail.jsx";
 import EditCourse from "../AdminControl/Admin/Course/edit-course.jsx";
@@ -81,12 +81,11 @@ import EditLesson from "../AdminControl/Admin/Course/Lesson/edit-lesson.jsx";
 import ClassDetail from "../AdminControl/Admin/Class/class-detail.jsx";
 import EditClass from "../AdminControl/Admin/Class/edit-class.jsx";
 import UserDetail from "../AdminControl/Admin/User/user-detail.jsx";
-=======
+
 
 import MainLayout from "../layout/MainLayout.jsx";
 import CourseListGrid from "../page/mainpage/Courses/general-learning/general-course.jsx";
 
->>>>>>> 9f537dae582771b5d0c1b241af8b6656259c251e
 function AnimatedRoutes() {
   const location = useLocation();
 
