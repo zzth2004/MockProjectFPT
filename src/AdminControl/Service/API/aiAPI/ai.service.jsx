@@ -96,10 +96,10 @@ const AiService = {
     return response.data.data;
   },
 
-  generateExercise: async (exerciseId, config) => {
-    const response = await axiosClient.post(`/ai/generate-exercise/${exerciseId}`, config);
-    return response.data.data;
-  },
+  // generateExercise: async (exerciseId, config) => {
+  //   const response = await axiosClient.post(`/ai/generate-exercise/${exerciseId}`, config);
+  //   return response.data.data;
+  // },
 
   generateFlashcards: async (deckId, config) => {
     const response = await axiosClient.post(`/ai/generate-flashcards/${deckId}`, config);
@@ -108,6 +108,14 @@ const AiService = {
 
   generateReading: async (lessonIds, topic) => {
     const response = await axiosClient.post('/ai/generate-reading', { lessonIds, topic });
+    return response.data.data;
+  },
+
+
+  async generateExerciseforLesson(lessonId, config) {
+    const response = await axiosClient.post(`/ai/generate-exercise/${lessonId}`, config);
+
+    console.log("Generate Exercise Response:", response.data.data);
     return response.data.data;
   }
 };

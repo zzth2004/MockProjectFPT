@@ -36,7 +36,7 @@ export default function Sidebar({ isMobile, onClose, isVip = false }) {
 
     { icon: Bot, label: "AI Support", to: "/user/ai-support", requireVip: false },
     { icon: CalendarDays, label: "Schedule", to: "/user/schedule", requireVip: false },
-    { icon: GraduationCap, label: "Active Course", to: "/user/mycourses", requireVip: false },
+    { icon: GraduationCap, label: "Active Course", to: "/user/active-courses", requireVip: false },
    
   ];
 

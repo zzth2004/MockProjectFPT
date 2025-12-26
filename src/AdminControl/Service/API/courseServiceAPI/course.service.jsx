@@ -72,6 +72,19 @@ const courseService = {
       return res.data.data; 
     });
   },
+  getCourseDetails: async (courseId) => {
+    return axiosClient.get(`/courses/${courseId}/details`).then(res => {
+      console.log("Course Details API Response:", res.data);
+      return res.data.data;
+    });
+  },
+
+  getCourseDetailforEnrollment: async (courseId) => {
+    return axiosClient.get(`/courses/${courseId}/course-detail`).then(res => {
+      console.log("Course Detail for Enrollment API Response:", res.data);
+      return res.data.data;
+    });
+  },
 
 
   /**
@@ -117,7 +130,25 @@ const courseService = {
         throw err;
       });
   },
-
+  getCoursebyStudent: async ( userId, page = 1, limit = 10, search = "") => {
+    return axiosClient
+      .get("/courses/student/my-courses", {
+        params: {
+          userId,
+          page,
+          limit,
+          search
+        },
+      })
+      .then((res) => {
+        console.log("Student Courses API Response:", res.data);
+        return res.data.data;
+      })
+      .catch((err) => {
+        console.error("Lỗi khi lấy danh sách Student Courses:", err);
+        throw err;
+      });
+  },
 };
 
 export default courseService;

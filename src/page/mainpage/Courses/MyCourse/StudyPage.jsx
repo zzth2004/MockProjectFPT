@@ -127,7 +127,7 @@ const StudyPage = () => {
         <div className="flex flex-wrap items-center gap-2 text-lg font-bold text-gray-800 ml-1">
           <span className="opacity-50 hover:opacity-100 cursor-pointer transition" onClick={() => navigate('/courses')}>Course</span>
           <ChevronRight size={18} className="text-gray-400" />
-          <span className="opacity-50 hover:opacity-100 cursor-pointer transition" onClick={() => navigate(`/courses/general-learning`)}>General Learning</span>
+          <span className="opacity-50 hover:opacity-100 cursor-pointer transition" onClick={() => navigate(-1)}>General Learning</span>
           <ChevronRight size={18} className="text-gray-400" />
           <span className="uppercase text-[#008236] truncate max-w-[200px]">{content.title}</span>
         </div>

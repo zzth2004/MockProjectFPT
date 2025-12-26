@@ -82,7 +82,23 @@ import SubscriptionPlanList from "../AdminControl/Admin/Subscription/subscriptio
 import BookManagement from "../AdminControl/Admin/Book/book.ui.jsx";
 import BlogManagement from "../AdminControl/Admin/Blog/blog.ui.jsx";
 import LateDevPage from "../AdminControl/Admin/latedev.ui.jsx";
+
 import CatchAll404 from "./CatchAll404.jsx";
+
+import TeacherDashboardHome from "../AdminControl/teacherDashboard.ui.jsx";
+import CreateCourse from "../AdminControl/Admin/Course/CreateCourse.jsx";
+import CourseDetailAdmin from "../AdminControl/Admin/Course/course-detail.jsx";
+import EditCourse from "../AdminControl/Admin/Course/edit-course.jsx";
+import CourseLessons from "../AdminControl/Admin/Course/course-lesson.jsx";
+import CreateLesson from "../AdminControl/Admin/Course/Lesson/create-lesson.jsx";
+import EditLesson from "../AdminControl/Admin/Course/Lesson/edit-lesson.jsx";
+import ClassDetail from "../AdminControl/Admin/Class/class-detail.jsx";
+import EditClass from "../AdminControl/Admin/Class/edit-class.jsx";
+import UserDetail from "../AdminControl/Admin/User/user-detail.jsx";
+
+
+import MainLayout from "../layout/MainLayout.jsx";
+import CourseListGrid from "../page/mainpage/Courses/general-learning/general-course.jsx";
 
 function AnimatedRoutes() {
   const location = useLocation();
@@ -131,21 +147,23 @@ function AnimatedRoutes() {
 
           <Route path="/courses/general-learning/:unitId" element={<PageWrapper><StudyPage /></PageWrapper>} />
           <Route path="/courses/learning/:lessonId/vocabulary" element={<PageWrapper><StudyVocab /></PageWrapper>} />
-          <Route path="/courses/general-learning/:unitId/quiz" element={<PageWrapper><QuizzPlaypage /></PageWrapper>} />
+          <Route path="/courses/learning/:lessonId/quizzes/:exerciseId" element={<PageWrapper><QuizzPlaypage /></PageWrapper>} />
 
-          <Route path="/courses/mycourses/:bookId" element={<PageWrapper><LessonDetail /></PageWrapper>} />
-          <Route path="/courses/mycourses/:bookId/homework/:homeworkId" element={<PageWrapper><HomeworkSubmission /></PageWrapper>} />
-          <Route path="/courses/mycourses/:bookId/:unitId" element={<PageWrapper><StudyPage /></PageWrapper>} />
-          <Route path="/courses/mycourses/:bookId/:unitId/vocabulary" element={<PageWrapper><StudyVocab /></PageWrapper>} />
+
+          {/* MyCourse Detail */}
+          <Route path="/courses/mycourses/:courseId" element={<PageWrapper><LessonDetail /></PageWrapper>} />
+          <Route path="/courses/mycourses/:courseId/homework/:homeworkId" element={<PageWrapper><HomeworkSubmission /></PageWrapper>} />
+          <Route path="/courses/mycourses/:courseId/:unitId" element={<PageWrapper><StudyPage /></PageWrapper>} />
+          <Route path="/courses/mycourses/:courseId/:unitId/vocabulary" element={<PageWrapper><StudyVocab /></PageWrapper>} />
 
           <Route path="/user/flashcards" element={<PageWrapper><FlashcardLibrary /></PageWrapper>} />
           <Route path="/user/flashcards/folder/:folderId" element={<PageWrapper><FolderDetail /></PageWrapper>} />
           <Route path="/user/flashcards/create-set" element={<PageWrapper><CreateSetPage /></PageWrapper>} />
           <Route path="/user/flashcards/study/:setId" element={<PageWrapper><StudyFlashcard /></PageWrapper>} />
 
-          <Route path="/user/mycourses" element={<PageWrapper><ActiveCourses /></PageWrapper>} />
-          <Route path="/user/mycourses/detail/:courseId" element={<PageWrapper><CourseDetail /></PageWrapper>} />
-          <Route path="/user/mycourses/payment/:courseId" element={<PageWrapper><PaymentPage /></PageWrapper>} />
+          <Route path="/user/active-courses" element={<PageWrapper><ActiveCourses /></PageWrapper>} />
+          <Route path="/user/active-courses/detail/:courseId" element={<PageWrapper><CourseDetail /></PageWrapper>} />
+          <Route path="/user/active-courses/payment/:courseId" element={<PageWrapper><PaymentPage /></PageWrapper>} />
 
           <Route path="/user/ai-support" element={<PageWrapper><AiSupportConsole /></PageWrapper>} />
           <Route path="/user/message" element={<PageWrapper><ChatUI /></PageWrapper>} />

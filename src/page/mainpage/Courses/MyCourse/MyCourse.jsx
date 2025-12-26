@@ -1,35 +1,49 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, Clock, User, Calendar, Loader2, BookOpen } from "lucide-react";
+import courseService from "../../../../AdminControl/Service/API/courseServiceAPI/course.service"
 
 const MyCourse = () => {
   const navigate = useNavigate();
+  
+  // --- 1. STATES ---
+  const [courses, setCourses] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  // Mock Data
-  // 👇 ĐÃ SỬA: Đổi tên biến từ 'uymyCourses' thành 'myCourses' để khớp với lệnh .map bên dưới
-  const myCourses = [
-    {
-      id: "course-1",
-      title: "Elementary Conversational Korean",
-      instructor: "Prof. Park",
-      progress: 10,
-      image: "https://img.freepik.com/free-vector/learning-concept-illustration_114360-6186.jpg" 
-    },
-    {
-      id: "course-2",
-      title: "TOPIK II Intensive Prep",
-      instructor: "Prof. Park",
-      progress: 45,
-      image: "https://img.freepik.com/free-vector/language-center-concept-illustration_114360-12902.jpg"
-    },
-    {
-      id: "course-3",
-      title: "Business Korean Level 1",
-      instructor: "Ms. Kim",
-      progress: 0,
-      image: "https://img.freepik.com/free-vector/online-learning-isometric-concept_1284-17947.jpg"
-    }
-  ];
+  // --- 2. FETCH DATA ---
+  useEffect(() => {
+    const fetchMyCourses = async () => {
+      try {
+        setLoading(true);
+        const response = await courseService.getCoursebyStudent();
+        setCourses(response.data || []);
+      } catch (err) {
+        console.error("Error fetching student courses:", err);
+        setError("Không thể tải danh sách khóa học. Vui lòng thử lại!");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchMyCourses();
+  }, []);
+
+  // --- 3. HELPER: ĐỊNH DẠNG NGÀY ---
+  const formatDate = (dateStr) => {
+    if (!dateStr) return "N/A";
+    return new Date(dateStr).toLocaleDateString("vi-VN");
+  };
+
+  // --- UI: LOADING STATE ---
+  if (loading) {
+    return (
+      <div className="w-full h-96 flex flex-col items-center justify-center">
+        <Loader2 className="w-10 h-10 text-[#377437] animate-spin mb-4" />
+        <p className="text-gray-500 font-medium italic">Đang tải danh sách khóa học của bạn...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="w-full min-h-screen font-sans pt-2 pb-8">
@@ -48,57 +62,102 @@ const MyCourse = () => {
               className="opacity-50 hover:opacity-100 cursor-pointer transition" 
               onClick={() => navigate('/courses')}
             >
-                Course
+                Khám phá
             </span>
             <ChevronRight size={18} className="text-gray-400" />
-            <span>My Course</span>
+            <span>Khóa học của tôi</span>
         </div>
       </header>
 
+      {/* --- EMPTY STATE --- */}
+      {!loading && courses.length === 0 && (
+        <div className="bg-white rounded-3xl p-20 text-center border-2 border-dashed border-gray-100">
+           <BookOpen className="mx-auto w-16 h-16 text-gray-200 mb-4" />
+           <h3 className="text-xl font-bold text-gray-800 mb-2">Bạn chưa đăng ký khóa học nào</h3>
+           <p className="text-gray-500 mb-6">Hãy khám phá các khóa học tiếng Hàn thú vị ngay nhé!</p>
+           <button 
+             onClick={() => navigate('/user/active-courses')}
+             className="px-8 py-3 bg-[#377437] text-white rounded-xl font-bold hover:bg-[#2d5e2d] transition shadow-lg shadow-green-100"
+           >
+             Xem danh sách khóa học
+           </button>
+        </div>
+      )}
+
       {/* --- COURSE LIST (GRID) --- */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {myCourses.map((course) => (
-          <div 
-            key={course.id}
-            // Logic đường dẫn đã chuẩn: /courses/mycourses/course-1
-            onClick={() => navigate(`/courses/mycourses/${course.id}`)}
-            className="group bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden cursor-pointer hover:shadow-md hover:-translate-y-1 transition-all duration-300"
-          >
-            {/* 1. Image Section */}
-            <div className="h-48 w-full bg-gray-50 overflow-hidden relative">
-               <img 
-                 src={course.image} 
-                 alt={course.title} 
-                 className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-               />
-               <div className="absolute inset-0 bg-black/0 group-hover:bg-black/5 transition-colors" />
-            </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+        {courses.map((item) => {
+          const { course, class: classInfo, progress, isExpired } = item;
+          
+          return (
+            <div 
+              key={item.enrollmentId}
+              onClick={() => !item.class?.isExpired && navigate(`/courses/mycourses/${course.id}`)}
+              className={`group bg-white rounded-[2rem] shadow-sm border border-gray-100 overflow-hidden cursor-pointer hover:shadow-xl transition-all duration-500 flex flex-col
+                ${classInfo?.isExpired ? 'opacity-75 grayscale-[0.5]' : 'hover:-translate-y-2'}`}
+            >
+              {/* 1. Image & Badge Section */}
+              <div className="h-44 w-full bg-gray-50 overflow-hidden relative">
+                 <img 
+                   src={course.thumbnail || "https://byvn.net/xKdp"} 
+                   alt={course.title} 
+                   className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
+                 />
+                 
+                 {/* Badge trạng thái */}
+                 <div className="absolute top-4 left-4 flex gap-2">
+                    <span className="px-3 py-1 bg-white/90 backdrop-blur shadow-sm rounded-full text-[10px] font-black uppercase tracking-wider text-[#377437]">
+                        {course.level}
+                    </span>
+                    {classInfo?.isExpired && (
+                      <span className="px-3 py-1 bg-rose-500 text-white shadow-sm rounded-full text-[10px] font-black uppercase tracking-wider">
+                        Đã kết thúc
+                      </span>
+                    )}
+                 </div>
+              </div>
 
-            {/* 2. Content Section */}
-            <div className="p-5 flex flex-col gap-3">
-               <h3 className="font-bold text-gray-800 text-lg leading-tight group-hover:text-[#377437] transition-colors">
-                 {course.title}
-               </h3>
-               <p className="text-sm text-gray-500 font-medium">
-                 Instructor : <span className="text-gray-700">{course.instructor}</span>
-               </p>
-               <div className="w-full h-[1px] bg-gray-100 my-1"></div>
-               <div className="flex flex-col gap-1.5">
-                  <div className="flex justify-between items-end">
-                    <span className="text-xs text-gray-400 font-semibold">Process: {course.progress}%</span>
-                  </div>
-                  <div className="w-full h-1.5 bg-gray-100 rounded-full overflow-hidden">
-                    <div 
-                      className="h-full bg-[#377437] rounded-full transition-all duration-500 ease-out"
-                      style={{ width: `${course.progress}%` }}
-                    />
-                  </div>
-               </div>
+              {/* 2. Content Section */}
+              <div className="p-6 flex flex-col flex-1">
+                 <div className="mb-4">
+                    <h3 className="font-black text-gray-800 text-xl leading-snug group-hover:text-[#377437] transition-colors line-clamp-2 min-h-[3.5rem]">
+                      {course.title}
+                    </h3>
+                    <p className="text-[11px] text-[#377437] font-bold uppercase tracking-widest mt-1 opacity-70">
+                      Lớp: {classInfo?.name}
+                    </p>
+                 </div>
+
+                 <div className="space-y-3 mb-6">
+                    <div className="flex items-center gap-2.5 text-gray-500">
+                       <User size={16} className="text-gray-400" />
+                       <span className="text-sm font-semibold">{classInfo?.teacherName || "Giáo viên ẩn danh"}</span>
+                    </div>
+                    <div className="flex items-center gap-2.5 text-gray-500">
+                       <Calendar size={16} className="text-gray-400" />
+                       <span className="text-xs font-medium">Kết thúc: {formatDate(classInfo?.endDate)}</span>
+                    </div>
+                 </div>
+
+                 {/* 3. Progress Section */}
+                 <div className="mt-auto pt-4 border-t border-gray-50">
+                    <div className="flex justify-between items-center mb-2">
+                      <span className="text-[10px] text-gray-400 font-black uppercase tracking-widest">Tiến độ học tập</span>
+                      <span className="text-sm font-black text-[#377437]">{progress}%</span>
+                    </div>
+                    <div className="w-full h-2 bg-gray-100 rounded-full overflow-hidden">
+                      <div 
+                        className={`h-full rounded-full transition-all duration-1000 ease-out shadow-[0_0_8px_rgba(55,116,55,0.3)]
+                          ${classInfo?.isExpired ? 'bg-gray-400' : 'bg-[#377437]'}`}
+                        style={{ width: `${progress}%` }}
+                      />
+                    </div>
+                 </div>
+              </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
-
     </div>
   );
 };

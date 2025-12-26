@@ -2,8 +2,16 @@ import axiosClient from "../../../../api/axiosAPI";
 
 const enrollmentService = {
   // 1. Đăng ký ghi danh (Học viên hoặc Admin thực hiện)
-  enroll: (userId, courseId, classId = null) => {
-    return axiosClient.post("/user-enrollments/enroll", { userId, courseId, classId });
+  enroll: ({ userId, courseId, classId = null, orderId = null }) => {
+    return axiosClient.post("/user-enrollments/enroll", { 
+      userId, 
+      courseId, 
+      classId, 
+      orderId // Gửi thêm orderId lên
+    }).then(res => {
+      console.log("Enrollment response:", res.data);
+      return res.data
+    });
   },
 
   // 2. Lấy danh sách khóa học đã tham gia của một học viên

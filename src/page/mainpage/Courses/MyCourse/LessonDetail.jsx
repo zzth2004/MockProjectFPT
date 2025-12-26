@@ -1,60 +1,53 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { 
-  ChevronLeft, 
-  Video, 
-  BookOpen, 
-  ClipboardList, 
-  Send,
-  MessageCircle, 
-  Bell           
+  ChevronLeft, Video, BookOpen, ClipboardList, 
+  Send, MessageCircle, Bell, Loader2, ExternalLink 
 } from "lucide-react";
-
-// 👇 ĐƯỜNG DẪN QUAN TRỌNG: Hãy đảm bảo bạn đã tạo file ChatWidget ở đúng chỗ
-// Nếu file ChatWidget nằm ở src/components/ChatWidget.jsx, thì import như sau:
 import ChatWidget from "../../../../components/ChatWidget.jsx"; 
 
+import courseService from "../../../../AdminControl/Service/API/courseServiceAPI/course.service.jsx"; 
+
 const LessonDetail = () => {
-  const { bookId } = useParams(); 
+  const { courseId } = useParams(); 
   const navigate = useNavigate();
 
-  // State để bật/tắt khung chat
+  // --- STATES ---
+  const [courseData, setCourseData] = useState(null);
+  const [loading, setLoading] = useState(true);
   const [showChat, setShowChat] = useState(false);
 
-  // Mock Data
-  const courseData = {
-    title: "Elementary Conversational Korean",
-    instructor: "Mr. Kim",
-    onlineClass: {
-      platform: "Zoom/Meet",
-      schedule: "Starts at 7:00 PM - Mon, Wed, Fri",
-      link: "#"
-    },
-    materials: {
-      vocab: "150 words",
-      grammar: "10 structures",
-      classCode: "XHS23"
-    },
-    lessons: [
-      { id: 1, title: "Lesson 1: Hangeul Alphabet", status: "COMPLETED" },
-      { id: 2, title: "Lesson 2: Syllable Structure and Sound Change", status: "COMPLETED" },
-      { id: 3, title: "Lesson 3: Greetings and Self-introduction", status: "IN PROGRESS" },
-    ],
-    homework: [
-      { id: 1, title: "Write a paragraph about family", status: "SUBMITTED" },
-      { id: 2, title: "Listening practice: Unit 3 Dialogue", status: "NOT DONE" },
-    ]
-  };
+  // --- FETCH DATA ---
+  useEffect(() => {
+    const fetchDetail = async () => {
+      try {
+        setLoading(true);
+        // Gọi hàm API bạn cung cấp
+        const data = await courseService.getCourseDetailforEnrollment(courseId);
+        setCourseData(data);
+      } catch (error) {
+        console.error("Error fetching course detail:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchDetail();
+  }, [courseId]);
 
-  const getStatusColor = (status) => {
-    switch (status) {
-      case "COMPLETED": return "text-[#377437] font-bold"; 
-      case "IN PROGRESS": return "text-orange-500 font-bold";
-      case "SUBMITTED": return "text-[#377437] font-bold";
-      case "NOT DONE": return "text-red-500 font-bold";
-      default: return "text-gray-500";
-    }
-  };
+  // --- HELPERS ---
+  const getEnrolledClass = () => courseData?.classes?.[0] || null;
+
+  if (loading) {
+    return (
+      <div className="flex h-screen w-full items-center justify-center bg-[#F5F7FA]">
+        <Loader2 className="animate-spin text-[#377437]" size={40} />
+      </div>
+    );
+  }
+
+  if (!courseData) return <div className="p-10 text-center">Không tìm thấy thông tin khóa học.</div>;
+
+  const currentClass = getEnrolledClass();
 
   return (
     <div className="w-full min-h-screen font-sans pt-2 pb-8 bg-[#F5F7FA] px-4 md:px-0 relative">
@@ -68,7 +61,6 @@ const LessonDetail = () => {
            <ChevronLeft size={20} />
          </button>
          
-         {/* Icons bên phải */}
          <div className="flex gap-3 ml-auto">
             <button className="p-2.5 rounded-full bg-white shadow-sm hover:bg-gray-50 text-gray-600">
                 <MessageCircle size={20} />
@@ -81,127 +73,144 @@ const LessonDetail = () => {
       </div>
 
       {/* --- COURSE TITLE --- */}
-      <h1 className="text-2xl md:text-3xl font-extrabold text-gray-900 mb-6">
+      <h1 className="text-2xl md:text-3xl font-extrabold text-gray-900 mb-2">
         {courseData.title}
       </h1>
+      <p className="text-gray-500 mb-6 text-sm italic">{courseData.description}</p>
 
-      {/* --- MAIN LAYOUT (GRID) --- */}
+      {/* --- MAIN LAYOUT --- */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         
         {/* === CỘT TRÁI (2/3) === */}
         <div className="lg:col-span-2 flex flex-col gap-6">
           
-          {/* Online Class */}
+          {/* Online Class Section */}
           <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-             <div className="flex flex-col md:flex-row items-center justify-between gap-4 border border-gray-200 rounded-xl p-4">
+             <div className="flex flex-col md:flex-row items-center justify-between gap-4 border border-green-100 bg-green-50/30 rounded-xl p-4">
                  <div className="flex items-center gap-3 w-full">
-                    <Video size={24} className="text-gray-800"/>
+                    <div className="p-3 bg-[#377437] rounded-lg text-white shadow-md">
+                        <Video size={24}/>
+                    </div>
                     <div>
-                       <h3 className="font-bold text-gray-900 text-lg">Online class (Zoom/Meet)</h3>
-                       <p className="text-xs text-gray-500 font-medium">{courseData.onlineClass.schedule}</p>
+                       <h3 className="font-bold text-gray-900 text-lg">Google Meet Online Class</h3>
+                       <p className="text-sm text-gray-600 font-medium">
+                          {currentClass?.scheduleDescription || "Chưa cập nhật lịch học"}
+                       </p>
                     </div>
                  </div>
-                 <button className="bg-[#377437] hover:bg-green-800 text-white text-sm font-bold py-2 px-6 rounded-lg transition-colors whitespace-nowrap">
-                    Join Class Now
+                 <button 
+                    disabled={!currentClass?.googleMeetLink}
+                    onClick={() => window.open(currentClass?.googleMeetLink, '_blank')}
+                    className="bg-[#377437] hover:bg-green-800 text-white text-sm font-bold py-3 px-8 rounded-xl transition-all shadow-lg shadow-green-900/20 whitespace-nowrap disabled:bg-gray-300"
+                 >
+                    {currentClass?.googleMeetLink ? "Vào học ngay" : "Chờ Link từ GV"}
                  </button>
              </div>
           </div>
 
-          {/* Lesson History */}
+          {/* Lesson List (Map từ lessons API) */}
           <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
              <div className="flex items-center gap-2 mb-4">
                 <BookOpen size={20} className="text-[#377437]"/>
-                <h3 className="font-bold text-lg text-gray-900">Lesson History</h3>
+                <h3 className="font-bold text-lg text-gray-900">Nội dung bài học ({courseData.lessons?.length})</h3>
              </div>
-             <div className="flex flex-col">
-                {courseData.lessons.map((lesson, index) => (
-                   <div key={lesson.id} className={`flex items-center justify-between py-4 px-2 ${index !== courseData.lessons.length - 1 ? 'border-b border-gray-50' : ''}`}>
-                      <span className="font-medium text-gray-700 bg-gray-100 px-4 py-2 rounded-lg w-full mr-4">{lesson.title}</span>
-                      <span className={`text-xs uppercase whitespace-nowrap ${getStatusColor(lesson.status)}`}>{lesson.status}</span>
-                   </div>
-                ))}
-             </div>
-          </div>
-
-          {/* Homework */}
-          {/* Homework Section */}
-          <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-             <div className="flex items-center gap-2 mb-4">
-                <ClipboardList size={20} className="text-[#377437]"/>
-                <h3 className="font-bold text-lg text-gray-900">Homework</h3>
-             </div>
-             <div className="flex flex-col">
-                {courseData.homework.map((hw, index) => (
+             <div className="flex flex-col gap-3">
+                {courseData.lessons?.map((lesson, index) => (
                    <div 
-                     key={hw.id} 
-                     // 👇 THÊM SỰ KIỆN CLICK ĐỂ CHUYỂN TRANG
-                     onClick={() => navigate(`/courses/mycourses/${bookId}/homework/${hw.id}`)}
-                     
-                     className={`
-                        flex items-center justify-between py-4 px-2 cursor-pointer hover:bg-gray-50 transition-colors rounded-lg
-                        ${index !== courseData.homework.length - 1 ? 'border-b border-gray-50' : ''}
-                     `}
+                    key={lesson.id} 
+                    className="group flex items-center justify-between p-4 bg-gray-50 hover:bg-green-50 rounded-xl border border-gray-100 transition-all cursor-pointer"
+                    onClick={() => navigate(`/learning/${courseId}/lesson/${lesson.id}`)}
                    >
-                      <span className="font-medium text-gray-700 bg-gray-100 px-4 py-2 rounded-lg w-full mr-4">
-                        {hw.title}
-                      </span>
-                      <span className={`text-xs uppercase whitespace-nowrap ${getStatusColor(hw.status)}`}>
-                        {hw.status}
-                      </span>
+                      <div className="flex items-center gap-4">
+                        <span className="w-8 h-8 flex items-center justify-center bg-white rounded-full text-xs font-bold text-[#377437] border border-green-100">
+                            {index + 1}
+                        </span>
+                        <span className="font-semibold text-gray-700">{lesson.title}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        {lesson.isPreview && <span className="text-[10px] bg-blue-100 text-blue-600 px-2 py-0.5 rounded font-bold uppercase">Xem trước</span>}
+                        <ChevronLeft size={16} className="rotate-180 text-gray-400 group-hover:text-[#377437]" />
+                      </div>
                    </div>
                 ))}
              </div>
           </div>
-
         </div>
 
         {/* === CỘT PHẢI (1/3) === */}
         <div className="flex flex-col gap-6">
            
-           {/* Class Materials */}
-           <div className="bg-[#E9F5EB] rounded-2xl p-6">
+           {/* Class Materials & Stats */}
+           <div className="bg-[#E9F5EB] rounded-2xl p-6 border border-green-200">
               <div className="flex items-center gap-2 mb-4">
-                 <BookOpen size={20} className="text-gray-900"/>
-                 <h3 className="font-bold text-lg text-gray-900">Class Materials</h3>
+                 <ClipboardList size={20} className="text-gray-900"/>
+                 <h3 className="font-bold text-lg text-gray-900">Tài nguyên khóa học</h3>
               </div>
               <div className="space-y-3 mb-6">
-                 <div className="flex items-center bg-white px-4 py-2 rounded-lg border border-green-200 shadow-sm">
-                    <span className="text-sm font-bold text-gray-900 mr-2">Vocabulary:</span>
-                    <span className="text-sm text-gray-600">{courseData.materials.vocab}</span>
+                 <div className="flex justify-between items-center bg-white px-4 py-3 rounded-xl border border-green-100 shadow-sm">
+                    <span className="text-sm text-gray-600 font-medium">Từ vựng:</span>
+                    <span className="text-sm font-bold text-[#377437]">{courseData.stats?.totalVocab} từ</span>
                  </div>
-                 <div className="flex items-center bg-white px-4 py-2 rounded-lg border border-green-200 shadow-sm">
-                    <span className="text-sm font-bold text-gray-900 mr-2">Grammar:</span>
-                    <span className="text-sm text-gray-600">{courseData.materials.grammar}</span>
+                 <div className="flex justify-between items-center bg-white px-4 py-3 rounded-xl border border-green-100 shadow-sm">
+                    <span className="text-sm text-gray-600 font-medium">Ngữ pháp:</span>
+                    <span className="text-sm font-bold text-[#377437]">{courseData.stats?.totalGrammar} mẫu</span>
+                 </div>
+                 <div className="flex justify-between items-center bg-white px-4 py-3 rounded-xl border border-green-100 shadow-sm">
+                    <span className="text-sm text-gray-600 font-medium">Bài tập:</span>
+                    <span className="text-sm font-bold text-[#377437]">{courseData.stats?.totalExercises} bài</span>
                  </div>
               </div>
+
               <div className="border-t border-green-200 pt-4">
-                 <h4 className="font-bold text-gray-900 text-sm mb-1">External Assignment System</h4>
-                 <p className="text-xs text-gray-600 mb-3">Use class code <span className="font-bold">{courseData.materials.classCode}</span> to join Classroom.</p>
-                 <button className="w-full bg-[#377437] hover:bg-green-800 text-white font-bold py-3 rounded-xl text-sm shadow-sm transition-colors">Join Google Classroom</button>
+                 <h4 className="font-bold text-gray-900 text-sm mb-1">Google Classroom</h4>
+                 <p className="text-xs text-gray-600 mb-4 leading-relaxed">
+                    Sử dụng Classroom để nộp bài tập và thảo luận cùng lớp học.
+                 </p>
+                 <button 
+                    onClick={() => window.open(currentClass?.googleClassroomLink, '_blank')}
+                    className="w-full bg-[#377437] hover:bg-green-800 text-white font-bold py-3 rounded-xl text-sm flex items-center justify-center gap-2 transition-all shadow-md"
+                 >
+                    Mở Google Classroom <ExternalLink size={14} />
+                 </button>
               </div>
            </div>
 
-           {/* Instructor */}
-           <div className="bg-[#377437] rounded-2xl p-6 text-white shadow-lg">
-              <h3 className="text-xs font-bold opacity-80 uppercase tracking-wider mb-2">INSTRUCTOR</h3>
-              <div className="text-xl font-bold mb-6">{courseData.instructor}</div>
+           {/* Instructor Card */}
+           <div className="bg-[#377437] rounded-2xl p-6 text-white shadow-xl relative overflow-hidden">
+              <div className="absolute -right-4 -top-4 w-24 h-24 bg-white/10 rounded-full blur-2xl"></div>
+              
+              <h3 className="text-[10px] font-bold opacity-70 uppercase tracking-[2px] mb-4">GIẢNG VIÊN</h3>
+              <div className="flex items-center gap-4 mb-6">
+                <img 
+                    src={courseData.createdBy?.avatar || "https://ui-avatars.com/api/?name=Teacher"} 
+                    className="w-14 h-14 rounded-full border-2 border-white/30 object-cover"
+                    alt="avatar"
+                />
+                <div>
+                    <div className="text-lg font-bold leading-tight">{courseData.createdBy?.fullName}</div>
+                    <div className="text-xs opacity-70">{courseData.createdBy?.email}</div>
+                </div>
+              </div>
               
               <button 
-                // Sự kiện: Bật/Tắt Chat Widget
                 onClick={() => setShowChat(!showChat)}
-                className="w-full bg-[#E9F5EB] hover:bg-white text-[#377437] font-bold py-3 rounded-xl flex items-center justify-center gap-2 transition-colors"
+                className="w-full bg-white text-[#377437] hover:bg-green-50 font-bold py-3 rounded-xl flex items-center justify-center gap-2 transition-all shadow-lg"
               >
                  <Send size={18} />
-                 Contact the Instructor
+                 Liên hệ ngay
               </button>
            </div>
         </div>
 
-      </div> {/* Kết thúc Grid Layout */}
+      </div>
 
       {/* --- CHAT WIDGET POPUP --- */}
       {showChat && (
-        <ChatWidget onClose={() => setShowChat(false)} />
+        <ChatWidget 
+            onClose={() => setShowChat(false)} 
+            teacherId={courseData.createdBy?.id}
+            courseName={courseData.title}
+        />
       )}
 
     </div>

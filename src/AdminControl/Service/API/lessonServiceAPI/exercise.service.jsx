@@ -26,6 +26,17 @@ const exerciseService = {
     }).then(res => res.data.data);
   },
 
+
+  getByLessonAi: async (lessonId, page = 1, limit = 100) => {
+    return axiosClient.get(`/materials/lesson/${lessonId}/exercises/ai-one`).then(res => res.data.data);
+  },
+  getByLessonAiAll: async (lessonId, page = 1, limit = 100) => {
+    return axiosClient.get(`/materials/lesson/${lessonId}/exercises/ai-all`, {
+      params: { page, limit }
+    }).then(res => res.data.data);
+  },
+
+  
   // 2. Lấy chi tiết bài tập (Kèm Questions & Options)
   getDetail: async (id) => {
     return axiosClient.get(`/materials/exercise/${id}/detail`).then(res => res.data.data);
@@ -54,7 +65,7 @@ const exerciseService = {
    * Nộp bài tập để chấm điểm
    * @param {Object} data - { exerciseId: number, answers: [{ questionId, selectedOptionId }] }
    */
-  submitExercise: async (data) => {
+  submitExercise: async ( data) => {
     console.log(`🚀 [ExerciseService] Submitting exercise ID: ${data.exerciseId}`);
     return axiosClient.post("/materials/exercise/submit", data)
       .then(res => res.data.data);
