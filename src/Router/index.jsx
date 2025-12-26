@@ -85,20 +85,6 @@ import LateDevPage from "../AdminControl/Admin/latedev.ui.jsx";
 
 import CatchAll404 from "./CatchAll404.jsx";
 
-import TeacherDashboardHome from "../AdminControl/teacherDashboard.ui.jsx";
-import CreateCourse from "../AdminControl/Admin/Course/CreateCourse.jsx";
-import CourseDetailAdmin from "../AdminControl/Admin/Course/course-detail.jsx";
-import EditCourse from "../AdminControl/Admin/Course/edit-course.jsx";
-import CourseLessons from "../AdminControl/Admin/Course/course-lesson.jsx";
-import CreateLesson from "../AdminControl/Admin/Course/Lesson/create-lesson.jsx";
-import EditLesson from "../AdminControl/Admin/Course/Lesson/edit-lesson.jsx";
-import ClassDetail from "../AdminControl/Admin/Class/class-detail.jsx";
-import EditClass from "../AdminControl/Admin/Class/edit-class.jsx";
-import UserDetail from "../AdminControl/Admin/User/user-detail.jsx";
-
-
-import MainLayout from "../layout/MainLayout.jsx";
-import CourseListGrid from "../page/mainpage/Courses/general-learning/general-course.jsx";
 
 function AnimatedRoutes() {
   const location = useLocation();
