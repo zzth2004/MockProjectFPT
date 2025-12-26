@@ -3,6 +3,7 @@ import {
   Users, PlusCircle, GraduationCap, ClipboardCheck,
   Clock, CalendarDays, Activity, Loader2
 } from "lucide-react";
+import { useNavigate } from "react-router-dom"; // 1. Import useNavigate
 
 // UI Components
 import { KLCard, KLStatsCard } from "../AdminControl/Component/Card";
@@ -18,9 +19,9 @@ import teacherService from "../AdminControl/Service/API/userServiceAPI/teacher.s
 // Charts
 import { KLAreaChart, KLDonutChart } from "../AdminControl/Chart/chart";
 
-// --- DỮ LIỆU MẪU (MOCK DATA) - Sử dụng số liệu thực tế để dễ quan sát ---
+// --- DỮ LIỆU MẪU (MOCK DATA) ---
 const MOCK_STATS = {
-  totalStudents: 12, // Số mẫu để test giao diện
+  totalStudents: 12, 
   studentTrend: "+2 tháng này",
   totalCourses: 1,
   pendingAssignments: 5,
@@ -42,7 +43,9 @@ const MOCK_STUDENTS = [
 ];
 
 export default function TeacherDashboardHome() {
+  const navigate = useNavigate(); // 2. Khai báo hook navigate
   const timeData = getTimeData();
+  const basePath = "/teacher"; // Hardcode vì đây là trang Teacher Dashboard
 
   // API Calls
   const { data: overview, loading: ovLoading, call: fetchOv } = useCallApiHandler(
@@ -59,22 +62,18 @@ export default function TeacherDashboardHome() {
     fetchOv(); fetchStats(); fetchStudents();
   }, [fetchOv, fetchStats, fetchStudents]);
 
-  // --- LOGIC XỬ LÝ DỮ LIỆU DỰ PHÒNG (Sử dụng Optional Chaining cực mạnh) ---
+  // --- LOGIC XỬ LÝ DỮ LIỆU ---
   const displayStats = useMemo(() => {
-    const s = stats || {}; // Nếu stats null/undefined thì gán object rỗng
-    
+    const s = stats || {}; 
     return {
       totalStudents: s.totalStudents ?? MOCK_STATS.totalStudents,
       studentTrend: s.studentTrend ?? MOCK_STATS.studentTrend,
       totalCourses: s.totalCourses ?? MOCK_STATS.totalCourses,
       pendingAssignments: s.pendingAssignments ?? MOCK_STATS.pendingAssignments,
       attendanceRate: s.attendanceRate ?? MOCK_STATS.attendanceRate,
-      
-      // Kiểm tra mảng: Phải là mảng và phải có phần tử, nếu không lấy MOCK
       performanceHistory: (Array.isArray(s.performanceHistory) && s.performanceHistory.length > 0) 
         ? s.performanceHistory 
         : MOCK_STATS.performanceHistory,
-        
       submissionStats: (Array.isArray(s.submissionStats) && s.submissionStats.length > 0) 
         ? s.submissionStats 
         : MOCK_STATS.submissionStats
@@ -127,8 +126,23 @@ export default function TeacherDashboardHome() {
             </div>
           </div>
           <div className="flex gap-2">
-            <KLButton variant="outline" icon={CalendarDays} className="text-[10px] font-black border-gray-100">Lịch dạy</KLButton>
-            <KLButton icon={PlusCircle} className="bg-[#377437] text-[10px] font-black">Giao bài tập</KLButton>
+            {/* 3. NÚT LỊCH DẠY HOẠT ĐỘNG */}
+            <KLButton 
+                variant="outline" 
+                icon={CalendarDays} 
+                className="text-[10px] font-black border-gray-100 hover:bg-green-50 hover:text-[#377437]"
+                onClick={() => navigate(`${basePath}/scheduleteacher`)}
+            >
+                Lịch dạy
+            </KLButton>
+            
+            <KLButton 
+                icon={PlusCircle} 
+                className="bg-[#377437] text-[10px] font-black hover:bg-[#2a522a]"
+                onClick={() => alert("Chức năng giao bài tập đang phát triển!")}
+            >
+                Giao bài tập
+            </KLButton>
           </div>
         </div>
       </KLCard>
@@ -161,7 +175,7 @@ export default function TeacherDashboardHome() {
         />
       </div>
 
-      {/* 3. CHARTS - Đã an toàn tuyệt đối */}
+      {/* 3. CHARTS */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <KLCard className="lg:col-span-2" title="Tiến độ học tập">
           <KLAreaChart
@@ -214,6 +228,10 @@ export default function TeacherDashboardHome() {
           ]}
           data={displayStudents}
           showAction={true}
+          // Thêm handler cho action xem chi tiết học viên nếu cần
+          onAction={(type, row) => {
+             if (type === 'view') navigate(`/teacher/users/${row.id}`);
+          }}
         />
       </KLCard>
     </div>

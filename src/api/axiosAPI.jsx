@@ -2,9 +2,13 @@ import axios from "axios";
 
 
 const axiosClient = axios.create({
+<<<<<<< Updated upstream
 
   baseURL: "http://localhost:3000/api",
 
+=======
+  baseURL: "https://14e65a37941d.ngrok-free.app/api",
+>>>>>>> Stashed changes
   headers: {
     "Content-Type": "application/json",
 
@@ -12,7 +16,7 @@ const axiosClient = axios.create({
     // "ngrok-skip-browser-warning": "69420",
 
   },
-  timeout: 10000, 
+  timeout: 100000, 
 });
 
 

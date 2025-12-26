@@ -115,7 +115,8 @@ export default function CreateClass() {
       await courseClassService.createClass(payload);
 
       alert("✅ Tạo lớp học thành công!");
-      navigate("/admin/classes");
+      const basePath = user?.role === "teacher" ? "/teacher" : "/admin";
+navigate(`${basePath}/classes`);
     } catch (error) {
       console.error("Lỗi API:", error);
       const msg =

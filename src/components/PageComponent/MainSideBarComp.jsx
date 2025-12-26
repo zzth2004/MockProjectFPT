@@ -5,7 +5,7 @@ import {
   ChevronDown, ChevronRight, ShoppingCart, FileText, 
   Layers, Bot, Trophy, Rss, Book as BookIcon, 
   MessageSquare, ShieldCheck, ListChecks, CreditCard, Tag, Hammer,
-  Calendar // 1️⃣ IMPORT ICON CALENDAR
+  Calendar
 } from "lucide-react";
 import { useAuth } from '../../context/authContext'
 
@@ -47,11 +47,12 @@ export default function Sidebar({ isMobile, onClose, onLogoutClick }) {
             { label: isTeacher ? "Danh sách học sinh" : "Danh sách User", to: `${basePath}/users` },
           ]
         },
-         { 
+        // Lịch dạy (Chỉ cho Teacher)
+        { 
             icon: Calendar, 
             label: "Lịch dạy", 
-            to: "/teacher/scheduleteacher", // Đường dẫn trỏ đến trang Schedule
-            isHidden: !isTeacher // 👈 QUAN TRỌNG: Chỉ hiện nếu là Teacher
+            to: "/teacher/schedule", 
+            isHidden: !isTeacher 
         },
       ]
     },
@@ -66,11 +67,6 @@ export default function Sidebar({ isMobile, onClose, onLogoutClick }) {
             { label: "Ghi danh (Enrollment)", to: `${basePath}/enrollments`, isHidden: isTeacher },
           ]
         },
-        
-        // 🟢 2️⃣ THÊM MỤC LỊCH DẠY VÀO ĐÂY
-        // Nó sẽ tự động trỏ tới /teacher/schedule hoặc /admin/schedule tùy role
-     
-
         {
           icon: FileText, label: "Nội dung học tập",
           children: [
@@ -86,7 +82,14 @@ export default function Sidebar({ isMobile, onClose, onLogoutClick }) {
             { label: "Kết quả làm bài", to: `${basePath}/exercise-attempts` },
           ]
         },
-        { icon: Layers, label: "Flashcards", to: `${basePath}/flashcards`, isHidden: false },
+        // 🟢 CẬP NHẬT: Flashcards chuyển sang Late Dev
+        { 
+            icon: Layers, 
+            label: "Flashcards", 
+            to: `${basePath}/flashcards`, 
+            isHidden: false, 
+            isLateDev: true // 👈 Đã thêm flag này
+        },
       ]
     },
     {
@@ -121,7 +124,14 @@ export default function Sidebar({ isMobile, onClose, onLogoutClick }) {
             { label: "Huy hiệu", to: `${basePath}/badges` },
           ]
         },
-        { icon: Rss, label: "Blog & Tin tức", to: `${basePath}/blog`, isHidden: false },
+        // 🟢 CẬP NHẬT: Blog chuyển sang Late Dev
+        { 
+            icon: Rss, 
+            label: "Blog & Tin tức", 
+            to: `${basePath}/blog`, 
+            isHidden: false, 
+            isLateDev: true // 👈 Đã thêm flag này
+        },
         { icon: BookIcon, label: "Thư viện sách", to: `${basePath}/books`, isHidden: isTeacher },
       ]
     },
@@ -136,13 +146,13 @@ export default function Sidebar({ isMobile, onClose, onLogoutClick }) {
     }
   ];
 
-  // ... (Phần render NavItem và return giữ nguyên không đổi) ...
-  
+  // Component phụ NavItem
   const NavItem = ({ item, depth = 0 }) => {
     if (item.isHidden) return null;
     const hasChildren = item.children && item.children.length > 0;
     const isOpen = openMenus[item.label];
     
+    // Logic: Nếu có isLateDev thì override link thành /late-dev
     const finalTo = item.isLateDev ? `${basePath}/late-dev` : item.to;
     
     const isActive = location.pathname === finalTo || (hasChildren && item.children.some(child => location.pathname === (child.isLateDev ? `${basePath}/late-dev` : child.to)));
