@@ -1,8 +1,8 @@
 import React, { useEffect, useCallback, useState, useMemo } from "react";
-import { 
-  Search, Plus, Edit3, Trash2, Video, FileText, 
-  Clock, ChevronLeft, ChevronRight,
-  Layers, Database, BookOpen, Layout, Filter, X
+import {
+    Search, Plus, Edit3, Trash2, Video, FileText,
+    Clock, ChevronLeft, ChevronRight, ChevronUp, ChevronDown,
+    Layers, Database, BookOpen, Layout, Filter, X
 } from "lucide-react";
 import { useNavigate } from "react-router-dom"; // 1. Import useNavigate
 
@@ -29,11 +29,20 @@ export default function LessonList({ courseId, courseTitle }) {
     const [searchTerm, setSearchTerm] = useState("");
     const [showFilters, setShowFilters] = useState(false);
     const [filters, setFilters] = useState({
-        isFree: "", 
+        isFree: "",
     });
 
     const [currentPage, setCurrentPage] = useState(1);
     const pageSize = 5;
+
+    const [expandedCourses, setExpandedCourses] = useState({});
+
+    const toggleCourseExpand = (cId) => {
+        setExpandedCourses(prev => ({
+            ...prev,
+            [cId]: !prev[cId]
+        }));
+    };
 
     // --- 2. FETCH DATA ---
     const fetchLessonsFn = useCallback(() => {
@@ -51,36 +60,99 @@ export default function LessonList({ courseId, courseTitle }) {
 
     // --- 3. LOGIC LỌC DỮ LIỆU ---
     const rawData = useMemo(() => {
-        if (Array.isArray(lessonsResponse)) return lessonsResponse;
-        return lessonsResponse?.data || [];
+        const list = Array.isArray(lessonsResponse) ? lessonsResponse : (lessonsResponse?.data || []);
+        return [...list].sort((a, b) => {
+            const courseA = a.courseId || a.course?.id || 0;
+            const courseB = b.courseId || b.course?.id || 0;
+            if (courseA !== courseB) {
+                return courseA - courseB;
+            }
+            return (a.orderIndex || 0) - (b.orderIndex || 0);
+        });
     }, [lessonsResponse]);
 
     const filteredDataset = useMemo(() => {
         return rawData.filter(lesson => {
+            if (isTeacher && user?.id) {
+                const creatorId = lesson.course?.createdById || lesson.course?.createdBy?.id;
+                if (lesson.courseId && Number(creatorId) !== Number(user.id)) {
+                    return false;
+                }
+            }
             const searchMatch = !searchTerm ||
                 lesson.title?.toLowerCase().includes(searchTerm.toLowerCase());
             const statusMatch = filters.isFree === "" ||
                 String(lesson.isFree) === filters.isFree;
             return searchMatch && statusMatch;
         });
-    }, [rawData, searchTerm, filters]);
+    }, [rawData, searchTerm, filters, isTeacher, user]);
+
+    // Gom nhóm bài giảng theo khóa học
+    const groupedData = useMemo(() => {
+        if (courseId) return [];
+        const groups = {};
+        filteredDataset.forEach(lesson => {
+            const cId = lesson.courseId || lesson.course?.id || "unassigned";
+            const cTitle = lesson.course?.title || "Bài học tự do (Chưa gán khóa)";
+            if (!groups[cId]) {
+                groups[cId] = {
+                    id: cId,
+                    title: cTitle,
+                    lessons: []
+                };
+            }
+            groups[cId].lessons.push(lesson);
+        });
+        return Object.values(groups);
+    }, [filteredDataset, courseId]);
+
+    // Tự động mở rộng các nhóm bài học khi load hoặc thay đổi dữ liệu
+    useEffect(() => {
+        if (groupedData.length > 0) {
+            setExpandedCourses(prev => {
+                const next = { ...prev };
+                groupedData.forEach(group => {
+                    if (next[group.id] === undefined) {
+                        next[group.id] = true;
+                    }
+                });
+                return next;
+            });
+        }
+    }, [groupedData]);
 
     // --- 4. LOGIC PHÂN TRANG ---
-    const paginatedData = useMemo(() => {
+    const paginatedLessons = useMemo(() => {
+        if (!courseId) return [];
         const startIndex = (currentPage - 1) * pageSize;
         return filteredDataset.slice(startIndex, startIndex + pageSize);
-    }, [filteredDataset, currentPage, pageSize]);
+    }, [filteredDataset, currentPage, pageSize, courseId]);
 
-    const totalPages = Math.ceil(filteredDataset.length / pageSize);
+    const paginatedGroups = useMemo(() => {
+        if (courseId) return [];
+        const startIndex = (currentPage - 1) * pageSize;
+        return groupedData.slice(startIndex, startIndex + pageSize);
+    }, [groupedData, currentPage, pageSize, courseId]);
+
+    const totalPages = useMemo(() => {
+        const totalItems = courseId ? filteredDataset.length : groupedData.length;
+        return Math.ceil(totalItems / pageSize);
+    }, [filteredDataset, groupedData, pageSize, courseId]);
+
+    useEffect(() => {
+        if (currentPage > totalPages && totalPages > 0) {
+            setCurrentPage(1);
+        }
+    }, [totalPages, currentPage]);
 
     // --- 5. HANDLERS ---
-    
+
     // ✅ 4. Cập nhật navigate dùng basePath động
     const handleCreateNavigate = () => {
-        navigate(`${basePath}/lessons/create`, { 
-            state: { 
-                preSelectedCourseId: courseId, 
-                courseTitle: courseTitle       
+        navigate(`${basePath}/lessons/create`, {
+            state: {
+                preSelectedCourseId: courseId,
+                courseTitle: courseTitle
             }
         });
     };
@@ -109,11 +181,11 @@ export default function LessonList({ courseId, courseTitle }) {
     // Cột hiển thị
     const columns = [
         {
-            key: "orderIndex",
-            title: "STT",
-            render: (val) => (
+            key: "id",
+            title: "STT (ID)",
+            render: (val, row) => (
                 <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-gray-50 border border-gray-100 font-black text-gray-400 text-[11px]">
-                    {val < 10 ? `0${val}` : val}
+                    {row.id}
                 </div>
             )
         },
@@ -122,7 +194,7 @@ export default function LessonList({ courseId, courseTitle }) {
             title: "Thông tin bài giảng",
             render: (val, row) => (
                 <div className="flex flex-col text-left py-1">
-                    <span 
+                    <span
                         className="text-[14px] font-black text-gray-900 leading-tight mb-1 cursor-pointer hover:text-[#2d5a2d] transition-colors"
                         onClick={() => handleAction('edit', row)}
                     >
@@ -138,12 +210,7 @@ export default function LessonList({ courseId, courseTitle }) {
                                 <FileText size={10} /> Document
                             </span>
                         )}
-                        {(!courseId || !courseTitle) && row.course && (
-                            <div className="flex items-center gap-1 border-l pl-2 border-gray-100">
-                                <BookOpen size={10} className="text-gray-300" />
-                                <span className="text-[9px] text-gray-400 font-bold uppercase">Khóa: {row.course.title}</span>
-                            </div>
-                        )}
+                        {/* Đã gom nhóm theo khóa học nên không cần hiển thị badge khóa học ở đây */}
                     </div>
                 </div>
             )
@@ -194,10 +261,10 @@ export default function LessonList({ courseId, courseTitle }) {
                 </div>
                 <div className="flex gap-2">
                     <KLButton variant="outline" icon={Database} onClick={() => lessonService.seedData().then(() => refreshLessons())}>Seed JSON</KLButton>
-                    
-                    <KLButton 
-                        icon={Plus} 
-                        className="bg-[#2d5a2d]" 
+
+                    <KLButton
+                        icon={Plus}
+                        className="bg-[#2d5a2d]"
                         onClick={handleCreateNavigate}
                     >
                         Thêm bài học
@@ -252,13 +319,66 @@ export default function LessonList({ courseId, courseTitle }) {
                     <div className="py-24 text-center font-black text-gray-200 uppercase tracking-widest animate-pulse">Đang nạp bài giảng...</div>
                 ) : (
                     <>
-                        <KLTable
-                            columns={columns}
-                            data={paginatedData}
-                            showAction={true}
-                            onAction={handleAction}
-                            hiddenActions={['reset', 'lock', 'view']}
-                        />
+                        {courseId ? (
+                            <KLTable
+                                columns={columns}
+                                data={paginatedLessons}
+                                showAction={true}
+                                onAction={handleAction}
+                                hiddenActions={['reset', 'lock', 'view']}
+                            />
+                        ) : (
+                            <div className="space-y-6">
+                                {paginatedGroups.length === 0 ? (
+                                    <div className="py-20 text-center bg-white rounded-[2.5rem] border-2 border-dashed border-gray-100 italic font-black text-gray-400 uppercase tracking-widest">
+                                        Không tìm thấy bài học nào phù hợp
+                                    </div>
+                                ) : (
+                                    paginatedGroups.map(group => {
+                                        const isExpanded = !!expandedCourses[group.id];
+                                        return (
+                                            <div key={group.id} className="bg-white rounded-[2rem] border border-gray-100/50 shadow-sm overflow-hidden transition-all">
+                                                {/* Course group header */}
+                                                <div
+                                                    onClick={() => toggleCourseExpand(group.id)}
+                                                    className="flex items-center justify-between p-5 bg-gray-50/50 hover:bg-gray-50 cursor-pointer select-none transition-colors border-b border-gray-100/30"
+                                                >
+                                                    <div className="flex items-center gap-3">
+                                                        <div className="p-2.5 bg-green-50 rounded-xl text-[#2d5a2d]">
+                                                            <BookOpen size={18} />
+                                                        </div>
+                                                        <div className="text-left">
+                                                            <h3 className="text-sm font-black text-gray-900 uppercase tracking-tight">
+                                                                {group.title}
+                                                            </h3>
+                                                            <p className="text-[10px] font-bold text-gray-400 uppercase mt-0.5">
+                                                                Mã khóa: {group.id === "unassigned" ? "N/A" : group.id} • {group.lessons.length} bài giảng
+                                                            </p>
+                                                        </div>
+                                                    </div>
+                                                    <div className="p-2 rounded-xl hover:bg-gray-100 text-gray-400 transition-colors">
+                                                        {isExpanded ? <ChevronUp size={16} strokeWidth={3} /> : <ChevronDown size={16} strokeWidth={3} />}
+                                                    </div>
+                                                </div>
+
+                                                {/* Lessons list for course */}
+                                                {isExpanded && (
+                                                    <div className="p-4 animate-in slide-in-from-top-2 duration-300">
+                                                        <KLTable
+                                                            columns={columns}
+                                                            data={group.lessons}
+                                                            showAction={true}
+                                                            onAction={handleAction}
+                                                            hiddenActions={['reset', 'lock', 'view']}
+                                                        />
+                                                    </div>
+                                                )}
+                                            </div>
+                                        );
+                                    })
+                                )}
+                            </div>
+                        )}
 
                         {/* PAGINATION */}
                         <div className="px-8 py-6 bg-white border-t border-gray-50 flex flex-col md:flex-row justify-between items-center gap-6 rounded-b-[2.5rem]">
@@ -267,7 +387,7 @@ export default function LessonList({ courseId, courseTitle }) {
                                     Trang {currentPage} / {totalPages || 1}
                                 </span>
                                 <span className="text-[10px] font-bold text-gray-400 uppercase">
-                                    Tổng: {filteredDataset.length} bài học
+                                    {courseId ? `Tổng: ${filteredDataset.length} bài học` : `Tổng: ${groupedData.length} khóa học`}
                                 </span>
                             </div>
 

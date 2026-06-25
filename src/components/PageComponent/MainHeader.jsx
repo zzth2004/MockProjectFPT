@@ -1,14 +1,16 @@
 import React, { useState, useRef, useEffect } from "react";
 import { 
-  Search, Menu, Bell, MessageSquareMore, User, LogOut,
+  Search, Menu, Bell, User, LogOut,
   ShieldCheck, ChevronRight, ChevronDown, CheckCircle2,
-  AlertCircle, BookOpen, Loader2, GraduationCap, X
+  AlertCircle, BookOpen, Loader2, GraduationCap, X,
+  Video, ClipboardList, CreditCard, Clock, Trophy, Inbox, Check
 } from "lucide-react";
 import { useNavigate, Link } from "react-router-dom";
 
 // Logic - Đảm bảo các đường dẫn này chính xác với project của bạn
 import { useAuth } from "../../context/authContext"; 
 import { authLogout } from '../../services/authService';
+import notificationService from "../../services/notificationService";
 
 export default function MainHeader({ onMenuClick }) {
   const navigate = useNavigate();
@@ -18,34 +20,170 @@ export default function MainHeader({ onMenuClick }) {
 
   // 2. States quản lý giao diện
   const [isProfileOpen, setIsProfileOpen] = useState(false);
-  const [isChatOpen, setIsChatOpen] = useState(false);
+  const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
+  const [notifications, setNotifications] = useState([]);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [selectedTab, setSelectedTab] = useState("ALL");
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
 
   // 3. Refs để xử lý click outside (đóng dropdown khi bấm ra ngoài)
   const dropdownRef = useRef(null);
-  const chatRef = useRef(null);
+  const notificationsRef = useRef(null);
 
   // 4. Logic Phân quyền
   const isAdmin = user?.role === "admin";
   const isTeacher = user?.role === "teacher";
   const hasConsoleAccess = isAdmin || isTeacher;
 
-  // 5. Dữ liệu giả lập cho tin nhắn
-  const activeTeachers = [
-    { id: 1, name: "Ms. Lee Ha-neul", subject: "TOPIK II Training", avatar: "https://i.pravatar.cc/150?u=1", online: true },
-    { id: 2, name: "Support Team", subject: "Hỗ trợ hệ thống", avatar: "https://i.pravatar.cc/150?u=4", online: true },
-  ];
+  // 5. Cấu hình loại thông báo dịch vụ
+  const typeConfigs = {
+    SYSTEM: { label: "Hệ thống", icon: AlertCircle, colorClass: "bg-red-50 text-red-600 border border-red-100" },
+    ACHIEVEMENT: { label: "Thành tích", icon: Trophy, colorClass: "bg-yellow-50 text-yellow-600 border border-yellow-100" },
+    REMINDER: { label: "Nhắc nhở", icon: Clock, colorClass: "bg-amber-50 text-amber-600 border border-amber-100" },
+    CLASS_LINK: { label: "Lớp học trực tiếp", icon: Video, colorClass: "bg-blue-50 text-blue-600 border border-blue-100" },
+    COURSE: { label: "Khóa học", icon: BookOpen, colorClass: "bg-green-50 text-green-600 border border-green-100" },
+    HOMEWORK: { label: "Bài tập", icon: ClipboardList, colorClass: "bg-orange-50 text-orange-600 border border-orange-100" },
+    PAYMENT: { label: "Thanh toán", icon: CreditCard, colorClass: "bg-purple-50 text-purple-600 border border-purple-100" }
+  };
+
+  const getTypeConfig = (type) => {
+    return typeConfigs[type] || { label: "Thông báo", icon: Bell, colorClass: "bg-gray-50 text-gray-600 border border-gray-100" };
+  };
+
+  // Helper format thời gian tương đối
+  const formatRelativeTime = (dateString) => {
+    if (!dateString) return "";
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffSec = Math.floor(diffMs / 1000);
+    const diffMin = Math.floor(diffSec / 60);
+    const diffHr = Math.floor(diffMin / 60);
+    const diffDays = Math.floor(diffHr / 24);
+
+    if (diffSec < 60) return "Vừa xong";
+    if (diffMin < 60) return `${diffMin} phút trước`;
+    if (diffHr < 24) return `${diffHr} giờ trước`;
+    if (diffDays === 1) return "Hôm qua";
+    if (diffDays < 7) return `${diffDays} ngày trước`;
+    
+    const day = String(date.getDate()).padStart(2, '0');
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const year = date.getFullYear();
+    return `${day}/${month}/${year}`;
+  };
 
   // 6. Effect: Đóng dropdown khi click ra ngoài
   useEffect(() => {
     function handleClickOutside(event) {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target)) setIsProfileOpen(false);
-      if (chatRef.current && !chatRef.current.contains(event.target)) setIsChatOpen(false);
+      if (notificationsRef.current && !notificationsRef.current.contains(event.target)) setIsNotificationsOpen(false);
     }
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
+
+  // Fetch dữ liệu thông báo
+  const fetchNotifications = async () => {
+    if (!user) return;
+    try {
+      const data = await notificationService.getMyNotifications(1, 50);
+      if (data && data.items) {
+        setNotifications(data.items);
+      }
+      const countData = await notificationService.getUnreadCount();
+      if (countData && typeof countData.count === 'number') {
+        setUnreadCount(countData.count);
+      }
+    } catch (error) {
+      console.error("Error fetching notifications:", error);
+    }
+  };
+
+  useEffect(() => {
+    fetchNotifications();
+
+    // Polling mỗi 30 giây để cập nhật
+    const interval = setInterval(() => {
+      fetchNotifications();
+    }, 30000);
+
+    return () => clearInterval(interval);
+  }, [user]);
+
+  const handleMarkAllAsRead = async () => {
+    try {
+      await notificationService.markAllAsRead();
+      setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
+      setUnreadCount(0);
+    } catch (error) {
+      console.error("Failed to mark all as read:", error);
+    }
+  };
+
+  const handleNotificationClick = async (notif) => {
+    if (!notif.isRead) {
+      try {
+        await notificationService.markAsRead(notif.id);
+        setNotifications(prev => prev.map(n => n.id === notif.id ? { ...n, isRead: true } : n));
+        setUnreadCount(prev => Math.max(0, prev - 1));
+      } catch (error) {
+        console.error("Failed to mark notification as read:", error);
+      }
+    }
+
+    const metadata = notif.metadata || {};
+    setIsNotificationsOpen(false);
+
+    if (metadata.url) {
+      if (metadata.url.startsWith("http://") || metadata.url.startsWith("https://")) {
+        window.open(metadata.url, "_blank");
+      } else {
+        navigate(metadata.url);
+      }
+    } else if (metadata.action === 'NAVIGATE_TO_HOMEWORK' && metadata.homeworkId) {
+      navigate(`/homework/${metadata.homeworkId}`);
+    } else if (metadata.action === 'NAVIGATE_TO_LESSON' && metadata.slug) {
+      navigate(`/course/lesson/${metadata.slug}`);
+    } else if (metadata.action === 'NAVIGATE_TO_BILLING') {
+      navigate("/user/billing");
+    }
+  };
+
+  const getFilteredNotifications = () => {
+    if (selectedTab === 'ALL') return notifications;
+    if (selectedTab === 'SYSTEM') {
+      return notifications.filter(n => ['SYSTEM', 'ACHIEVEMENT', 'REMINDER'].includes(n.type));
+    }
+    if (selectedTab === 'CLASS_LINK') {
+      return notifications.filter(n => n.type === 'CLASS_LINK');
+    }
+    if (selectedTab === 'COURSE') {
+      return notifications.filter(n => ['COURSE', 'HOMEWORK'].includes(n.type));
+    }
+    if (selectedTab === 'PAYMENT') {
+      return notifications.filter(n => n.type === 'PAYMENT');
+    }
+    return notifications;
+  };
+
+  const getCountForTab = (tab) => {
+    if (tab === 'ALL') return notifications.length;
+    if (tab === 'SYSTEM') {
+      return notifications.filter(n => ['SYSTEM', 'ACHIEVEMENT', 'REMINDER'].includes(n.type)).length;
+    }
+    if (tab === 'CLASS_LINK') {
+      return notifications.filter(n => n.type === 'CLASS_LINK').length;
+    }
+    if (tab === 'COURSE') {
+      return notifications.filter(n => ['COURSE', 'HOMEWORK'].includes(n.type)).length;
+    }
+    if (tab === 'PAYMENT') {
+      return notifications.filter(n => n.type === 'PAYMENT').length;
+    }
+    return 0;
+  };
 
   // 7. Hàm xử lý Đăng xuất
   const handleLogout = async () => {
@@ -96,50 +234,137 @@ export default function MainHeader({ onMenuClick }) {
           {/* --- RIGHT: Actions & Profile --- */}
           <div className="flex items-center gap-2 sm:gap-3">
             
-            {/* TIN NHẮN DROPDOWN */}
-            <div className="relative" ref={chatRef}>
+            {/* THÔNG BÁO DROPDOWN */}
+            <div className="relative" ref={notificationsRef}>
               <button 
-                onClick={() => { setIsChatOpen(!isChatOpen); setIsProfileOpen(false); }}
-                className={`p-2.5 rounded-full transition-all relative ${isChatOpen ? "bg-green-50 text-[#2d5a2d]" : "text-gray-500 hover:bg-gray-50"}`}
+                onClick={() => { setIsNotificationsOpen(!isNotificationsOpen); setIsProfileOpen(false); }}
+                className={`p-2.5 rounded-full transition-all relative ${isNotificationsOpen ? "bg-green-50 text-[#2d5a2d]" : "text-gray-500 hover:bg-gray-50 hover:text-[#2d5a2d]"}`}
               >
-                <MessageSquareMore size={20} />
-                <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full border-2 border-white"></span>
+                <Bell size={20} />
+                {unreadCount > 0 && (
+                  <span className="absolute top-1.5 right-1.5 min-w-[16px] h-4 px-1 flex items-center justify-center bg-red-500 rounded-full text-[9px] font-bold text-white border border-white">
+                    {unreadCount > 99 ? '99+' : unreadCount}
+                  </span>
+                )}
               </button>
 
-              {isChatOpen && (
-                <div className="absolute right-0 mt-3 w-80 bg-white border border-gray-100 rounded-[2rem] shadow-2xl py-0 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-300 origin-top-right">
+              {isNotificationsOpen && (
+                <div className="absolute right-0 mt-3 w-96 bg-white/95 backdrop-blur-md border border-gray-100 rounded-[2rem] shadow-2xl py-0 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-300 origin-top-right z-50">
+                  {/* Header */}
                   <div className="p-5 border-b border-gray-50 flex items-center justify-between bg-gray-50/50">
-                    <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Hỗ trợ & Tin nhắn</h3>
-                    <X size={14} className="text-gray-300 cursor-pointer hover:text-red-500" onClick={() => setIsChatOpen(false)} />
-                  </div>
-                  <div className="max-h-[300px] overflow-y-auto custom-scrollbar">
-                    {activeTeachers.map((t) => (
-                      <button key={t.id} className="w-full p-4 flex items-center gap-3 hover:bg-gray-50 transition-colors border-b border-gray-50 last:border-0 group">
-                        <img src={t.avatar} className="w-10 h-10 rounded-xl object-cover border" alt="" />
-                        <div className="flex-1 text-left">
-                          <p className="text-sm font-black text-gray-900 group-hover:text-[#2d5a2d] transition-colors">{t.name}</p>
-                          <p className="text-[10px] text-gray-400 font-bold uppercase">{t.subject}</p>
-                        </div>
-                        <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                    <div>
+                      <h3 className="text-xs font-black text-gray-800 uppercase tracking-wider">Thông báo</h3>
+                      <p className="text-[10px] font-bold text-gray-400 mt-0.5">Bạn có {unreadCount} thông báo chưa đọc</p>
+                    </div>
+                    {unreadCount > 0 && (
+                      <button 
+                        onClick={handleMarkAllAsRead}
+                        className="text-[10px] font-black text-[#2d5a2d] uppercase hover:underline transition-all flex items-center gap-1"
+                      >
+                        <Check size={12} /> Đọc tất cả
                       </button>
-                    ))}
+                    )}
                   </div>
-                  <button className="w-full py-4 text-[11px] font-black text-[#2d5a2d] uppercase hover:bg-green-50 transition-all border-t">Xem tất cả</button>
+
+                  {/* Tabs phân nhóm dịch vụ */}
+                  <div className="flex border-b border-gray-50 p-2 overflow-x-auto gap-1 bg-white custom-scrollbar">
+                    {[
+                      { key: 'ALL', label: 'Tất cả' },
+                      { key: 'SYSTEM', label: 'Hệ thống' },
+                      { key: 'CLASS_LINK', label: 'Lớp học' },
+                      { key: 'COURSE', label: 'Khóa học' },
+                      { key: 'PAYMENT', label: 'Tài chính' }
+                    ].map(tab => {
+                      const count = getCountForTab(tab.key);
+                      return (
+                        <button
+                          key={tab.key}
+                          onClick={() => setSelectedTab(tab.key)}
+                          className={`px-3 py-1.5 rounded-xl text-[10px] font-black uppercase transition-all whitespace-nowrap flex items-center gap-1 ${
+                            selectedTab === tab.key 
+                              ? "bg-[#2d5a2d] text-white" 
+                              : "text-gray-500 hover:bg-gray-50 hover:text-gray-900"
+                          }`}
+                        >
+                          {tab.label}
+                          {count > 0 && (
+                            <span className={`px-1.5 py-0.5 rounded-md text-[8px] font-bold ${
+                              selectedTab === tab.key ? "bg-white/20 text-white" : "bg-gray-100 text-gray-600"
+                            }`}>
+                              {count}
+                            </span>
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  {/* Danh sách thông báo */}
+                  <div className="max-h-[360px] overflow-y-auto custom-scrollbar">
+                    {getFilteredNotifications().length === 0 ? (
+                      <div className="py-12 flex flex-col items-center justify-center text-center px-4">
+                        <div className="w-12 h-12 rounded-2xl bg-gray-50 flex items-center justify-center text-gray-400 mb-3 border border-gray-100">
+                          <Inbox size={22} />
+                        </div>
+                        <p className="text-xs font-bold text-gray-500">Không có thông báo nào thuộc mục này</p>
+                      </div>
+                    ) : (
+                      <div className="divide-y divide-gray-50">
+                        {getFilteredNotifications().map((notif) => {
+                          const config = getTypeConfig(notif.type);
+                          const IconComp = config.icon;
+                          
+                          return (
+                            <button
+                              key={notif.id}
+                              onClick={() => handleNotificationClick(notif)}
+                              className={`w-full p-4 flex items-start gap-3 hover:bg-gray-50 transition-all text-left relative ${
+                                !notif.isRead ? "bg-green-50/20" : ""
+                              }`}
+                            >
+                              {/* Cột trái: Icon dịch vụ */}
+                              <div className={`w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 ${config.colorClass}`}>
+                                <IconComp size={15} />
+                              </div>
+
+                              {/* Giữa: Nội dung */}
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center justify-between gap-2">
+                                  <span className={`text-[9px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded-md ${config.colorClass}`}>
+                                    {config.label}
+                                  </span>
+                                  <span className="text-[9px] font-bold text-gray-400">
+                                    {formatRelativeTime(notif.createdAt)}
+                                  </span>
+                                </div>
+                                <p className={`text-xs font-bold text-gray-900 mt-1 truncate ${!notif.isRead ? "font-black" : "text-gray-700"}`}>
+                                  {notif.title}
+                                </p>
+                                <p className="text-[11px] text-gray-500 mt-0.5 line-clamp-2 leading-relaxed">
+                                  {notif.content}
+                                </p>
+                              </div>
+
+                              {/* Phải: Trạng thái chưa đọc */}
+                              {!notif.isRead && (
+                                <div className="absolute right-4 top-1/2 -translate-y-1/2 w-2 h-2 bg-green-500 rounded-full"></div>
+                              )}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
                 </div>
               )}
             </div>
-            
-            {/* THÔNG BÁO */}
-            <button className="p-2.5 rounded-full text-gray-500 hover:bg-gray-50 hover:text-[#2d5a2d] transition-all">
-              <Bell size={20} />
-            </button>
 
             <div className="h-6 w-px bg-gray-100 mx-1"></div>
 
             {/* PROFILE DROPDOWN */}
             <div className="relative" ref={dropdownRef}>
               <button 
-                onClick={() => { setIsProfileOpen(!isProfileOpen); setIsChatOpen(false); }}
+                onClick={() => { setIsProfileOpen(!isProfileOpen); setIsNotificationsOpen(false); }}
                 className="flex items-center gap-2 p-1 rounded-2xl hover:bg-gray-50 transition-all border border-transparent hover:border-gray-200"
               >
                 <div className="w-9 h-9 rounded-xl overflow-hidden border-2 border-[#2d5a2d]/10 shadow-sm">

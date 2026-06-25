@@ -134,13 +134,26 @@ export default function AttemptList({ exerciseId, userId }) {
             {
                 key: "userAnswer",
                 title: "Đáp án",
-                render: (val) => (
-                    <div className="max-w-[150px]">
-                        <p className="text-[11px] font-bold text-gray-500 italic truncate bg-gray-50 px-2 py-1 rounded-lg border border-gray-100">
-                            {val || "---"}
-                        </p>
-                    </div>
-                )
+                render: (val) => {
+                    let displayText = "---";
+                    if (val && typeof val === 'object') {
+                        if (Array.isArray(val)) {
+                            const correctCount = val.filter(a => a?.isCorrect).length;
+                            displayText = `${correctCount}/${val.length} câu đúng`;
+                        } else {
+                            displayText = val.isCorrect ? "Đúng (1/1)" : "Sai (0/1)";
+                        }
+                    } else if (val) {
+                        displayText = String(val);
+                    }
+                    return (
+                        <div className="max-w-[150px]">
+                            <p className="text-[11px] font-bold text-gray-500 italic truncate bg-gray-50 px-2 py-1 rounded-lg border border-gray-100">
+                                {displayText}
+                            </p>
+                        </div>
+                    );
+                }
             },
             {
                 key: "isCorrect",

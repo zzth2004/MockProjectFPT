@@ -78,10 +78,24 @@ import GrammarList from "../AdminControl/Admin/Course/Lesson/Material/grammar.ui
 import VocabList from "../AdminControl/Admin/Course/Lesson/Material/vocab.ui.jsx";
 import ExerciseList from "../AdminControl/Admin/Course/Lesson/Material/exercise.ui.jsx";
 import AttemptList from "../AdminControl/Admin/Course/Lesson/Material/exercise-attemp.ui.jsx";
+import FlashcardDeckList from "../AdminControl/Admin/Flashcard/flashcard.ui.jsx";
+import FlashcardDeckEdit from "../AdminControl/Admin/Flashcard/flashcard-edit.ui.jsx";
 import SubscriptionPlanList from "../AdminControl/Admin/Subscription/subscription.ui.jsx";
+import UserSubscriptionList from "../AdminControl/Admin/Subscription/user-subscription.ui.jsx";
+import OrderList from "../AdminControl/Admin/Order/order.ui.jsx";
 import BookManagement from "../AdminControl/Admin/Book/book.ui.jsx";
 import BlogManagement from "../AdminControl/Admin/Blog/blog.ui.jsx";
 import LateDevPage from "../AdminControl/Admin/latedev.ui.jsx";
+import CouponManagement from "../AdminControl/Admin/Coupon/coupon.ui.jsx";
+import CouponUsageList from "../AdminControl/Admin/Coupon/coupon-usage.ui.jsx";
+import PointsManagement from "../AdminControl/Admin/Gamification/points.ui.jsx";
+import BadgesManagement from "../AdminControl/Admin/Gamification/badges.ui.jsx";
+import BadgeStudio from "../AdminControl/Admin/Gamification/badge-studio.ui.jsx";
+import TicketManagement from "../AdminControl/Admin/Ticket/ticket.ui.jsx";
+import GoogleSyncManagement from "../AdminControl/Admin/GoogleSync/google-sync.ui.jsx";
+import SystemSettings from "../AdminControl/Admin/Settings/settings.ui.jsx";
+import GameRoomHost from "../TeacherControl/GameRoom/GameRoomHost.jsx";
+import GameRoomPlayer from "../page/mainpage/GameRoom/GameRoomPlayer.jsx";
 
 import CatchAll404 from "./CatchAll404.jsx";
 
@@ -90,12 +104,13 @@ function AnimatedRoutes() {
   const location = useLocation();
   const { user } = useAuth(); // Lấy thông tin user để điều hướng trang chủ
 
-  // Component điều hướng thông minh cho đường dẫn gốc "/"
+  // Component điều hướng thông minh cho đường dẫn gốc "/" và "/dashboard"
   const RootRedirect = () => {
-    if (!user) return <Navigate to="/homeindex" replace />;
-    if (user.role === 'admin') return <Navigate to="/admin" replace />;
-    if (user.role === 'teacher') return <Navigate to="/teacher/dashboard" replace />;
-    return <Navigate to="/user/dashboard" replace />;
+    const search = location.search;
+    if (!user) return <Navigate to={`/homeindex${search}`} replace />;
+    if (user.role === 'admin') return <Navigate to={`/admin${search}`} replace />;
+    if (user.role === 'teacher') return <Navigate to={`/teacher/dashboard${search}`} replace />;
+    return <Navigate to={`/user/dashboard${search}`} replace />;
   };
 
   return (
@@ -104,6 +119,7 @@ function AnimatedRoutes() {
         
         {/* --- 1. ROOT & PUBLIC ROUTES --- */}
         <Route path="/" element={<RootRedirect />} />
+        <Route path="/dashboard" element={<RootRedirect />} />
 
         {/* Các trang Public có Layout Main */}
         <Route element={<MainLayout />}>
@@ -200,15 +216,26 @@ function AnimatedRoutes() {
           {/* Quản lý Ghi danh & Doanh thu */}
           <Route path="enrollments" element={<PageWrapper><UserEnrollmentList /></PageWrapper>} />
           <Route path="plans" element={<PageWrapper><SubscriptionPlanList /></PageWrapper>} />
+          <Route path="user-subs" element={<PageWrapper><UserSubscriptionList /></PageWrapper>} />
+          <Route path="orders" element={<PageWrapper><OrderList /></PageWrapper>} />
 
           {/* Tài nguyên học tập */}
           <Route path="grammar" element={<PageWrapper><GrammarList /></PageWrapper>} />
           <Route path="vocabulary" element={<PageWrapper><VocabList /></PageWrapper>} />
           <Route path="exercises" element={<PageWrapper><ExerciseList /></PageWrapper>} />
           <Route path="exercise-attempts" element={<PageWrapper><AttemptList /></PageWrapper>} />
-          <Route path="flashcards" element={<PageWrapper><AttemptList /></PageWrapper>} />
+          <Route path="flashcards" element={<PageWrapper><FlashcardDeckList /></PageWrapper>} />
+          <Route path="flashcards/:deckId/edit" element={<PageWrapper><FlashcardDeckEdit /></PageWrapper>} />
           <Route path="books" element={<PageWrapper><BookManagement /></PageWrapper>} />
           <Route path="blog" element={<PageWrapper><BlogManagement /></PageWrapper>} />
+          <Route path="coupons" element={<PageWrapper><CouponManagement /></PageWrapper>} />
+          <Route path="coupon-usage" element={<PageWrapper><CouponUsageList /></PageWrapper>} />
+          <Route path="points" element={<PageWrapper><PointsManagement /></PageWrapper>} />
+          <Route path="badges" element={<PageWrapper><BadgesManagement /></PageWrapper>} />
+          <Route path="badge-studio" element={<PageWrapper><BadgeStudio /></PageWrapper>} />
+          <Route path="tickets" element={<PageWrapper><TicketManagement /></PageWrapper>} />
+          <Route path="google-sync" element={<PageWrapper><GoogleSyncManagement /></PageWrapper>} />
+          <Route path="settings" element={<PageWrapper><SystemSettings /></PageWrapper>} />
           <Route path="late-dev" element={<PageWrapper><LateDevPage /></PageWrapper>} />
         </Route>
 
@@ -235,8 +262,8 @@ function AnimatedRoutes() {
           <Route path="courses/:id/lessons" element={<PageWrapper><CourseLessons /></PageWrapper>} />
           {/* Tùy chỉnh: Teacher có được tạo/sửa khóa không? Nếu có thì thêm route create/edit vào đây */}
           <Route path="courses/edit/:id" element={<PageWrapper><EditCourse /></PageWrapper>} />
-          <Route path="scheduleteacher" element={<PageWrapper><ScheduleTeacher /></PageWrapper>} />
-          <Route path="scheduleteacher/:id" element={<PageWrapper><ScheduleDetailTeacher /></PageWrapper>} />
+          <Route path="schedule" element={<PageWrapper><ScheduleTeacher /></PageWrapper>} />
+          <Route path="schedule/:id" element={<PageWrapper><ScheduleDetailTeacher /></PageWrapper>} />
           {/* Teacher quản lý lớp học */}
           <Route path="classes" element={<PageWrapper><CourseClassList /></PageWrapper>} />
           <Route path="classes/create" element={<PageWrapper><CreateClass /></PageWrapper>} />
@@ -253,9 +280,20 @@ function AnimatedRoutes() {
           <Route path="vocabulary" element={<PageWrapper><VocabList /></PageWrapper>} />
           <Route path="exercises" element={<PageWrapper><ExerciseList /></PageWrapper>} />
           <Route path="exercise-attempts" element={<PageWrapper><AttemptList /></PageWrapper>} />
+          <Route path="flashcards" element={<PageWrapper><FlashcardDeckList /></PageWrapper>} />
+          <Route path="flashcards/:deckId/edit" element={<PageWrapper><FlashcardDeckEdit /></PageWrapper>} />
           <Route path="blog" element={<PageWrapper><BlogManagement /></PageWrapper>} />
+          <Route path="google-sync" element={<PageWrapper><GoogleSyncManagement /></PageWrapper>} />
           <Route path="late-dev" element={<PageWrapper><LateDevPage /></PageWrapper>} />
         </Route>
+
+        {/* --- STANDALONE: Game Room Host (Full-page, no sidebar) --- */}
+        <Route path="/admin/game-room/host"   element={<GameRoomHost />} />
+        <Route path="/teacher/game-room/host" element={<GameRoomHost />} />
+
+        {/* --- STANDALONE: Game Room Player (Full-page immersive game UI) --- */}
+        <Route path="/user/game-room/play" element={<GameRoomPlayer />} />
+        <Route path="/game-room/play"      element={<GameRoomPlayer />} />
 
         {/* 404 Route */}
         <Route path="*" element={<PageWrapper><CatchAll404 /></PageWrapper>} />

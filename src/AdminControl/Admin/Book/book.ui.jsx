@@ -1,11 +1,11 @@
 import React, { useEffect, useCallback, useState, useMemo } from "react";
 import { 
-    Book, Plus, Search, Database, User, DollarSign, 
-    BookOpen, Globe, Archive, Trash2, Edit3, ChevronLeft, ChevronRight 
+    BookOpen, Globe, Archive, Trash2, Edit3, ChevronLeft, ChevronRight, X as CloseIcon, Book, Plus, Search, Database, User, DollarSign,
 } from "lucide-react";
 
 // Components
 import { KLCard } from "../../Component/Card";
+import { KLInput } from "../../Component/Input";
 import { KLTable } from "../../Component/Table";
 import { KLButton } from "../../Component/Button";
 import { KLBadge } from "../../Component/Badge";
@@ -18,6 +18,12 @@ export default function BookManagement() {
     const [searchTerm, setSearchTerm] = useState("");
     const [currentPage, setCurrentPage] = useState(1);
     const pageSize = 10;
+    // Modal state for create / edit / view
+    const [isFormOpen, setIsFormOpen] = useState(false);
+    const [formMode, setFormMode] = useState('create'); // 'create'|'edit'|'view'
+    const [selectedBook, setSelectedBook] = useState(null);
+    const [formError, setFormError] = useState('');
+    const [isSaving, setIsSaving] = useState(false);
 
     // --- 1. FETCH DATA ---
     const fetchBooksFn = useCallback(() => 
@@ -88,10 +94,25 @@ export default function BookManagement() {
     const handleAction = async (type, row) => {
         if (type === 'delete') {
             if (window.confirm(`Xóa cuốn sách: ${row.title}?`)) {
-                await bookService.delete(row.id);
-                refresh();
+                try {
+                    await bookService.delete(row.id);
+                    refresh();
+                } catch (err) {
+                    alert('Xóa sách thất bại: ' + (err.response?.data?.message || err.message));
+                }
             }
+        } else if (type === 'edit') {
+            openForm('edit', row);
+        } else if (type === 'view') {
+            openForm('view', row);
         }
+    };
+
+    const openForm = (mode, row) => {
+        setFormMode(mode);
+        setSelectedBook(row || {});
+        setFormError('');
+        setIsFormOpen(true);
     };
 
     const handleSeed = async () => {
@@ -115,7 +136,7 @@ export default function BookManagement() {
                 </div>
                 <div className="flex gap-2">
                     <KLButton variant="outline" icon={Database} onClick={handleSeed}>Seed JSON</KLButton>
-                    <KLButton icon={Plus} className="bg-[#2d5a2d]">Thêm sách</KLButton>
+                    <KLButton icon={Plus} className="bg-[#2d5a2d]" onClick={() => openForm('create', null)}>Thêm sách</KLButton>
                 </div>
             </div>
 
@@ -158,6 +179,78 @@ export default function BookManagement() {
                             onAction={handleAction}
                             hiddenActions={['reset', 'lock']}
                         />
+
+                        {/* Detail / Edit Modal */}
+                        {isFormOpen && (
+                            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
+                                <div className="bg-white rounded-[2.5rem] w-full max-w-lg overflow-hidden shadow-2xl border border-gray-100 flex flex-col animate-in zoom-in-95 duration-200 text-left">
+                                    <div className="p-6 border-b flex justify-between items-center bg-gray-50/50">
+                                        <h3 className="text-2xl font-black text-gray-950 uppercase tracking-tight italic">
+                                            {formMode === 'create' ? 'Thêm sách mới' : formMode === 'edit' ? 'Chỉnh sửa sách' : 'Chi tiết sách'}
+                                        </h3>
+                                        <button onClick={() => setIsFormOpen(false)} className="p-2 hover:bg-gray-100 rounded-full text-gray-400 transition-colors">
+                                            <CloseIcon size={20} strokeWidth={2} />
+                                        </button>
+                                    </div>
+                                    <form className="p-6 space-y-4" onSubmit={async (e) => {
+                                        e.preventDefault();
+                                        setFormError('');
+                                        setIsSaving(true);
+                                        const data = {
+                                            title: selectedBook.title?.trim(),
+                                            author: selectedBook.author?.trim(),
+                                            slug: selectedBook.slug?.trim(),
+                                            thumbnail: selectedBook.thumbnail?.trim(),
+                                            price: Number(selectedBook.price) || 0,
+                                            isPublished: !!selectedBook.isPublished,
+                                            description: selectedBook.description?.trim(),
+                                        };
+                                        try {
+                                            if (formMode === 'create') {
+                                                await bookService.create(data);
+                                            } else if (formMode === 'edit') {
+                                                await bookService.update(selectedBook.id, data);
+                                            }
+                                            setIsFormOpen(false);
+                                            refresh();
+                                        } catch (err) {
+                                            setFormError(err.response?.data?.message || err.message);
+                                        } finally {
+                                            setIsSaving(false);
+                                        }
+                                    }}>
+                                        {formError && (
+                                            <div className="p-3 bg-red-50 text-red-700 rounded-md mb-2">
+                                                {formError}
+                                            </div>
+                                        )}
+                                        <KLInput label="Tiêu đề" placeholder="Tên sách..." value={selectedBook?.title || ''} onChange={(e) => setSelectedBook({ ...selectedBook, title: e.target.value })} disabled={formMode === 'view'} />
+                                        <KLInput label="Tác giả" placeholder="Tên tác giả..." value={selectedBook?.author || ''} onChange={(e) => setSelectedBook({ ...selectedBook, author: e.target.value })} disabled={formMode === 'view'} />
+                                        <KLInput label="Slug" placeholder="Slug (đường dẫn)..." value={selectedBook?.slug || ''} onChange={(e) => setSelectedBook({ ...selectedBook, slug: e.target.value })} disabled={formMode === 'view'} />
+                                        <KLInput label="Thumbnail URL" placeholder="URL ảnh bìa..." value={selectedBook?.thumbnail || ''} onChange={(e) => setSelectedBook({ ...selectedBook, thumbnail: e.target.value })} disabled={formMode === 'view'} />
+                                        <KLInput label="Giá (VND)" type="number" placeholder="Giá bán..." value={selectedBook?.price || ''} onChange={(e) => setSelectedBook({ ...selectedBook, price: e.target.value })} disabled={formMode === 'view'} />
+                                        <div className="flex items-center gap-2">
+                                            <label className="font-medium">Trạng thái công khai</label>
+                                            <KLBadge type={selectedBook?.isPublished ? 'success' : 'danger'}>
+                                                {selectedBook?.isPublished ? 'CÔNG KHAI' : 'BẢN NHÁP'}
+                                            </KLBadge>
+                                            {formMode !== 'view' && (
+                                                <button type="button" className="ml-4 px-3 py-1 bg-gray-200 rounded" onClick={() => setSelectedBook({ ...selectedBook, isPublished: !selectedBook?.isPublished })}>
+                                                    {selectedBook?.isPublished ? 'Ẩn' : 'Hiện'}
+                                                </button>
+                                            )}
+                                        </div>
+                                        <KLInput label="Mô tả" placeholder="Mô tả sách..." value={selectedBook?.description || ''} onChange={(e) => setSelectedBook({ ...selectedBook, description: e.target.value })} disabled={formMode === 'view'} />
+                                        {formMode !== 'view' && (
+                                            <div className="flex justify-end gap-4 mt-4">
+                                                <KLButton variant="outline" type="button" onClick={() => setIsFormOpen(false)}>Hủy</KLButton>
+                                                <KLButton type="submit" disabled={isSaving}>{isSaving ? 'Đang lưu...' : 'Lưu'}</KLButton>
+                                            </div>
+                                        )}
+                                    </form>
+                                </div>
+                            </div>
+                        )}
 
                         {/* PAGINATION */}
                         <div className="px-8 py-6 border-t border-gray-50 flex justify-between items-center bg-gray-50/30">

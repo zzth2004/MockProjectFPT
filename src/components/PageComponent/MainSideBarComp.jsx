@@ -80,15 +80,16 @@ export default function Sidebar({ isMobile, onClose, onLogoutClick }) {
           children: [
             { label: "Ngân hàng câu hỏi", to: `${basePath}/exercises` },
             { label: "Kết quả làm bài", to: `${basePath}/exercise-attempts` },
+            { label: "Phòng Live Quiz", to: `${basePath}/game-room/host`, openNewTab: true },
           ]
         },
-        // 🟢 CẬP NHẬT: Flashcards chuyển sang Late Dev
+        // 🟢 CẬP NHẬT: Flashcards chuyển sang hoạt động chính thức
         { 
             icon: Layers, 
             label: "Flashcards", 
             to: `${basePath}/flashcards`, 
             isHidden: false, 
-            isLateDev: true // 👈 Đã thêm flag này
+            isLateDev: false
         },
       ]
     },
@@ -105,32 +106,32 @@ export default function Sidebar({ isMobile, onClose, onLogoutClick }) {
         },
         { icon: ShoppingCart, label: "Đơn hàng (Orders)", to: `${basePath}/orders` },
         { 
-          icon: Tag, label: "Khuyến mãi", isLateDev: true,
+          icon: Tag, label: "Khuyến mãi",
           children: [
             { label: "Mã giảm giá (Coupon)", to: `${basePath}/coupons` },
-            { label: "Lịch sử sử dụng", to: `${basePath}/coupon-usage` },
+            { label: "Lịch sử sử dụng", to: `${basePath}/coupon-usage`, isLateDev: false },
           ]
         },
       ]
     },
     {
       group: "Tính năng mở rộng",
+      isHidden: isTeacher,
       items: [
         { icon: Bot, label: "AI Learning", to: `${basePath}/ai`, isLateDev: true },
         { 
-          icon: Trophy, label: "Gamification", isHidden: isTeacher, isLateDev: true,
+          icon: Trophy, label: "Gamification", isHidden: isTeacher, isLateDev: false,
           children: [
             { label: "Điểm thưởng", to: `${basePath}/points` },
             { label: "Huy hiệu", to: `${basePath}/badges` },
+            { label: "Thiết kế Huy hiệu", to: `${basePath}/badge-studio` },
           ]
         },
-        // 🟢 CẬP NHẬT: Blog chuyển sang Late Dev
         { 
             icon: Rss, 
             label: "Blog & Tin tức", 
             to: `${basePath}/blog`, 
-            isHidden: false, 
-            isLateDev: true // 👈 Đã thêm flag này
+            isHidden: false
         },
         { icon: BookIcon, label: "Thư viện sách", to: `${basePath}/books`, isHidden: isTeacher },
       ]
@@ -138,9 +139,9 @@ export default function Sidebar({ isMobile, onClose, onLogoutClick }) {
     {
       group: "Cài đặt & Hỗ trợ",
       items: [
-        { icon: ShieldCheck, label: "Classroom Sync", to: `${basePath}/google-sync`, isLateDev: true },
-        { icon: MessageSquare, label: "Support Tickets", to: `${basePath}/tickets`, isHidden: isTeacher,  isLateDev: true },
-        { icon: Settings, label: "Cài đặt hệ thống", to: `${basePath}/settings`, isHidden: false },
+        { icon: ShieldCheck, label: "Classroom Sync", to: `${basePath}/google-sync`, isLateDev: false },
+        { icon: MessageSquare, label: "Support Tickets", to: `${basePath}/tickets`, isHidden: isTeacher },
+        { icon: Settings, label: "Cài đặt hệ thống", to: `${basePath}/settings`, isHidden: isTeacher },
         { icon: LogOut, label: "Đăng xuất", to: "/logout", isHidden: false },
       ]
     }
@@ -189,6 +190,31 @@ export default function Sidebar({ isMobile, onClose, onLogoutClick }) {
           {Icon && <Icon size={22} strokeWidth={2.5} />}
           <span className="text-[15px] font-black tracking-tight">{item.label}</span>
         </button>
+      );
+    }
+
+    if (item.openNewTab) {
+      return (
+        <a
+          href={finalTo}
+          target="_blank"
+          rel="noopener noreferrer"
+          className={commonClasses}
+          style={commonStyles}
+          onClick={isMobile ? onClose : undefined}
+        >
+          {Icon && <Icon size={22} strokeWidth={2.5} />}
+          <div className="flex items-center justify-between flex-1">
+            <span className={`tracking-tight ${isSubItem ? "text-sm font-bold" : "text-[15px] font-black"}`}>
+              {item.label}
+            </span>
+            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" style={{ opacity: 0.5 }}>
+              <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
+              <polyline points="15 3 21 3 21 9"/>
+              <line x1="10" y1="14" x2="21" y2="3"/>
+            </svg>
+          </div>
+        </a>
       );
     }
 

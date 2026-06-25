@@ -10,38 +10,64 @@ const enrollmentService = {
       orderId // Gửi thêm orderId lên
     }).then(res => {
       console.log("Enrollment response:", res.data);
-      return res.data
+      return res.data?.data || res.data;
+    });
+  },
+
+  // 1.5 Lấy danh sách tất cả ghi danh (phân trang + lọc + tìm kiếm) (Admin/Teacher)
+  getAll: (params = {}) => {
+    return axiosClient.get("/user-enrollments", { params }).then(res => {
+      return res.data?.data || res.data;
     });
   },
 
   // 2. Lấy danh sách khóa học đã tham gia của một học viên
   getByUser: (userId) => {
-    return axiosClient.get(`/user-enrollments/user/${userId}`);
+    return axiosClient.get(`/user-enrollments/user/${userId}`).then(res => {
+      return res.data?.data || res.data;
+    });
   },
 
   // 3. Xem chi tiết ghi danh
   getDetail: (id) => {
-    return axiosClient.get(`/user-enrollments/${id}/detail`);
+    return axiosClient.get(`/user-enrollments/${id}/detail`).then(res => {
+      return res.data?.data || res.data;
+    });
   },
 
   // 4. Học viên tự cập nhật tiến độ (%)
   updateProgress: (id, progressPercent) => {
-    return axiosClient.patch(`/user-enrollments/${id}/progress`, { progressPercent });
+    return axiosClient.patch(`/user-enrollments/${id}/progress`, { progressPercent }).then(res => {
+      return res.data?.data || res.data;
+    });
   },
 
   // 5. Giáo viên/Admin duyệt trạng thái (ACTIVE, COMPLETED...)
   updateStatus: (id, status) => {
-    return axiosClient.patch(`/user-enrollments/${id}/status`, { status });
+    return axiosClient.patch(`/user-enrollments/${id}/status`, { status }).then(res => {
+      return res.data?.data || res.data;
+    });
   },
 
   // 6. Admin sửa tổng quát (Chuyển lớp)
   adminUpdate: (id, data) => {
-    return axiosClient.patch(`/user-enrollments/${id}/admin-update`, data);
+    return axiosClient.patch(`/user-enrollments/${id}/admin-update`, data).then(res => {
+      return res.data?.data || res.data;
+    });
   },
 
   // 7. Hủy ghi danh
   cancel: (id) => {
-    return axiosClient.delete(`/user-enrollments/${id}/cancel`);
+    return axiosClient.delete(`/user-enrollments/${id}/cancel`).then(res => {
+      return res.data?.data || res.data;
+    });
+  },
+
+  // 8. Chuyển lớp học
+  transferClass: (id, targetClassId) => {
+    return axiosClient.patch(`/user-enrollments/${id}/transfer`, { targetClassId }).then(res => {
+      return res.data?.data || res.data;
+    });
   }
 };
 

@@ -45,6 +45,13 @@ const userService = {
       });
   },
 
+  getTeachers: (page = 1, limit = 100) => {
+    return axiosClient.get(`/users/teachers`, { params: { page, limit } })
+      .then(res => {
+        return res.data.data;
+      });
+  },
+
 
   getUserById: (id) => {
     return axiosClient.get(`/users/${id}/profile`)
@@ -66,10 +73,24 @@ const userService = {
       .then(res => res.data);
   },
 
+  resetPassword: (id) => {
+    return axiosClient.post(`/users/${id}/reset-password`)
+      .then(res => res.data);
+  },
+
+  sendEmail: (id, title, content) => {
+    return axiosClient.post(`/users/${id}/send-email`, { title, content })
+      .then(res => res.data);
+  },
 
   searchUsers: (keyword) => {
     // Lưu ý: Nếu NestJS dùng @Body cho GET, ta phải dùng config 'data'
     return axiosClient.get("/users/search", { data: { keyword } })
+      .then(res => res.data);
+  },
+
+  bulkCreateStudents: (users) => {
+    return axiosClient.post("/users/bulk-create", { users })
       .then(res => res.data);
   }
 };

@@ -131,7 +131,7 @@ export default function TeacherDashboardHome() {
                 variant="outline" 
                 icon={CalendarDays} 
                 className="text-[10px] font-black border-gray-100 hover:bg-green-50 hover:text-[#377437]"
-                onClick={() => navigate(`${basePath}/scheduleteacher`)}
+                onClick={() => navigate(`${basePath}/schedule`)}
             >
                 Lịch dạy
             </KLButton>
@@ -210,20 +210,34 @@ export default function TeacherDashboardHome() {
                 </div>
               )
             },
-            { key: "courseName", title: "Khóa học", render: (v) => <span className="font-bold text-gray-500 text-xs">{v || "N/A"}</span> },
+            { 
+              key: "courseName", 
+              title: "Khóa học", 
+              render: (v, row) => (
+                <span className="font-bold text-gray-500 text-xs">
+                  {row.enrollments?.[0]?.class?.course?.title || v || "N/A"}
+                </span>
+              ) 
+            },
             {
               key: "status",
               title: "Trạng thái",
-              render: (s) => (
-                <KLBadge type={s === 'active' ? 'success' : 'warning'} className="text-[9px]">
-                  {s?.toUpperCase() || 'OFFLINE'}
-                </KLBadge>
-              )
+              render: (s, row) => {
+                const statusVal = s || (row.enrollments?.length > 0 ? 'active' : 'offline');
+                return (
+                  <KLBadge type={statusVal === 'active' ? 'success' : 'warning'} className="text-[9px]">
+                    {statusVal.toUpperCase()}
+                  </KLBadge>
+                );
+              }
             },
             {
               key: "joinedAt",
               title: "Ngày gia nhập",
-              render: (date) => date ? new Date(date).toLocaleDateString('vi-VN') : "---"
+              render: (date, row) => {
+                const actualDate = row.enrollments?.[0]?.createdAt || date;
+                return actualDate ? new Date(actualDate).toLocaleDateString('vi-VN') : "---";
+              }
             }
           ]}
           data={displayStudents}

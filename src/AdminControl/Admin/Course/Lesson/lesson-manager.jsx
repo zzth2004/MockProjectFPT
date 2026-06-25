@@ -102,8 +102,8 @@ export default function LessonManager({ courseId, courseTitle }) {
 
   const columns = [
     {
-      key: "orderIndex", title: "STT",
-      render: (val) => <div className="w-8 h-8 rounded-lg bg-gray-50 flex items-center justify-center text-xs font-black text-gray-400 border border-gray-100">{val}</div>
+      key: "id", title: "STT (ID)",
+      render: (val, row) => <div className="w-8 h-8 rounded-lg bg-gray-50 flex items-center justify-center text-xs font-black text-gray-400 border border-gray-100">{row.id}</div>
     },
     {
       key: "title", title: "Bài giảng",

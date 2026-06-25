@@ -14,7 +14,8 @@ import {
   Sparkles,
   CheckCircle2,
   Bot,
-  Layers // <-- 1. Import Icon mới cho Flashcard
+  Layers, // <-- 1. Import Icon mới cho Flashcard
+  Trophy
 } from "lucide-react";
 
 const COLORS = {
@@ -37,6 +38,7 @@ export default function Sidebar({ isMobile, onClose, isVip = false }) {
     { icon: Bot, label: "AI Support", to: "/user/ai-support", requireVip: false },
     { icon: CalendarDays, label: "Schedule", to: "/user/schedule", requireVip: false },
     { icon: GraduationCap, label: "Active Course", to: "/user/active-courses", requireVip: false },
+    { icon: Trophy, label: "Game Room", to: "/user/game-room/play", requireVip: false },
    
   ];
 

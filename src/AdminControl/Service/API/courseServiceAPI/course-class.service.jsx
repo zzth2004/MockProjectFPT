@@ -70,6 +70,27 @@ const courseClassService = {
     .then((res) => {
         return res.data.data;
       });
+  },
+
+  // 7️⃣ Đồng bộ Google Classroom học viên
+  syncClassroom: async (id) => {
+    return axiosClient.post(`/course-classes/class/${id}/sync-classroom`).then((res) => {
+      return res.data;
+    });
+  },
+
+  // 8️⃣ Tạo Google Classroom thủ công
+  createClassroom: async (id) => {
+    return axiosClient.post(`/course-classes/class/${id}/create-classroom`).then((res) => {
+      return res.data.data;
+    });
+  },
+
+  // 9️⃣ Tạo Google Meet thủ công
+  createMeet: async (id) => {
+    return axiosClient.post(`/course-classes/class/${id}/create-meet`).then((res) => {
+      return res.data.data;
+    });
   }
 };
 
