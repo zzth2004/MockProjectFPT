@@ -3,6 +3,7 @@ import axios from "axios";
 
 const axiosClient = axios.create({
 
+  // baseURL: "https://14e65a37941d.ngrok-free.app/api",
   baseURL: "http://localhost:3000/api",
 
   headers: {
@@ -12,25 +13,13 @@ const axiosClient = axios.create({
     // "ngrok-skip-browser-warning": "69420",
 
   },
-  timeout: 100000, 
+  timeout: 100000,
 });
-// Interceptor 401: silent freeze (keep chain from crashing)
-axiosClient.interceptors.response.use(
-    (response) => response,
-    (error) => {
-        if (error.response && error.response.status === 401) {
-            console.error("[axiosClient] 401 Unauthorized - token may be missing or expired.");
-            return new Promise(() => {}); // freeze chain silently
-        }
-        return Promise.reject(error);
-    }
-);
 
 
 axiosClient.interceptors.request.use(
   (config) => {
-    // sessionStorage (same tab) -> localStorage (cross-tab, new tab) fallback
-    const token = sessionStorage.getItem("jwt") || localStorage.getItem("jwt");
+    const token = sessionStorage.getItem("jwt");
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -45,7 +34,7 @@ axiosClient.interceptors.request.use(
 //     return response.data;
 //   },
 //   (error) => {
-    
+
 //     if (error.response && error.response.status === 401) {
 //       console.error("Unauthorized, logging out...");
 //       localStorage.removeItem("token");
@@ -55,6 +44,20 @@ axiosClient.interceptors.request.use(
 //     return Promise.reject(error);
 //   }
 // );
+// axiosClient.js
+axiosClient.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response && error.response.status === 401) {
+      console.error("Lỗi 401 nè! Đã chặn mọi logic tiếp theo.");
 
+      // MẸO: Trả về một promise trắng để "đóng băng" chain phía sau
+      return new Promise(() => { });
+    }
+
+    // Đối với các lỗi khác, vẫn reject để component xử lý
+    return Promise.reject(error);
+  }
+);
 
 export default axiosClient;

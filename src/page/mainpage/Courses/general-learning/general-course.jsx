@@ -253,11 +253,7 @@ export default function CourseListGrid() {
                                     onChange={(e) => setFilters({ ...filters, level: e.target.value })}
                                 >
                                     <option value="">Tất cả cấp độ</option>
-
-                                    {/* SỬA ĐOẠN NÀY: Viết HOA toàn bộ chữ để khớp 100% với chữ trong Database */}
-                                    {['BEGINNER', 'INTERMEDIATE', 'ADVANCED'].map(l => (
-                                        <option key={l} value={l}>{l}</option>
-                                    ))}
+                                    {['beginer', 'intermediate', 'advanced'].map(l => <option key={l} value={l}>{l}</option>)}
                                 </select>
                             </div>
                         </div>
