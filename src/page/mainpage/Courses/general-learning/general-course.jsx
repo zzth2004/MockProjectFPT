@@ -192,7 +192,8 @@ export default function CourseListGrid() {
         return rawData.filter(c => {
             const matchSearch = !searchTerm || [c.title, c.slug].some(f => f?.toLowerCase().includes(searchTerm.toLowerCase()));
             const matchLevel = !filters.level || c.level === filters.level;
-            return matchSearch && matchLevel;
+            const isFree = !c.price || Number(c.price) === 0 || Number(c.salePrice) === 0;
+            return matchSearch && matchLevel && isFree;
         });
     }, [rawData, searchTerm, filters]);
 

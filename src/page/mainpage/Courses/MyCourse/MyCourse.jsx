@@ -17,7 +17,7 @@ const MyCourse = () => {
       try {
         setLoading(true);
         const response = await courseService.getCoursebyStudent();
-        setCourses(response.data || []);
+        setCourses(Array.isArray(response) ? response : (response?.data || []));
       } catch (err) {
         console.error("Error fetching student courses:", err);
         setError("Không thể tải danh sách khóa học. Vui lòng thử lại!");

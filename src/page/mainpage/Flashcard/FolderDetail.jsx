@@ -1,17 +1,49 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { ChevronLeft, FolderOpen, Plus, Layers } from "lucide-react";
+import { ChevronLeft, FolderOpen, Plus, Layers, Loader2 } from "lucide-react";
+import folderService from "../../../AdminControl/Service/API/lessonServiceAPI/folder.service";
 
 export default function FolderDetail() {
   const { folderId } = useParams();
   const navigate = useNavigate();
+  const [folder, setFolder] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
 
-  // Mock Data: Các set trong folder
-  const setsInFolder = [
-    { id: 101, title: "Từ vựng Bài 1: Chào hỏi", terms: 20 },
-    { id: 102, title: "Từ vựng Bài 2: Trường học", terms: 35 },
-    { id: 103, title: "Động từ cơ bản", terms: 50 },
-  ];
+  useEffect(() => {
+    if (folderId) fetchFolderDetail();
+  }, [folderId]);
+
+  const fetchFolderDetail = async () => {
+    setIsLoading(true);
+    try {
+      const data = await folderService.getFolderDetail(folderId);
+      setFolder(data);
+    } catch (err) {
+      console.error("Lỗi khi tải chi tiết thư mục:", err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const setsInFolder = folder?.decks || [];
+
+  if (isLoading) {
+    return (
+      <div className="w-full min-h-screen bg-[#F8F9FC] flex flex-col items-center justify-center">
+        <Loader2 size={40} className="animate-spin text-[#377437] mb-4" />
+        <p className="font-bold text-gray-500 uppercase tracking-widest text-sm">Đang tải chi tiết thư mục...</p>
+      </div>
+    );
+  }
+
+  if (!folder) {
+    return (
+      <div className="w-full min-h-screen bg-[#F8F9FC] flex flex-col items-center justify-center">
+        <p className="font-bold text-gray-500 uppercase tracking-widest text-sm mb-4">Không tìm thấy thư mục</p>
+        <button onClick={() => navigate(-1)} className="px-4 py-2 bg-green-100 text-green-700 rounded-lg font-bold">Quay lại</button>
+      </div>
+    );
+  }
 
   return (
     <div className="w-full min-h-screen bg-[#F8F9FC] p-6 font-sans">
@@ -26,7 +58,7 @@ export default function FolderDetail() {
          </div>
          <div>
             <span className="text-xs font-black text-gray-400 uppercase tracking-widest">Thư mục</span>
-            <h1 className="text-3xl font-black text-gray-900 mt-1">Tiếng Hàn Sơ Cấp 1</h1>
+            <h1 className="text-3xl font-black text-gray-900 mt-1">{folder.name}</h1>
             <p className="text-sm font-bold text-gray-500 mt-1">{setsInFolder.length} học phần</p>
          </div>
       </div>
@@ -58,7 +90,7 @@ export default function FolderDetail() {
                   </h3>
                   <div className="flex items-center gap-2 mt-3">
                      <span className="bg-[#E9F5EB] text-[#377437] px-3 py-1 rounded-lg text-xs font-black uppercase tracking-wide">
-                        {set.terms} Terms
+                        {set.flashcards?.length || set._count?.flashcards || 0} Terms
                      </span>
                   </div>
                </div>
@@ -67,7 +99,7 @@ export default function FolderDetail() {
                   <div className="w-8 h-8 rounded-full bg-gray-100 border border-white shadow-sm overflow-hidden">
                      <img src="https://i.pravatar.cc/150?u=12" alt="User" className="w-full h-full object-cover" />
                   </div>
-                  <span className="text-xs font-bold text-gray-500">Minh Quân</span>
+                  <span className="text-xs font-bold text-gray-500">{set.owner?.fullName || "Người dùng"}</span>
                   
                   {/* Icon mũi tên nhỏ để gợi ý bấm vào */}
                   <div className="ml-auto opacity-0 group-hover:opacity-100 transition-opacity text-[#377437]">

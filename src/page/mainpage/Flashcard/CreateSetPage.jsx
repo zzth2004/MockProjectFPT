@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ChevronLeft, Plus, Trash2, Image, Mic, Save } from "lucide-react";
+import { ChevronLeft, Plus, Trash2, Image, Loader2 } from "lucide-react";
+import flashcardService from "../../../AdminControl/Service/API/lessonServiceAPI/flashcard.service";
 
 export default function CreateSetPage() {
   const navigate = useNavigate();
@@ -8,6 +9,7 @@ export default function CreateSetPage() {
   // State cho thông tin chung
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // State cho danh sách thẻ (Mặc định 3 thẻ trống)
   const [cards, setCards] = useState([
@@ -32,10 +34,45 @@ export default function CreateSetPage() {
     setCards(cards.map(c => c.id === id ? { ...c, [field]: value } : c));
   };
 
-  const handleSaveSet = () => {
-    console.log("Saving Set:", { title, description, cards });
-    alert("Đã tạo học phần thành công!");
-    navigate("/user/flashcards");
+  const handleSaveSet = async () => {
+    if (!title.trim()) {
+      alert("Vui lòng nhập tiêu đề học phần!");
+      return;
+    }
+
+    const validCards = cards.filter(c => c.term.trim() && c.def.trim());
+    if (validCards.length < 1) {
+      alert("Vui lòng nhập ít nhất 1 thẻ (gồm Thuật ngữ và Định nghĩa)!");
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      // 1. Tạo Deck
+      const newDeck = await flashcardService.createDeck({
+        title,
+        description,
+        isPublic: false // Mặc định là bộ thẻ cá nhân
+      });
+
+      // 2. Thêm Cards vào Deck
+      const promises = validCards.map(c => 
+        flashcardService.addCard({
+          deckId: newDeck.id,
+          frontText: c.term,
+          backText: c.def
+        })
+      );
+      await Promise.all(promises);
+
+      alert("Đã tạo học phần thành công!");
+      navigate("/user/flashcards");
+    } catch (err) {
+      console.error("Lỗi khi tạo học phần:", err);
+      alert("Đã có lỗi xảy ra. Vui lòng thử lại sau.");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -49,8 +86,10 @@ export default function CreateSetPage() {
         </div>
         <button 
           onClick={handleSaveSet}
-          className="bg-[#377437] hover:bg-green-800 text-white px-6 py-2.5 rounded-xl font-bold shadow-lg shadow-green-900/10 transition-all active:scale-95"
+          disabled={isSubmitting}
+          className="bg-[#377437] hover:bg-green-800 text-white px-6 py-2.5 rounded-xl font-bold shadow-lg shadow-green-900/10 transition-all active:scale-95 flex items-center gap-2 disabled:opacity-50"
         >
+          {isSubmitting ? <Loader2 size={18} className="animate-spin" /> : null}
           Hoàn tất
         </button>
       </div>

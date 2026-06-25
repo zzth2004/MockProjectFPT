@@ -10,7 +10,7 @@ const StudyPage = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
-  const [activeTab, setActiveTab] = useState("vocab");
+  const [activeTab, setActiveTab] = useState("theory");
   const [savedIds, setSavedIds] = useState([]);
 
   const fetchDetailFn = useCallback(
@@ -29,7 +29,7 @@ const StudyPage = () => {
 
   const content = useMemo(() => {
     if (!response) {
-      return { vocab: [], grammar: [], exercise: [], title: "Đang tải..." };
+      return { vocab: [], grammar: [], exercise: [], title: "Đang tải...", videoUrl: null, contentText: null, description: null };
     }
 
     return {
@@ -54,9 +54,20 @@ const StudyPage = () => {
         type: 'exercise',
         typeName: 'Bài tập'
       })),
-      title: response.title || "Chi tiết bài học"
+      title: response.title || "Chi tiết bài học",
+      videoUrl: response.videoUrl,
+      contentText: response.contentText,
+      description: response.description
     };
   }, [response]);
+
+  useEffect(() => {
+    if (content.videoUrl || content.contentText) {
+      setActiveTab("theory");
+    } else if (content.vocab?.length > 0) {
+      setActiveTab("vocab");
+    }
+  }, [content.videoUrl, content.contentText]);
 
   // Fix logic: Kiểm tra item có nằm trong danh sách đã lưu không
   const isItemSaved = (id) => savedIds.includes(id);
@@ -135,16 +146,19 @@ const StudyPage = () => {
 
       {/* --- TABS --- */}
       <div className="flex items-end pl-4 overflow-x-auto no-scrollbar">
-        {['vocab', 'grammar', 'exercise'].map((tab) => (
-          <button
-            key={tab}
-            onClick={() => setActiveTab(tab)}
-            className={`px-8 py-3 rounded-t-xl font-bold text-sm tracking-wide transition-all relative top-[2px] z-10 border-t-2 border-l-2 border-r-2 
-              ${activeTab === tab ? "bg-white text-black border-[#5CA370] border-b-white" : "bg-transparent text-gray-400 border-transparent border-b-[#5CA370]"}`}
-          >
-            {tab.toUpperCase()}
-          </button>
-        ))}
+        {['theory', 'vocab', 'grammar', 'exercise'].map((tab) => {
+          if (tab === 'theory' && !content.videoUrl && !content.contentText) return null;
+          return (
+            <button
+              key={tab}
+              onClick={() => setActiveTab(tab)}
+              className={`px-8 py-3 rounded-t-xl font-bold text-sm tracking-wide transition-all relative top-[2px] z-10 border-t-2 border-l-2 border-r-2 
+                ${activeTab === tab ? "bg-white text-black border-[#5CA370] border-b-white" : "bg-transparent text-gray-400 border-transparent border-b-[#5CA370]"}`}
+            >
+              {tab === 'theory' ? 'LÝ THUYẾT' : tab.toUpperCase()}
+            </button>
+          );
+        })}
         <button
           onClick={() => setActiveTab("starred")}
           className={`flex items-center gap-2 px-8 py-3 rounded-t-xl font-bold text-sm tracking-wide transition-all relative top-[2px] z-10 border-t-2 border-l-2 border-r-2 
@@ -177,7 +191,36 @@ const StudyPage = () => {
           )}
         </div>
         <div className="flex flex-col gap-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
-          {activeTab !== 'starred' ? (
+          {activeTab === 'theory' ? (
+            <div className="space-y-8 animate-in fade-in zoom-in-95 duration-500">
+              {content.videoUrl && (
+                <div className="w-full max-w-4xl mx-auto aspect-video rounded-[2rem] overflow-hidden shadow-xl border border-gray-100 bg-black">
+                   {content.videoUrl.includes('youtube.com') || content.videoUrl.includes('youtu.be') ? (
+                       <iframe 
+                           className="w-full h-full"
+                           src={content.videoUrl.replace('watch?v=', 'embed/').replace('youtu.be/', 'youtube.com/embed/')} 
+                           title="Lesson Video" 
+                           allowFullScreen 
+                       />
+                   ) : (
+                       <video controls className="w-full h-full object-contain">
+                           <source src={content.videoUrl} type="video/mp4" />
+                           Trình duyệt của bạn không hỗ trợ thẻ video.
+                       </video>
+                   )}
+                </div>
+              )}
+              {content.contentText && (
+                <div className="max-w-4xl mx-auto bg-[#F9FBF9] p-8 md:p-12 rounded-[2rem] border border-green-50 shadow-sm">
+                   {content.description && <p className="text-gray-500 italic mb-6 border-l-4 border-[#5CA370] pl-4">{content.description}</p>}
+                   <div 
+                      className="prose prose-green prose-lg max-w-none text-gray-800"
+                      dangerouslySetInnerHTML={{ __html: content.contentText }}
+                   />
+                </div>
+              )}
+            </div>
+          ) : activeTab !== 'starred' ? (
             content[activeTab]?.length > 0 ? (
               content[activeTab].map((item) => (
                 <ContentItem

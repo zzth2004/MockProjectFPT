@@ -1,5 +1,8 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import folderService from "../../../AdminControl/Service/API/lessonServiceAPI/folder.service";
+import flashcardService from "../../../AdminControl/Service/API/lessonServiceAPI/flashcard.service";
+import { Loader2 } from "lucide-react";
 import {
   Layers, Plus, Search, Star, Clock, ChevronRight,
   Folder, X, BookOpen, Zap, Filter, Grid3X3, List,
@@ -134,10 +137,10 @@ function DeckCard({ deck, onClick }) {
             <h3 className="font-bold text-gray-900 text-[15px] leading-snug mb-1 line-clamp-2">
               {deck.title}
             </h3>
-            {deck.folder && (
+            {deck.folder?.name && (
               <span className="text-[11px] text-gray-400 font-medium flex items-center gap-1">
                 <Folder size={10} />
-                {deck.folder}
+                {deck.folder.name}
               </span>
             )}
           </div>
@@ -153,9 +156,9 @@ function DeckCard({ deck, onClick }) {
 
         {/* Stats row */}
         <div className="flex items-center gap-2 mb-3">
-          <StatusBadge status={deck.status} dueCount={deck.dueCount} />
+          <StatusBadge status={deck.status || "new"} dueCount={deck.dueCount || 0} />
           <span className="text-[11px] text-gray-400 font-semibold">
-            {deck.terms} từ
+            {deck.terms || deck._count?.flashcards || deck.flashcards?.length || 0} từ
           </span>
         </div>
 
@@ -167,9 +170,9 @@ function DeckCard({ deck, onClick }) {
             </span>
             <span
               className="text-[11px] font-extrabold"
-              style={{ color: deck.progress > 0 ? "#1a7a3c" : "#9ca3af" }}
+              style={{ color: (deck.progress || 0) > 0 ? "#1a7a3c" : "#9ca3af" }}
             >
-              {deck.progress}%
+              {deck.progress || 0}%
             </span>
           </div>
           <div
@@ -177,8 +180,8 @@ function DeckCard({ deck, onClick }) {
             style={{ background: "rgba(0,0,0,0.06)" }}
           >
             <div
-              className={`h-full rounded-full bg-gradient-to-r ${deck.color} transition-all duration-500`}
-              style={{ width: `${deck.progress}%` }}
+              className={`h-full rounded-full bg-gradient-to-r ${deck.color || "from-blue-500 to-indigo-600"} transition-all duration-500`}
+              style={{ width: `${deck.progress || 0}%` }}
             />
           </div>
         </div>
@@ -187,7 +190,7 @@ function DeckCard({ deck, onClick }) {
         <div className="flex items-center justify-between pt-3 border-t border-gray-50">
           <div className="flex items-center gap-1.5 text-gray-400">
             <Clock size={11} />
-            <span className="text-[11px] font-medium">{deck.lastStudied}</span>
+            <span className="text-[11px] font-medium">{deck.lastStudied || "Chưa học"}</span>
           </div>
           <button
             onClick={(e) => { e.stopPropagation(); }}
@@ -215,28 +218,56 @@ export default function FlashcardLibrary() {
   const [newFolderName, setNewFolderName] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [viewMode, setViewMode] = useState("grid"); // grid | list
-  const [folders, setFolders] = useState(MOCK_FOLDERS);
-  const [decks, setDecks] = useState(MOCK_DECKS);
+  const [folders, setFolders] = useState([]);
+  const [decks, setDecks] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const handleCreateFolder = () => {
-    if (!newFolderName.trim()) return;
-    setFolders([
-      { id: Date.now(), title: newFolderName, count: 0, color: "#64748b" },
-      ...folders,
-    ]);
-    setNewFolderName("");
-    setShowFolderModal(false);
+  useEffect(() => {
+    fetchLibraryData();
+  }, []);
+
+  const fetchLibraryData = async () => {
+    setIsLoading(true);
+    try {
+      // Fetch folders and decks concurrently
+      const [foldersRes, decksRes] = await Promise.all([
+        folderService.getMyFolders(),
+        flashcardService.getAllAccessibleDecks() // Or getMyDecks()
+      ]);
+      const foldersArray = Array.isArray(foldersRes) ? foldersRes : (foldersRes?.items || foldersRes?.data || []);
+      setFolders(foldersArray);
+      
+      const decksArray = Array.isArray(decksRes) ? decksRes : (decksRes?.items || decksRes?.data || []);
+      setDecks(decksArray);
+    } catch (err) {
+      console.error("Lỗi khi tải thư viện thẻ:", err);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const filteredDecks = decks.filter((d) =>
-    d.title.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const handleCreateFolder = async () => {
+    if (!newFolderName.trim()) return;
+    try {
+      const newFolder = await folderService.createFolder({ name: newFolderName, description: "" });
+      setFolders([newFolder, ...folders]);
+      setNewFolderName("");
+      setShowFolderModal(false);
+    } catch (err) {
+      console.error("Lỗi tạo thư mục:", err);
+      alert("Không thể tạo thư mục. Vui lòng thử lại.");
+    }
+  };
+
+  const filteredDecks = Array.isArray(decks) ? decks.filter((d) =>
+    (d?.title || "").toLowerCase().includes(searchQuery.toLowerCase())
+  ) : [];
 
   const stats = {
-    total: decks.reduce((sum, d) => sum + d.terms, 0),
-    learned: decks.filter((d) => d.status === "learned").length,
-    review: decks.filter((d) => d.status === "review").length,
-    newCount: decks.filter((d) => d.status === "new").length,
+    total: Array.isArray(decks) ? decks.reduce((sum, d) => sum + (d._count?.flashcards || d.flashcards?.length || 0), 0) : 0,
+    learned: 0, // Requires tracking logic from backend if available
+    review: 0,
+    newCount: Array.isArray(decks) ? decks.length : 0,
   };
 
   return (
@@ -377,7 +408,14 @@ export default function FlashcardLibrary() {
           </div>
         </div>
       </div>
-
+      
+      {isLoading ? (
+        <div className="flex flex-col items-center justify-center py-20 opacity-50">
+           <Loader2 size={40} className="animate-spin text-[#1a7a3c] mb-4" />
+           <p className="font-bold text-gray-500 uppercase tracking-widest text-sm">Đang tải thư viện...</p>
+        </div>
+      ) : (
+        <>
       {/* ── STARRED DECK (PINNED FIRST) ── */}
       <div className="mb-8">
         <div className="flex items-center gap-2 mb-3">
@@ -490,8 +528,8 @@ export default function FlashcardLibrary() {
                   <Folder size={18} style={{ color: folder.color }} />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="font-bold text-gray-800 text-sm truncate">{folder.title}</p>
-                  <p className="text-[11px] text-gray-400 font-medium">{folder.count} học phần</p>
+                  <p className="font-bold text-gray-800 text-sm truncate">{folder.name || folder.title}</p>
+                  <p className="text-[11px] text-gray-400 font-medium">{folder.deckCount || folder._count?.decks || 0} học phần</p>
                 </div>
                 <ChevronRight size={15} className="text-gray-300 group-hover:text-gray-500 transition-colors flex-shrink-0" />
               </div>
@@ -614,6 +652,8 @@ export default function FlashcardLibrary() {
             </div>
           </div>
         </div>
+      )}
+      </>
       )}
     </div>
   );

@@ -14,15 +14,18 @@ import {
   Users
 } from "lucide-react";
 import courseService from "../../../AdminControl/Service/API/courseServiceAPI/course.service";
+import { useAuth } from "../../../context/authContext";
 
 const CourseDetail = () => {
   const navigate = useNavigate();
   const { courseId } = useParams();
 
   // --- 1. STATES ---
+  const { user } = useAuth();
   const [courseData, setCourseData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [isEnrolled, setIsEnrolled] = useState(false);
 
   // --- 2. FETCH DATA ---
   useEffect(() => {
@@ -31,6 +34,20 @@ const CourseDetail = () => {
         setLoading(true);
         const data = await courseService.getCourseDetails(courseId);
         setCourseData(data);
+
+        // Check enrollment if not VIP
+        if (user && !user.VIP) {
+          try {
+             const res = await courseService.getCourseGenerals(); // Hoặc API lấy danh sách khóa học của user
+             // Tạm thời, vì mock project, nếu call getCoursebyStudent:
+             const myCoursesRes = await courseService.getCoursebyStudent(user.id, 1, 100, "");
+             const courses = Array.isArray(myCoursesRes) ? myCoursesRes : (myCoursesRes?.data || []);
+             if (courses.some(e => e.course?.id === Number(courseId))) {
+                setIsEnrolled(true);
+             }
+          } catch(e) { console.error("Could not check enrollment", e); }
+        }
+
       } catch (err) {
         console.error("Error fetching course details:", err);
         setError("Không thể tải thông tin khóa học.");
@@ -40,7 +57,7 @@ const CourseDetail = () => {
     };
 
     if (courseId) fetchDetails();
-  }, [courseId]);
+  }, [courseId, user]);
 
   // --- 3. LOADING/ERROR UI ---
   if (loading) {
@@ -204,12 +221,30 @@ const CourseDetail = () => {
                 </div>
               </div>
 
-              <button
-                onClick={() => navigate(`/user/active-courses/payment/${courseId}`)}
-                className="w-full bg-[#377437] hover:bg-green-800 text-white font-black text-xl py-5 rounded-[1.5rem] shadow-xl shadow-green-900/20 transform transition-all hover:scale-[1.02] active:scale-95 mb-10 uppercase italic tracking-widest"
-              >
-                Enroll Now
-              </button>
+              {/* Pricing & Call to Actions */}
+              {user?.VIP || isEnrolled ? (
+                <button
+                  onClick={() => navigate(`/courses/mycourses/${courseId}`)}
+                  className="w-full bg-[#377437] hover:bg-green-800 text-white font-black text-xl py-5 rounded-[1.5rem] shadow-xl shadow-green-900/20 transform transition-all hover:scale-[1.02] active:scale-95 mb-10 uppercase italic tracking-widest"
+                >
+                  {user?.VIP ? "Vào học ngay (VIP)" : "Vào học ngay"}
+                </button>
+              ) : (
+                <>
+                  <button
+                    onClick={() => navigate(`/user/plans`)}
+                    className="w-full bg-gradient-to-r from-yellow-400 to-yellow-600 hover:from-yellow-500 hover:to-yellow-700 text-white font-black text-md py-4 rounded-[1.5rem] shadow-xl shadow-yellow-900/20 transform transition-all hover:scale-[1.02] active:scale-95 mb-4 uppercase italic tracking-widest flex items-center justify-center gap-2"
+                  >
+                    <Award size={20} /> Nâng cấp VIP
+                  </button>
+                  <button
+                    onClick={() => navigate(`/user/active-courses/payment/${courseId}`)}
+                    className="w-full bg-[#377437] hover:bg-green-800 text-white font-black text-md py-4 rounded-[1.5rem] shadow-xl shadow-green-900/20 transform transition-all hover:scale-[1.02] active:scale-95 mb-10 uppercase italic tracking-widest"
+                  >
+                    Mua khóa này
+                  </button>
+                </>
+              )}
 
               {/* Benefits List */}
               <div className="space-y-5">

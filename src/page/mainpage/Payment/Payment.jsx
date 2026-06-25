@@ -6,6 +6,7 @@ import {
 } from "lucide-react";
 import courseService from "../../../AdminControl/Service/API/courseServiceAPI/course.service";
 import userEnrollmentService from "../../../AdminControl/Service/API/courseServiceAPI/user-enrollment.service";
+import orderService from "../../../AdminControl/Service/API/orderAPI/order.service";
 import { useAuth } from "../../../context/authContext";
 
 // --- SUB-COMPONENT: THÔNG BÁO THÀNH CÔNG ---
@@ -18,27 +19,20 @@ const SuccessOverlay = ({ courseTitle, className, onNavigate }) => {
         </div>
 
         <h2 className="text-3xl font-black text-gray-900 mb-2 italic tracking-tighter uppercase">
-          Thành công!
+          Chờ phê duyệt!
         </h2>
         <p className="text-gray-500 font-medium mb-8 leading-relaxed">
-          Bạn đã ghi danh thành công vào khóa học <br />
+          Bạn đã tạo đơn hàng cho khóa học <br />
           <span className="text-[#377437] font-bold">"{courseTitle}"</span> <br />
-          tại lớp <span className="font-black text-gray-800 uppercase italic tracking-widest">{className || "Tự động phân lớp"}</span>
+          Vui lòng thanh toán và chờ Admin phê duyệt để bắt đầu học nhé!
         </p>
 
         <div className="space-y-3">
           <button
-            onClick={() => onNavigate("/courses/mycourses")}
+            onClick={() => onNavigate("/user/active-courses")}
             className="w-full py-5 bg-[#377437] text-white rounded-2xl font-black flex items-center justify-center gap-2 hover:bg-green-800 transition-all shadow-lg shadow-green-100 active:scale-95"
           >
-            Bắt đầu học ngay <Play size={18} fill="currentColor" />
-          </button>
-
-          <button
-            onClick={() => onNavigate("/user/active-courses")}
-            className="w-full py-4 bg-gray-50 text-gray-400 rounded-2xl font-bold text-sm hover:text-gray-600 transition-all"
-          >
-            Về danh sách khóa học
+            Quay lại Danh sách khóa học
           </button>
         </div>
       </div>
@@ -55,7 +49,7 @@ const PaymentPage = () => {
   const [courseData, setCourseData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [method, setMethod] = useState("card");
+  const [method, setMethod] = useState("bank_transfer");
   const [enrolledInfo, setEnrolledInfo] = useState(null); 
   const [isEnrolling, setIsEnrolling] = useState(false);
 
@@ -90,9 +84,9 @@ const PaymentPage = () => {
   const { price, discount, total } = calculateOrder();
 
   const paymentMethods = [
-    { id: "card", title: "Credit or Debit Card", desc: "Visa, Mastercard, JCB", icon: <CreditCard size={24} /> },
-    { id: "qr", title: "QR Code Payment", desc: "Scan to pay via Banking App", icon: <QrCode size={24} /> },
-    { id: "wallet", title: "E-Wallet", desc: "PayPal, Momo, Apple Pay", icon: <Wallet size={24} /> },
+    { id: "bank_transfer", title: "Credit or Debit Card", desc: "Visa, Mastercard, JCB", icon: <CreditCard size={24} /> },
+    { id: "vnpay", title: "QR Code Payment", desc: "Scan to pay via Banking App", icon: <QrCode size={24} /> },
+    { id: "momo", title: "E-Wallet", desc: "PayPal, Momo, Apple Pay", icon: <Wallet size={24} /> },
   ];
 
   // --- 4. XỬ LÝ THANH TOÁN ---
@@ -100,14 +94,23 @@ const PaymentPage = () => {
     if (isEnrolling) return;
     try {
       setIsEnrolling(true);
-      // Gọi API: Kết quả trả về là { status: 'success', data: { ... } }
-      const response = await userEnrollmentService.enroll({
-        userId: user.id,
-        courseId: Number(courseId)
+      
+      // 1. Tạo order thông qua API
+      const order = await orderService.createOrder({
+        items: [{
+          itemType: "course",
+          itemId: Number(courseId),
+          itemTitle: courseData?.title,
+          price: total
+        }],
+        paymentMethod: method,
+        couponCode: ""
       });
 
-      // ✅ QUAN TRỌNG: Lưu thông tin để hiện SuccessOverlay, KHÔNG navigate ở đây
-      setEnrolledInfo(response.data); 
+      // ✅ QUAN TRỌNG: Lưu thông tin để hiện SuccessOverlay
+      setEnrolledInfo({
+        class: { name: "Tự động phân lớp" }
+      }); 
       
     } catch (error) {
       console.error("Enrollment error:", error);

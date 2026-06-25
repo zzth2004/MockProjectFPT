@@ -11,6 +11,11 @@ const orderService = {
     }).then(res => res.data.data);
   },
 
+  // Tạo đơn hàng mới (Checkout)
+  createOrder: async (data) => {
+    return axiosClient.post("/orders/checkout", data).then(res => res.data.data);
+  },
+
   // Giả lập thanh toán thành công (Admin / Webhook mock)
   completeOrder: async (id) => {
     return axiosClient.patch(`/orders/${id}/complete`).then(res => res.data.data);
