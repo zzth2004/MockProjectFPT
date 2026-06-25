@@ -13,6 +13,7 @@ import { KLBadge } from "../../../../Component/Badge";
 // Logic
 import useCallApiHandler from "../../../../../hooks/HookHander/useCallApiHandler";
 import vocabService from "../../../../Service/API/lessonServiceAPI/vocab.service";
+import lessonService from "../../../../Service/API/lessonServiceAPI/lesson.service";
 
 export default function VocabList({ lessonId, lessonTitle }) {
     // --- 1. STATES ---
@@ -26,6 +27,22 @@ export default function VocabList({ lessonId, lessonTitle }) {
     const [currentPage, setCurrentPage] = useState(1);
     const pageSize = 5;
     const [translatingId, setTranslatingId] = useState(null);
+
+    // --- Modal States ---
+    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [selectedVocab, setSelectedVocab] = useState(null); // null = Add, else = Edit
+    const [lessons, setLessons] = useState([]);
+    const [isSaving, setIsSaving] = useState(false);
+    const [formData, setFormData] = useState({
+        wordKorean: "",
+        meaningVietnamese: "",
+        partOfSpeech: "noun",
+        level: "topik_1",
+        pronunciationAudio: "",
+        exampleKorean: "",
+        exampleVietnamese: "",
+        lessonId: lessonId || ""
+    });
 
     // --- 2. FETCH DATA ---
     const fetchVocabsFn = useCallback(() => {
@@ -118,13 +135,127 @@ export default function VocabList({ lessonId, lessonTitle }) {
         finally { setTranslatingId(null); }
     };
 
+    useEffect(() => {
+        if (!lessonId) {
+            lessonService.getAllLesson(1, 1000)
+                .then(res => {
+                    if (res && Array.isArray(res.data)) {
+                        setLessons(res.data);
+                    } else if (Array.isArray(res)) {
+                        setLessons(res);
+                    }
+                })
+                .catch(err => console.error("Lỗi khi lấy bài học:", err));
+        }
+    }, [lessonId]);
+
+    const handleAddNew = () => {
+        setSelectedVocab(null);
+        setFormData({
+            wordKorean: "",
+            meaningVietnamese: "",
+            partOfSpeech: "noun",
+            level: "topik_1",
+            pronunciationAudio: "",
+            exampleKorean: "",
+            exampleVietnamese: "",
+            lessonId: lessonId || ""
+        });
+        setIsModalOpen(true);
+    };
+
     const handleAction = async (type, item) => {
-        if (type === 'delete' && window.confirm(`⚠️ Xóa từ vựng: ${item.wordKorean}?`)) {
+        if (type === 'edit') {
+            try {
+                setSelectedVocab(item);
+                setFormData({
+                    wordKorean: item.wordKorean || "",
+                    meaningVietnamese: item.meaningVietnamese || "",
+                    partOfSpeech: item.partOfSpeech || "noun",
+                    level: item.level || "topik_1",
+                    pronunciationAudio: item.pronunciationAudio || "",
+                    exampleKorean: item.exampleKorean || "",
+                    exampleVietnamese: item.exampleVietnamese || "",
+                    lessonId: item.lessonId || item.lesson?.id || lessonId || ""
+                });
+                setIsModalOpen(true);
+
+                const detail = await vocabService.getDetail(item.id);
+                if (detail) {
+                    setSelectedVocab(detail);
+                    setFormData({
+                        wordKorean: detail.wordKorean || "",
+                        meaningVietnamese: detail.meaningVietnamese || "",
+                        partOfSpeech: detail.partOfSpeech || "noun",
+                        level: detail.level || "topik_1",
+                        pronunciationAudio: detail.pronunciationAudio || "",
+                        exampleKorean: detail.exampleKorean || "",
+                        exampleVietnamese: detail.exampleVietnamese || "",
+                        lessonId: detail.lessonId || detail.lesson?.id || lessonId || ""
+                    });
+                }
+            } catch (err) {
+                console.error("Lỗi khi tải chi tiết từ vựng:", err);
+            }
+        } else if (type === 'delete' && window.confirm(`⚠️ Xóa từ vựng: ${item.wordKorean}?`)) {
             try {
                 await vocabService.delete(item.id);
                 alert("✅ Đã xóa thành công!");
                 refreshVocabs();
-            } catch (err) { alert("❌ Lỗi khi xóa bài học"); }
+            } catch (err) { 
+                alert("❌ Lỗi khi xóa từ vựng"); 
+            }
+        }
+    };
+
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        if (!formData.wordKorean.trim()) {
+            alert("Vui lòng nhập từ vựng tiếng Hàn");
+            return;
+        }
+        if (!formData.meaningVietnamese.trim()) {
+            alert("Vui lòng nhập nghĩa tiếng Việt");
+            return;
+        }
+        if (!formData.lessonId) {
+            alert("Vui lòng chọn bài học");
+            return;
+        }
+
+        setIsSaving(true);
+        try {
+            if (selectedVocab) {
+                const payload = {
+                    wordKorean: formData.wordKorean.trim(),
+                    meaningVietnamese: formData.meaningVietnamese.trim(),
+                    partOfSpeech: formData.partOfSpeech,
+                    level: formData.level,
+                    pronunciationAudio: formData.pronunciationAudio.trim(),
+                    exampleKorean: formData.exampleKorean.trim(),
+                    exampleVietnamese: formData.exampleVietnamese.trim()
+                };
+                await vocabService.update(selectedVocab.id, payload);
+            } else {
+                const payload = {
+                    wordKorean: formData.wordKorean.trim(),
+                    meaningVietnamese: formData.meaningVietnamese.trim(),
+                    partOfSpeech: formData.partOfSpeech,
+                    level: formData.level,
+                    pronunciationAudio: formData.pronunciationAudio.trim(),
+                    exampleKorean: formData.exampleKorean.trim(),
+                    exampleVietnamese: formData.exampleVietnamese.trim(),
+                    lessonId: Number(formData.lessonId)
+                };
+                await vocabService.create(payload);
+            }
+            setIsModalOpen(false);
+            refreshVocabs();
+        } catch (error) {
+            console.error("Lỗi khi lưu từ vựng:", error);
+            alert("Có lỗi xảy ra khi lưu từ vựng. Vui lòng thử lại.");
+        } finally {
+            setIsSaving(false);
         }
     };
 
@@ -209,7 +340,7 @@ export default function VocabList({ lessonId, lessonTitle }) {
                 </div>
                 <div className="flex gap-2">
                     <KLButton variant="outline" icon={Database} onClick={() => vocabService.seedData().then(() => refreshVocabs())}>Seed JSON</KLButton>
-                    <KLButton icon={Plus} className="bg-[#2d5a2d]">Thêm từ mới</KLButton>
+                    <KLButton icon={Plus} className="bg-[#2d5a2d]" onClick={handleAddNew}>Thêm từ mới</KLButton>
                 </div>
             </div>
 
@@ -314,6 +445,195 @@ export default function VocabList({ lessonId, lessonTitle }) {
                     </>
                 )}
             </KLCard>
+
+            {isModalOpen && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
+                    <div className="bg-white rounded-[2.5rem] w-full max-w-2xl overflow-hidden shadow-2xl border border-gray-100 flex flex-col max-h-[90vh] animate-in zoom-in-95 duration-200 text-left">
+                        
+                        {/* Modal Header */}
+                        <div className="px-8 py-6 bg-gradient-to-r from-green-50 to-emerald-50/30 border-b border-gray-100 flex justify-between items-center">
+                            <div>
+                                <h3 className="text-xl font-black text-gray-900 uppercase tracking-tight">
+                                    {selectedVocab ? "Cập Nhật Từ Vựng" : "Thêm Từ Vựng Mới"}
+                                </h3>
+                                <p className="text-gray-400 text-[10px] font-bold tracking-wider uppercase mt-0.5">
+                                    {selectedVocab ? "Chỉnh sửa thông tin từ vựng" : "Tạo từ vựng mới cho hệ thống"}
+                                </p>
+                            </div>
+                            <button 
+                                onClick={() => setIsModalOpen(false)}
+                                className="p-2 rounded-2xl bg-gray-50 text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-all active:scale-95"
+                            >
+                                <X size={20} strokeWidth={2.5} />
+                            </button>
+                        </div>
+
+                        {/* Modal Form */}
+                        <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto px-8 py-6 space-y-6">
+                            
+                            {/* Grid 2 Columns */}
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                {/* Word Korean */}
+                                <div className="space-y-2">
+                                    <label className="text-[10px] font-black uppercase text-gray-400 px-1">Từ vựng (Tiếng Hàn) *</label>
+                                    <input
+                                        type="text"
+                                        required
+                                        placeholder="Ví dụ: 학교"
+                                        className="w-full px-4 py-3.5 bg-gray-50 rounded-2xl border-none font-bold text-sm focus:ring-2 focus:ring-green-600/20 focus:bg-white transition-all outline-none"
+                                        value={formData.wordKorean}
+                                        onChange={(e) => setFormData({ ...formData, wordKorean: e.target.value })}
+                                    />
+                                </div>
+
+                                {/* Meaning Vietnamese */}
+                                <div className="space-y-2">
+                                    <label className="text-[10px] font-black uppercase text-gray-400 px-1">Nghĩa tiếng Việt *</label>
+                                    <input
+                                        type="text"
+                                        required
+                                        placeholder="Ví dụ: Trường học"
+                                        className="w-full px-4 py-3.5 bg-gray-50 rounded-2xl border-none font-bold text-sm focus:ring-2 focus:ring-green-600/20 focus:bg-white transition-all outline-none"
+                                        value={formData.meaningVietnamese}
+                                        onChange={(e) => setFormData({ ...formData, meaningVietnamese: e.target.value })}
+                                    />
+                                </div>
+                            </div>
+
+                            {/* Grid 3 Columns */}
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                {/* Part Of Speech */}
+                                <div className="space-y-2">
+                                    <label className="text-[10px] font-black uppercase text-gray-400 px-1">Loại từ *</label>
+                                    <select
+                                        required
+                                        className="w-full px-4 py-3.5 bg-gray-50 rounded-2xl border-none font-black text-sm focus:ring-2 focus:ring-green-600/20 focus:bg-white transition-all outline-none"
+                                        value={formData.partOfSpeech}
+                                        onChange={(e) => setFormData({ ...formData, partOfSpeech: e.target.value })}
+                                    >
+                                        <option value="noun">Danh từ (Noun)</option>
+                                        <option value="verb">Động từ (Verb)</option>
+                                        <option value="adjective">Tính từ (Adjective)</option>
+                                        <option value="adverb">Trạng từ (Adverb)</option>
+                                        <option value="particle">Tiểu từ (Particle)</option>
+                                        <option value="phrase">Cụm từ (Phrase)</option>
+                                        <option value="idiom">Thành ngữ (Idiom)</option>
+                                        <option value="grammar">Ngữ pháp (Grammar)</option>
+                                        <option value="CONJUNCTION">Liên từ (Conjunction)</option>
+                                        <option value="PREPOSITION">Giới từ (Preposition)</option>
+                                    </select>
+                                </div>
+
+                                {/* TOPIK Level */}
+                                <div className="space-y-2">
+                                    <label className="text-[10px] font-black uppercase text-gray-400 px-1">Trình độ *</label>
+                                    <select
+                                        required
+                                        className="w-full px-4 py-3.5 bg-gray-50 rounded-2xl border-none font-black text-sm focus:ring-2 focus:ring-green-600/20 focus:bg-white transition-all outline-none"
+                                        value={formData.level}
+                                        onChange={(e) => setFormData({ ...formData, level: e.target.value })}
+                                    >
+                                        <option value="topik_1">TOPIK I (Cấp 1)</option>
+                                        <option value="topik_2">TOPIK I (Cấp 2)</option>
+                                        <option value="topik_3">TOPIK II (Cấp 3)</option>
+                                        <option value="topik_4">TOPIK II (Cấp 4)</option>
+                                        <option value="topik_5">TOPIK II (Cấp 5)</option>
+                                        <option value="topik_6">TOPIK II (Cấp 6)</option>
+                                    </select>
+                                </div>
+
+                                {/* Lesson ID */}
+                                <div className="space-y-2">
+                                    <label className="text-[10px] font-black uppercase text-gray-400 px-1">Thuộc Bài Học *</label>
+                                    {lessonId ? (
+                                        <input
+                                            type="text"
+                                            disabled
+                                            className="w-full px-4 py-3.5 bg-gray-100 rounded-2xl border-none font-bold text-sm text-gray-500 cursor-not-allowed outline-none"
+                                            value={lessonTitle || `ID: ${lessonId}`}
+                                        />
+                                    ) : (
+                                        <select
+                                            required
+                                            className="w-full px-4 py-3.5 bg-gray-50 rounded-2xl border-none font-black text-sm focus:ring-2 focus:ring-green-600/20 focus:bg-white transition-all outline-none"
+                                            value={formData.lessonId}
+                                            onChange={(e) => setFormData({ ...formData, lessonId: e.target.value })}
+                                        >
+                                            <option value="">-- Chọn bài học --</option>
+                                            {lessons.map((lesson) => (
+                                                <option key={lesson.id} value={lesson.id}>
+                                                    [{lesson.level?.toUpperCase()}] {lesson.title}
+                                                </option>
+                                            ))}
+                                        </select>
+                                    )}
+                                </div>
+                            </div>
+
+                            {/* Pronunciation Audio Link */}
+                            <div className="space-y-2">
+                                <label className="text-[10px] font-black uppercase text-gray-400 px-1">Link phát âm (Audio URL)</label>
+                                <input
+                                    type="text"
+                                    placeholder="Ví dụ: https://example.com/audio/school.mp3"
+                                    className="w-full px-4 py-3.5 bg-gray-50 rounded-2xl border-none font-bold text-sm focus:ring-2 focus:ring-green-600/20 focus:bg-white transition-all outline-none"
+                                    value={formData.pronunciationAudio}
+                                    onChange={(e) => setFormData({ ...formData, pronunciationAudio: e.target.value })}
+                                />
+                            </div>
+
+                            {/* Example Korean */}
+                            <div className="space-y-2">
+                                <label className="text-[10px] font-black uppercase text-gray-400 px-1">Ví dụ Tiếng Hàn</label>
+                                <textarea
+                                    rows={2}
+                                    placeholder="Ví dụ: 저는 학교에 갑니다."
+                                    className="w-full px-4 py-3.5 bg-gray-50 rounded-2xl border-none font-bold text-sm focus:ring-2 focus:ring-green-600/20 focus:bg-white transition-all outline-none resize-none"
+                                    value={formData.exampleKorean}
+                                    onChange={(e) => setFormData({ ...formData, exampleKorean: e.target.value })}
+                                />
+                            </div>
+
+                            {/* Example Vietnamese */}
+                            <div className="space-y-2">
+                                <label className="text-[10px] font-black uppercase text-gray-400 px-1">Ví dụ dịch Tiếng Việt</label>
+                                <textarea
+                                    rows={2}
+                                    placeholder="Ví dụ: Tôi đi đến trường."
+                                    className="w-full px-4 py-3.5 bg-gray-50 rounded-2xl border-none font-bold text-sm focus:ring-2 focus:ring-green-600/20 focus:bg-white transition-all outline-none resize-none"
+                                    value={formData.exampleVietnamese}
+                                    onChange={(e) => setFormData({ ...formData, exampleVietnamese: e.target.value })}
+                                />
+                            </div>
+
+                            {/* Form Footer Buttons */}
+                            <div className="flex justify-end gap-3 pt-4 border-t border-gray-50">
+                                <button
+                                    type="button"
+                                    onClick={() => setIsModalOpen(false)}
+                                    className="px-6 py-3.5 rounded-2xl bg-gray-50 text-gray-500 font-bold hover:bg-gray-100 transition-all active:scale-95 text-sm"
+                                >
+                                    Hủy bỏ
+                                </button>
+                                <button
+                                    type="submit"
+                                    disabled={isSaving}
+                                    className="px-6 py-3.5 rounded-2xl bg-[#2d5a2d] hover:bg-[#204020] text-white font-bold transition-all active:scale-95 text-sm flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                                >
+                                    {isSaving ? (
+                                        <>
+                                            <Loader2 size={16} className="animate-spin" />
+                                            Đang lưu...
+                                        </>
+                                    ) : (
+                                        "Lưu lại"
+                                    )}
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

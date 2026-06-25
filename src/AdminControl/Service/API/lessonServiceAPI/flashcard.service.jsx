@@ -27,25 +27,33 @@ const flashcardService = {
     },
 
     getDeckDetail: async (id) => {
-        return axiosClient.get(`/flashcards/deck/${id}`).then(res => res.data.data);
+        return axiosClient.get(`/flashcards/deck/${id}/detail`).then(res => res.data.data);
     },
 
     createDeck: async (data) => {
-        return axiosClient.post("/flashcards/deck", data).then(res => res.data.data);
+        return axiosClient.post("/flashcards/deck/new", data).then(res => res.data.data);
     },
 
     updateDeck: async (id, data) => {
-        return axiosClient.patch(`/flashcards/deck/${id}`, data).then(res => res.data.data);
+        return axiosClient.patch(`/flashcards/deck/${id}/update`, data).then(res => res.data.data);
     },
 
     deleteDeck: async (id) => {
-        return axiosClient.delete(`/flashcards/deck/${id}`).then(res => res.data.data);
+        return axiosClient.delete(`/flashcards/deck/${id}/delete`).then(res => res.data.data);
     },
 
     // --- QUẢN LÝ THẺ (CARD) ---
 
     addCard: async (data) => {
-        return axiosClient.post("/flashcards/card", data).then(res => res.data.data);
+        return axiosClient.post("/flashcards/card/new", data).then(res => res.data.data);
+    },
+
+    updateCard: async (id, data) => {
+        return axiosClient.patch(`/flashcards/card/${id}/update`, data).then(res => res.data.data);
+    },
+
+    deleteCard: async (id) => {
+        return axiosClient.delete(`/flashcards/card/${id}/delete`).then(res => res.data.data);
     },
 
     // Lấy danh sách thẻ đến hạn cần học hôm nay

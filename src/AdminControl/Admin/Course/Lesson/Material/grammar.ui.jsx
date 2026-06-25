@@ -2,7 +2,7 @@ import React, { useEffect, useCallback, useState, useMemo } from "react";
 import { 
   Search, Plus, Edit3, Trash2, BookOpen, 
   ChevronLeft, ChevronRight, Hash, Database, Filter, X, 
-  Info, Languages
+  Info, Languages, Loader2
 } from "lucide-react";
 
 // Components
@@ -14,6 +14,7 @@ import { KLBadge } from "../../../../Component/Badge";
 // Logic
 import useCallApiHandler from "../../../../../hooks/HookHander/useCallApiHandler";
 import grammarService from "../../../../Service/API/lessonServiceAPI/grammarService.service";
+import lessonService from "../../../../Service/API/lessonServiceAPI/lesson.service";
 
 export default function GrammarList({ lessonId, lessonTitle }) {
     // --- 1. STATES ---
@@ -26,6 +27,20 @@ export default function GrammarList({ lessonId, lessonTitle }) {
 
     const [currentPage, setCurrentPage] = useState(1);
     const pageSize = 5;
+
+    // --- Modal States ---
+    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [selectedGrammar, setSelectedGrammar] = useState(null); // null = Add, else = Edit
+    const [lessons, setLessons] = useState([]);
+    const [isSaving, setIsSaving] = useState(false);
+    const [formData, setFormData] = useState({
+        pattern: "",
+        explanation: "",
+        usageNote: "",
+        exampleKorean: "",
+        exampleVietnamese: "",
+        lessonId: lessonId || ""
+    });
 
     // --- 2. FETCH DATA ---
     const fetchGrammarsFn = useCallback(() => {
@@ -118,10 +133,63 @@ export default function GrammarList({ lessonId, lessonTitle }) {
         setShowFilters(!showFilters);
     };
 
+    useEffect(() => {
+        if (!lessonId) {
+            lessonService.getAllLesson(1, 1000)
+                .then(res => {
+                    if (res && Array.isArray(res.data)) {
+                        setLessons(res.data);
+                    } else if (Array.isArray(res)) {
+                        setLessons(res);
+                    }
+                })
+                .catch(err => console.error("Lỗi khi lấy danh sách bài học:", err));
+        }
+    }, [lessonId]);
+
+    const handleAddNew = () => {
+        setSelectedGrammar(null);
+        setFormData({
+            pattern: "",
+            explanation: "",
+            usageNote: "",
+            exampleKorean: "",
+            exampleVietnamese: "",
+            lessonId: lessonId || ""
+        });
+        setIsModalOpen(true);
+    };
+
     const handleAction = async (type, item) => {
         switch (type) {
             case 'edit':
-                console.log("Mở modal sửa:", item.id);
+                try {
+                    setSelectedGrammar(item);
+                    setFormData({
+                        pattern: item.pattern || "",
+                        explanation: item.explanation || "",
+                        usageNote: item.usageNote || "",
+                        exampleKorean: item.exampleKorean || "",
+                        exampleVietnamese: item.exampleVietnamese || "",
+                        lessonId: item.lessonId || item.lesson?.id || lessonId || ""
+                    });
+                    setIsModalOpen(true);
+                    
+                    const detail = await grammarService.getDetail(item.id);
+                    if (detail) {
+                        setSelectedGrammar(detail);
+                        setFormData({
+                            pattern: detail.pattern || "",
+                            explanation: detail.explanation || "",
+                            usageNote: detail.usageNote || "",
+                            exampleKorean: detail.exampleKorean || "",
+                            exampleVietnamese: detail.exampleVietnamese || "",
+                            lessonId: detail.lessonId || detail.lesson?.id || lessonId || ""
+                        });
+                    }
+                } catch (err) {
+                    console.error("Lỗi khi tải chi tiết ngữ pháp:", err);
+                }
                 break;
             case 'delete':
                 if (window.confirm(`Xóa cấu trúc: ${item.pattern}?`)) {
@@ -130,6 +198,49 @@ export default function GrammarList({ lessonId, lessonTitle }) {
                 }
                 break;
             default: break;
+        }
+    };
+
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        if (!formData.pattern.trim()) {
+            alert("Vui lòng nhập cấu trúc ngữ pháp");
+            return;
+        }
+        if (!formData.lessonId) {
+            alert("Vui lòng chọn bài học");
+            return;
+        }
+
+        setIsSaving(true);
+        try {
+            if (selectedGrammar) {
+                const payload = {
+                    pattern: formData.pattern.trim(),
+                    explanation: formData.explanation.trim(),
+                    usageNote: formData.usageNote.trim(),
+                    exampleKorean: formData.exampleKorean.trim(),
+                    exampleVietnamese: formData.exampleVietnamese.trim()
+                };
+                await grammarService.update(selectedGrammar.id, payload);
+            } else {
+                const payload = {
+                    pattern: formData.pattern.trim(),
+                    explanation: formData.explanation.trim(),
+                    usageNote: formData.usageNote.trim(),
+                    exampleKorean: formData.exampleKorean.trim(),
+                    exampleVietnamese: formData.exampleVietnamese.trim(),
+                    lessonId: Number(formData.lessonId)
+                };
+                await grammarService.create(payload);
+            }
+            setIsModalOpen(false);
+            refresh();
+        } catch (error) {
+            console.error("Lỗi khi lưu ngữ pháp:", error);
+            alert("Có lỗi xảy ra khi lưu ngữ pháp. Vui lòng thử lại.");
+        } finally {
+            setIsSaving(false);
         }
     };
 
@@ -189,7 +300,7 @@ export default function GrammarList({ lessonId, lessonTitle }) {
                 </div>
                 <div className="flex gap-2">
                     <KLButton variant="outline" icon={Database} onClick={() => grammarService.seedData().then(() => refresh())}>Seed Data</KLButton>
-                    <KLButton icon={Plus} className="bg-[#2d5a2d]">Thêm mới</KLButton>
+                    <KLButton icon={Plus} className="bg-[#2d5a2d]" onClick={handleAddNew}>Thêm mới</KLButton>
                 </div>
             </div>
 
@@ -296,6 +407,151 @@ export default function GrammarList({ lessonId, lessonTitle }) {
                     </>
                 )}
             </KLCard>
+
+            {isModalOpen && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
+                    <div className="bg-white rounded-[2.5rem] w-full max-w-2xl overflow-hidden shadow-2xl border border-gray-100 flex flex-col max-h-[90vh] animate-in zoom-in-95 duration-200 text-left">
+                        
+                        {/* Modal Header */}
+                        <div className="px-8 py-6 bg-gradient-to-r from-green-50 to-emerald-50/30 border-b border-gray-100 flex justify-between items-center">
+                            <div>
+                                <h3 className="text-xl font-black text-gray-900 uppercase tracking-tight">
+                                    {selectedGrammar ? "Cập Nhật Ngữ Pháp" : "Thêm Ngữ Pháp Mới"}
+                                </h3>
+                                <p className="text-gray-400 text-[10px] font-bold tracking-wider uppercase mt-0.5">
+                                    {selectedGrammar ? "Chỉnh sửa thông tin cấu trúc" : "Tạo cấu trúc ngữ pháp mới cho hệ thống"}
+                                </p>
+                            </div>
+                            <button 
+                                onClick={() => setIsModalOpen(false)}
+                                className="p-2 rounded-2xl bg-gray-50 text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-all active:scale-95"
+                            >
+                                <X size={20} strokeWidth={2.5} />
+                            </button>
+                        </div>
+
+                        {/* Modal Form */}
+                        <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto px-8 py-6 space-y-6">
+                            
+                            {/* Grid 2 Columns */}
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                {/* Pattern */}
+                                <div className="space-y-2">
+                                    <label className="text-[10px] font-black uppercase text-gray-400 px-1">Cấu trúc ngữ pháp *</label>
+                                    <input
+                                        type="text"
+                                        required
+                                        placeholder="Ví dụ: V + 고 싶 ta"
+                                        className="w-full px-4 py-3.5 bg-gray-50 rounded-2xl border-none font-bold text-sm focus:ring-2 focus:ring-green-600/20 focus:bg-white transition-all outline-none"
+                                        value={formData.pattern}
+                                        onChange={(e) => setFormData({ ...formData, pattern: e.target.value })}
+                                    />
+                                </div>
+
+                                {/* Lesson Select (Only show if lessonId is not fixed) */}
+                                <div className="space-y-2">
+                                    <label className="text-[10px] font-black uppercase text-gray-400 px-1">Thuộc Bài Học *</label>
+                                    {lessonId ? (
+                                        <input
+                                            type="text"
+                                            disabled
+                                            className="w-full px-4 py-3.5 bg-gray-100 rounded-2xl border-none font-bold text-sm text-gray-500 cursor-not-allowed outline-none"
+                                            value={lessonTitle || `ID: ${lessonId}`}
+                                        />
+                                    ) : (
+                                        <select
+                                            required
+                                            className="w-full px-4 py-3.5 bg-gray-50 rounded-2xl border-none font-black text-sm focus:ring-2 focus:ring-green-600/20 focus:bg-white transition-all outline-none"
+                                            value={formData.lessonId}
+                                            onChange={(e) => setFormData({ ...formData, lessonId: e.target.value })}
+                                        >
+                                            <option value="">-- Chọn bài học --</option>
+                                            {lessons.map((lesson) => (
+                                                <option key={lesson.id} value={lesson.id}>
+                                                    [{lesson.level?.toUpperCase()}] {lesson.title}
+                                                </option>
+                                            ))}
+                                        </select>
+                                    )}
+                                </div>
+                            </div>
+
+                            {/* Usage Note */}
+                            <div className="space-y-2">
+                                <label className="text-[10px] font-black uppercase text-gray-400 px-1">Ý nghĩa / Cách dùng</label>
+                                <input
+                                    type="text"
+                                    placeholder="Ví dụ: Diễn tả mong muốn làm gì đó (Dùng cho ngôi thứ nhất)"
+                                    className="w-full px-4 py-3.5 bg-gray-50 rounded-2xl border-none font-bold text-sm focus:ring-2 focus:ring-green-600/20 focus:bg-white transition-all outline-none"
+                                    value={formData.usageNote}
+                                    onChange={(e) => setFormData({ ...formData, usageNote: e.target.value })}
+                                />
+                            </div>
+
+                            {/* Explanation */}
+                            <div className="space-y-2">
+                                <label className="text-[10px] font-black uppercase text-gray-400 px-1">Giải thích chi tiết</label>
+                                <textarea
+                                    rows={3}
+                                    placeholder="Giải thích chi tiết cách chia, cách sử dụng trong các ngữ cảnh..."
+                                    className="w-full px-4 py-3.5 bg-gray-50 rounded-2xl border-none font-bold text-sm focus:ring-2 focus:ring-green-600/20 focus:bg-white transition-all outline-none resize-none"
+                                    value={formData.explanation}
+                                    onChange={(e) => setFormData({ ...formData, explanation: e.target.value })}
+                                />
+                            </div>
+
+                            {/* Example Korean */}
+                            <div className="space-y-2">
+                                <label className="text-[10px] font-black uppercase text-gray-400 px-1">Ví dụ Tiếng Hàn</label>
+                                <textarea
+                                    rows={2}
+                                    placeholder="Ví dụ: 한국에 가고 싶어요."
+                                    className="w-full px-4 py-3.5 bg-gray-50 rounded-2xl border-none font-bold text-sm focus:ring-2 focus:ring-green-600/20 focus:bg-white transition-all outline-none resize-none"
+                                    value={formData.exampleKorean}
+                                    onChange={(e) => setFormData({ ...formData, exampleKorean: e.target.value })}
+                                />
+                            </div>
+
+                            {/* Example Vietnamese */}
+                            <div className="space-y-2">
+                                <label className="text-[10px] font-black uppercase text-gray-400 px-1">Ví dụ dịch Tiếng Việt</label>
+                                <textarea
+                                    rows={2}
+                                    placeholder="Ví dụ: Tôi muốn đi Hàn Quốc."
+                                    className="w-full px-4 py-3.5 bg-gray-50 rounded-2xl border-none font-bold text-sm focus:ring-2 focus:ring-green-600/20 focus:bg-white transition-all outline-none resize-none"
+                                    value={formData.exampleVietnamese}
+                                    onChange={(e) => setFormData({ ...formData, exampleVietnamese: e.target.value })}
+                                />
+                            </div>
+
+                            {/* Form Footer Buttons */}
+                            <div className="flex justify-end gap-3 pt-4 border-t border-gray-50">
+                                <button
+                                    type="button"
+                                    onClick={() => setIsModalOpen(false)}
+                                    className="px-6 py-3.5 rounded-2xl bg-gray-50 text-gray-500 font-bold hover:bg-gray-100 transition-all active:scale-95 text-sm"
+                                >
+                                    Hủy bỏ
+                                </button>
+                                <button
+                                    type="submit"
+                                    disabled={isSaving}
+                                    className="px-6 py-3.5 rounded-2xl bg-[#2d5a2d] hover:bg-[#204020] text-white font-bold transition-all active:scale-95 text-sm flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                                >
+                                    {isSaving ? (
+                                        <>
+                                            <Loader2 size={16} className="animate-spin" />
+                                            Đang lưu...
+                                        </>
+                                    ) : (
+                                        "Lưu lại"
+                                    )}
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

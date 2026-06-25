@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   ArrowLeft,
@@ -14,6 +14,7 @@ import {
 
 // Services & Context
 import courseService from "../../Service/API/courseServiceAPI/course.service";
+import lessonService from "../../Service/API/lessonServiceAPI/lesson.service";
 import { useAuth } from "../../../context/authContext";
 
 const CourseLevel = {
@@ -28,7 +29,6 @@ export default function CreateCourse() {
   const [isLoading, setIsLoading] = useState(false);
 
   // --- 1. XÁC ĐỊNH ROLE ĐỂ ĐIỀU HƯỚNG ---
-  // Nếu là teacher thì basePath là /teacher, còn lại là /admin
   const isTeacher = user?.role === 'teacher';
   const basePath = isTeacher ? "/teacher" : "/admin";
 
@@ -36,14 +36,52 @@ export default function CreateCourse() {
   const [courseData, setCourseData] = useState({
     title: "",
     description: "",
-    thumbnail: "", 
+    thumbnail: "",
     price: 0,
     salePrice: 0,
     level: CourseLevel.BEGINNER,
     isPublic: false,
   });
 
+  const [lessonsList, setLessonsList] = useState([]);
+  const [selectedLessons, setSelectedLessons] = useState([]);
+  const [searchLessonTerm, setSearchLessonTerm] = useState("");
+
   const [isFreeCourse, setIsFreeCourse] = useState(false);
+
+  // --- Load all lessons for selection ---
+  useEffect(() => {
+    lessonService.getAllLesson(1, 1000)
+      .then(res => {
+        const cleanList = Array.isArray(res) ? res : res?.data || [];
+        setLessonsList(cleanList);
+      })
+      .catch(err => console.error("Lỗi khi tải danh sách bài học:", err));
+  }, []);
+
+  const filteredLessons = useMemo(() => {
+    let list = lessonsList;
+    if (isTeacher && user?.id) {
+      list = lessonsList.filter(l => {
+        const creatorId = l.course?.createdById;
+        return !l.courseId || Number(creatorId) === Number(user.id);
+      });
+    }
+    if (!searchLessonTerm) return list;
+    return list.filter(l =>
+      l.title?.toLowerCase().includes(searchLessonTerm.toLowerCase())
+    );
+  }, [lessonsList, searchLessonTerm, isTeacher, user]);
+
+  const handleToggleLesson = (id) => {
+    setSelectedLessons(prev => {
+      if (prev.includes(id)) {
+        return prev.filter(item => item !== id);
+      } else {
+        return [...prev, id];
+      }
+    });
+  };
 
   // --- 3. CÁC HÀM XỬ LÝ (HANDLERS) ---
 
@@ -53,7 +91,7 @@ export default function CreateCourse() {
     const slug = title
       .toLowerCase()
       .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
-      .replace(/[^a-z0-9\s-]/g, "") 
+      .replace(/[^a-z0-9\s-]/g, "")
       .trim()
       .replace(/\s+/g, "-");
 
@@ -81,48 +119,56 @@ export default function CreateCourse() {
     }
 
     if (Number(courseData.salePrice) > Number(courseData.price)) {
-        alert("Giá khuyến mãi không thể cao hơn giá gốc!");
-        return;
+      alert("Giá khuyến mãi không thể cao hơn giá gốc!");
+      return;
     }
 
     // B. Validate User (Quan trọng để không bị lỗi 400)
     if (!user || !user.id) {
-        alert("Lỗi phiên đăng nhập: Không tìm thấy ID người dùng.");
-        return;
+      alert("Lỗi phiên đăng nhập: Không tìm thấy ID người dùng.");
+      return;
     }
 
     setIsLoading(true);
 
     try {
-        const finalPublishStatus = publishStatusOverride !== undefined
-            ? publishStatusOverride
-            : courseData.isPublished;
+      const finalPublishStatus = publishStatusOverride !== undefined
+        ? publishStatusOverride
+        : courseData.isPublished;
 
-        // C. Chuẩn bị Payload (Dữ liệu gửi lên Server)
-        const payload = {
-            title: courseData.title,
-            description: courseData.description || "",
-            
-            // Xử lý ảnh: Nếu rỗng thì gửi null
-            thumbnail: courseData.thumbnail && courseData.thumbnail.trim() !== "" ? courseData.thumbnail : null,
-            
-            // Ép kiểu số
-            price: Number(courseData.price) || 0,
-            salePrice: Number(courseData.salePrice) || 0,
-            
-            level: courseData.level,
-            isPublic: finalPublishStatus,
+      // C. Chuẩn bị Payload (Dữ liệu gửi lên Server)
+      const payload = {
+        title: courseData.title,
+        description: courseData.description || "",
 
-            // 👇 QUAN TRỌNG: Gán người tạo là người đang đăng nhập
-            // Backend sẽ nhận ID này để biết ai là chủ sở hữu khóa học
-            createdById: Number(user.id) 
-        };
+        // Xử lý ảnh: Nếu rỗng thì gửi null
+        thumbnail: courseData.thumbnail && courseData.thumbnail.trim() !== "" ? courseData.thumbnail : null,
+
+        // Ép kiểu số
+        price: Number(courseData.price) || 0,
+        salePrice: Number(courseData.salePrice) || 0,
+
+        level: courseData.level,
+        isPublic: finalPublishStatus,
+
+        // 👇 QUAN TRỌNG: Gán người tạo là người đang đăng nhập
+        // Backend sẽ nhận ID này để biết ai là chủ sở hữu khóa học
+        createdById: Number(user.id)
+      };
 
       console.log("📡 Creating Course Payload:", payload);
 
       // D. Gọi API
-      await courseService.createCourse(payload);
-      
+      const createdCourse = await courseService.createCourse(payload);
+      const newCourseId = createdCourse?.id;
+
+      if (newCourseId && selectedLessons.length > 0) {
+        // Gán các bài học đã chọn vào khóa học mới
+        await Promise.all(selectedLessons.map(lId =>
+          lessonService.update(lId, { courseId: newCourseId })
+        ));
+      }
+
       alert(`✅ Tạo khóa học thành công!`);
 
       // E. Điều hướng về đúng trang quản lý của Role đó
@@ -139,7 +185,7 @@ export default function CreateCourse() {
 
   return (
     <div className="min-h-screen bg-[#F8F9FC] font-sans pb-20 p-4 md:p-6 animate-in fade-in duration-500 text-left">
-      
+
       {/* --- HEADER --- */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8 sticky top-0 z-30 bg-[#F8F9FC]/90 backdrop-blur-sm py-2">
         <div className="flex items-center gap-4">
@@ -181,10 +227,10 @@ export default function CreateCourse() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 max-w-[1600px] mx-auto">
-        
+
         {/* --- CỘT TRÁI: THÔNG TIN CHÍNH --- */}
         <div className="lg:col-span-2 space-y-8">
-          
+
           {/* Form Thông tin chung */}
           <div className="bg-white p-6 md:p-8 rounded-[2rem] border-none shadow-sm">
             <div className="flex items-center gap-3 mb-6">
@@ -259,15 +305,69 @@ export default function CreateCourse() {
                 onChange={(e) => setCourseData({ ...courseData, thumbnail: "https://picsum.photos/800/400" })}
               />
             </div>
-            
+
             <div className="mt-4">
-                 <label className="text-[10px] font-black uppercase text-gray-400 mb-2 block ml-1">Hoặc nhập URL Hình ảnh</label>
-                 <input 
-                   className="w-full p-3 bg-gray-50 rounded-xl font-medium text-xs border-none outline-none focus:ring-2 focus:ring-blue-500/20" 
-                   value={courseData.thumbnail} 
-                   onChange={(e) => handleChange("thumbnail", e.target.value)} 
-                   placeholder="https://example.com/image.jpg" 
-                 />
+              <label className="text-[10px] font-black uppercase text-gray-400 mb-2 block ml-1">Hoặc nhập URL Hình ảnh</label>
+              <input
+                className="w-full p-3 bg-gray-50 rounded-xl font-medium text-xs border-none outline-none focus:ring-2 focus:ring-blue-500/20"
+                value={courseData.thumbnail}
+                onChange={(e) => handleChange("thumbnail", e.target.value)}
+                placeholder="https://example.com/image.jpg"
+              />
+            </div>
+          </div>
+
+          {/* Form Chọn bài học có sẵn */}
+          <div className="bg-white p-6 md:p-8 rounded-[2rem] border-none shadow-sm space-y-6">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b pb-4">
+              <div>
+                <h2 className="text-lg font-black text-gray-900 uppercase">Thêm bài học có sẵn</h2>
+                <p className="text-gray-400 text-[10px] font-bold tracking-wider uppercase mt-0.5">
+                  Chọn các bài học hiện có để chuyển vào khóa học mới này
+                </p>
+              </div>
+              <div className="relative w-full md:w-64">
+                <input
+                  type="text"
+                  placeholder="Tìm kiếm bài học..."
+                  className="w-full px-4 py-2 bg-gray-50 rounded-xl font-bold text-xs border-none outline-none focus:ring-1 focus:ring-[#2d5a2d]"
+                  value={searchLessonTerm}
+                  onChange={(e) => setSearchLessonTerm(e.target.value)}
+                />
+              </div>
+            </div>
+
+            <div className="max-h-60 overflow-y-auto space-y-2 pr-2">
+              {filteredLessons.length === 0 ? (
+                <p className="text-gray-400 text-xs font-bold text-center py-4">Không tìm thấy bài học nào</p>
+              ) : (
+                filteredLessons.map((lesson) => {
+                  const isChecked = selectedLessons.includes(lesson.id);
+                  return (
+                    <div
+                      key={lesson.id}
+                      onClick={() => handleToggleLesson(lesson.id)}
+                      className={`flex items-center gap-3 p-3.5 rounded-2xl border cursor-pointer select-none transition-all ${isChecked
+                          ? "bg-green-50 border-[#2d5a2d] text-green-900"
+                          : "bg-gray-50/50 border-gray-100 hover:bg-gray-50 text-gray-700"
+                        }`}
+                    >
+                      <div
+                        className={`w-4 h-4 rounded border-2 flex items-center justify-center transition-colors ${isChecked ? "bg-[#2d5a2d] border-[#2d5a2d]" : "border-gray-300 bg-white"
+                          }`}
+                      >
+                        {isChecked && <div className="w-1.5 h-1.5 bg-white rounded-sm" />}
+                      </div>
+                      <div className="flex-1 text-left min-w-0">
+                        <p className="text-xs font-black truncate">{lesson.title}</p>
+                        <p className="text-[10px] text-gray-400 font-bold mt-0.5 uppercase tracking-tighter">
+                          ID: {lesson.id} {lesson.course ? `• Khóa cũ: ${lesson.course.title}` : `• Chưa gán khóa`}
+                        </p>
+                      </div>
+                    </div>
+                  );
+                })
+              )}
             </div>
           </div>
 
@@ -290,7 +390,7 @@ export default function CreateCourse() {
         <div className="space-y-6">
           <div className="bg-white p-6 rounded-[2rem] border-none shadow-sm space-y-6">
             <h3 className="font-black text-gray-900 text-lg uppercase italic flex items-center gap-2">
-               <Tag size={18} className="text-purple-500"/> Thiết lập
+              <Tag size={18} className="text-purple-500" /> Thiết lập
             </h3>
 
             {/* Level */}
@@ -317,11 +417,10 @@ export default function CreateCourse() {
                 <input
                   type="number"
                   value={courseData.price}
-                  onChange={(e) => setCourseData(prev => ({...prev, price: parseFloat(e.target.value)}))}
+                  onChange={(e) => setCourseData(prev => ({ ...prev, price: parseFloat(e.target.value) }))}
                   disabled={isFreeCourse}
-                  className={`w-full py-3.5 pl-10 pr-4 bg-gray-50 rounded-2xl font-bold text-gray-700 border-none focus:ring-2 focus:ring-[#2d5a2d]/20 outline-none ${
-                    isFreeCourse ? "opacity-50 cursor-not-allowed" : ""
-                  }`}
+                  className={`w-full py-3.5 pl-10 pr-4 bg-gray-50 rounded-2xl font-bold text-gray-700 border-none focus:ring-2 focus:ring-[#2d5a2d]/20 outline-none ${isFreeCourse ? "opacity-50 cursor-not-allowed" : ""
+                    }`}
                 />
               </div>
             </div>
@@ -338,9 +437,8 @@ export default function CreateCourse() {
                   value={courseData.salePrice}
                   onChange={(e) => handleChange("salePrice", parseFloat(e.target.value))}
                   disabled={isFreeCourse}
-                  className={`w-full py-3.5 pl-10 pr-4 bg-red-50 rounded-2xl font-bold text-red-600 border-none focus:ring-2 focus:ring-red-200 outline-none ${
-                    isFreeCourse ? "opacity-50 cursor-not-allowed" : ""
-                  }`}
+                  className={`w-full py-3.5 pl-10 pr-4 bg-red-50 rounded-2xl font-bold text-red-600 border-none focus:ring-2 focus:ring-red-200 outline-none ${isFreeCourse ? "opacity-50 cursor-not-allowed" : ""
+                    }`}
                 />
               </div>
               {courseData.salePrice > courseData.price && !isFreeCourse && (
@@ -356,9 +454,8 @@ export default function CreateCourse() {
               onClick={toggleFreeCourse}
             >
               <div
-                className={`w-5 h-5 rounded-md border-2 flex items-center justify-center transition-colors ${
-                  isFreeCourse ? "bg-[#2d5a2d] border-[#2d5a2d]" : "border-gray-300 bg-white"
-                }`}
+                className={`w-5 h-5 rounded-md border-2 flex items-center justify-center transition-colors ${isFreeCourse ? "bg-[#2d5a2d] border-[#2d5a2d]" : "border-gray-300 bg-white"
+                  }`}
               >
                 {isFreeCourse && <div className="w-2 h-2 bg-white rounded-full" />}
               </div>

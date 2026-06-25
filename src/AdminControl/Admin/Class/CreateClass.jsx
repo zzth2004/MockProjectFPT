@@ -16,6 +16,7 @@ import {
 import courseClassService from "../../Service/API/courseServiceAPI/course-class.service";
 import courseService from "../../Service/API/courseServiceAPI/course.service";
 import { useAuth } from "../../../context/authContext";
+import userService from "../../Service/API/userServiceAPI/user.service";
 
 export default function CreateClass() {
   const { user } = useAuth(); // Lấy thông tin user (admin/teacher) đang login
@@ -24,11 +25,13 @@ export default function CreateClass() {
   const [isFetching, setIsFetching] = useState(true);
 
   const [courses, setCourses] = useState([]);
+  const [teachers, setTeachers] = useState([]);
 
   // State Form
   const [formData, setFormData] = useState({
     name: "",
     courseId: "",
+    teacherId: "",
     startDate: "",
     schedule: "", // Cái này sẽ map vào 'scheduleDescription' trong Entity
     endDate: "",
@@ -46,6 +49,10 @@ export default function CreateClass() {
           const coursesRes = await courseService.getAllCourses(1, 100);
           console.log(coursesRes);
           setCourses(coursesRes?.data || []);
+
+          const teachersRes = await userService.getTeachers(1, 100);
+          console.log("Teachers loaded: ", teachersRes);
+          setTeachers(teachersRes?.data || teachersRes || []);
         } catch (error) {
           console.error("Lỗi:", error);
         } finally {
@@ -72,9 +79,16 @@ export default function CreateClass() {
   };
 
   const handleSubmit = async () => {
+    const isAdmin = user?.role === "admin";
+
     // Validate
     if (!formData.name || !formData.courseId || !formData.startDate) {
       alert("Vui lòng điền đủ: Tên lớp, Khóa học gốc và Ngày khai giảng!");
+      return;
+    }
+
+    if (isAdmin && !formData.teacherId) {
+      alert("Vui lòng chọn giáo viên phụ trách lớp!");
       return;
     }
 
@@ -90,8 +104,8 @@ export default function CreateClass() {
     try {
       // 👇 CHUẨN BỊ PAYLOAD KHỚP VỚI ENTITY
       const payload = {
-        // 1. Map teacherId = ID người đang tạo (Bắt buộc vì Entity yêu cầu)
-        teacherId: user.id,
+        // 1. Map teacherId phù hợp với vai trò
+        teacherId: isAdmin ? Number(formData.teacherId) : user.id,
 
         // 2. Map các trường cơ bản
         courseId: Number(formData.courseId),
@@ -264,36 +278,59 @@ navigate(`${basePath}/classes`);
               </div>
             </div>
 
-            {/* 2. NGƯỜI PHỤ TRÁCH (Hiển thị Admin/User đang đăng nhập) */}
+            {/* 2. NGƯỜI PHỤ TRÁCH (Chỉ định giáo viên cho Admin hoặc Auto-Assign) */}
             <div>
               <label className="text-[10px] font-black uppercase text-gray-400 mb-2 block">
-                Giáo viên (Auto-Assign)
+                {user?.role === "admin" ? "Chọn giáo viên phụ trách" : "Giáo viên (Auto-Assign)"}
               </label>
 
-              {user ? (
-                <div className="flex items-center gap-3 bg-white p-2 rounded-2xl border border-gray-100 shadow-sm">
-                  <div className="w-10 h-10 rounded-full bg-red-50 flex items-center justify-center text-red-600 font-black text-sm border shadow-sm">
-                    {user.fullName
-                      ? user.fullName.charAt(0).toUpperCase()
-                      : "U"}
-                  </div>
-                  <div className="flex flex-col">
-                    <span className="text-sm font-black text-[#1e293b]">
-                      {user.fullName || "User"}
-                    </span>
-                    <span className="text-[10px] font-bold text-gray-400 italic">
-                      ID: {user.id}
-                    </span>
-                  </div>
+              {user?.role === "admin" ? (
+                <div className="relative">
+                  <User
+                    className="absolute left-4 top-1/2 -translate-y-1/2 text-[#2d5a2d]"
+                    size={18}
+                  />
+                  <select
+                    className="w-full pl-12 pr-4 py-4 bg-[#2d5a2d]/5 rounded-2xl font-bold text-[#2d5a2d] outline-none cursor-pointer appearance-none border border-transparent focus:border-[#2d5a2d]"
+                    value={formData.teacherId}
+                    onChange={(e) => handleChange("teacherId", e.target.value)}
+                  >
+                    <option value="">-- Chọn giáo viên --</option>
+                    {teachers.map((t) => (
+                      <option key={t.id} value={t.id}>
+                        {t.fullName} (ID: {t.id})
+                      </option>
+                    ))}
+                  </select>
                 </div>
               ) : (
-                <div className="p-2 bg-red-50 text-red-500 rounded text-xs">
-                  ⚠ Không tìm thấy User
-                </div>
+                <>
+                  {user ? (
+                    <div className="flex items-center gap-3 bg-white p-2 rounded-2xl border border-gray-100 shadow-sm">
+                      <div className="w-10 h-10 rounded-full bg-red-50 flex items-center justify-center text-red-600 font-black text-sm border shadow-sm">
+                        {user.fullName
+                          ? user.fullName.charAt(0).toUpperCase()
+                          : "U"}
+                      </div>
+                      <div className="flex flex-col">
+                        <span className="text-sm font-black text-[#1e293b]">
+                          {user.fullName || "User"}
+                        </span>
+                        <span className="text-[10px] font-bold text-gray-400 italic">
+                          ID: {user.id}
+                        </span>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="p-2 bg-red-50 text-red-500 rounded text-xs">
+                      ⚠ Không tìm thấy User
+                    </div>
+                  )}
+                  <p className="text-[9px] text-gray-400 mt-1 italic ml-1">
+                    * Hệ thống sẽ tự gán User ID này làm Teacher ID
+                  </p>
+                </>
               )}
-              <p className="text-[9px] text-gray-400 mt-1 italic ml-1">
-                * Hệ thống sẽ tự gán User ID này làm Teacher ID
-              </p>
             </div>
 
             {/* 3. NGÀY KHAI GIẢNG */}

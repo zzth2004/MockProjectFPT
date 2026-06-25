@@ -83,13 +83,65 @@ export default function UserList() {
     });
   }, [rawData, searchTerm, filters]);
 
+  // Nhóm học sinh theo lớp dành cho Giáo viên
+  const groupedData = useMemo(() => {
+    if (!isTeacher) return null;
+    const groups = {};
+    
+    filteredDataset.forEach(u => {
+      const enrollments = u.enrollments || [];
+      if (enrollments.length > 0) {
+        enrollments.forEach(enr => {
+          const className = enr.class?.name || "Lớp khác / Chưa xếp lớp";
+          const courseTitle = enr.class?.course?.title || enr.course?.title || "Chưa có thông tin khóa học";
+          const key = `${courseTitle} - ${className}`;
+          
+          if (!groups[key]) {
+            groups[key] = {
+              className,
+              courseTitle,
+              students: []
+            };
+          }
+          if (!groups[key].students.some(s => s.id === u.id)) {
+            groups[key].students.push(u);
+          }
+        });
+      } else {
+        const key = "Chưa xếp lớp";
+        if (!groups[key]) {
+          groups[key] = {
+            className: "Chưa xếp lớp",
+            courseTitle: "",
+            students: []
+          };
+        }
+        groups[key].students.push(u);
+      }
+    });
+    
+    return groups;
+  }, [filteredDataset, isTeacher]);
+
+  const classKeys = useMemo(() => {
+    return groupedData ? Object.keys(groupedData) : [];
+  }, [groupedData]);
+
+  const currentClassKey = classKeys[currentPage - 1];
+  const currentClassGroup = currentClassKey ? groupedData[currentClassKey] : null;
+
   // Phân trang
   const paginatedData = useMemo(() => {
     const startIndex = (currentPage - 1) * pageSize;
     return filteredDataset.slice(startIndex, startIndex + pageSize);
   }, [filteredDataset, currentPage, pageSize]);
 
-  const totalPages = Math.ceil(filteredDataset.length / pageSize);
+  const totalPages = useMemo(() => {
+    if (isTeacher) {
+      return classKeys.length;
+    }
+    return Math.ceil(filteredDataset.length / pageSize);
+  }, [isTeacher, classKeys, filteredDataset, pageSize]);
 
   // Reset trang về 1 khi filter thay đổi
   useEffect(() => {
@@ -140,19 +192,19 @@ export default function UserList() {
         break;
 
       case 'lock':
-      case 'unlock': { // ✅ SỬA: Thêm ngoặc nhọn ở đây vì bên trong có khai báo const
+      case 'unlock': { 
         const isLocking = type === 'lock';
         if (window.confirm(`${isLocking ? 'Khóa' : 'Mở khóa'} tài khoản ${targetUser.username}?`)) {
             try {
-                // await userService.updateStatus(targetUser.id, !isLocking);
-                alert(`✅ Đã ${isLocking ? 'khóa' : 'mở khóa'} thành công! (Demo)`);
+                await userService.updateProfile(targetUser.id, { isActive: !isLocking });
+                alert(`✅ Đã ${isLocking ? 'khóa' : 'mở khóa'} thành công!`);
                 refreshUsers();
-            } catch { // ✅ SỬA: Bỏ biến 'err' vì không dùng đến (ES2019+)
+            } catch { 
                 alert("❌ Thao tác thất bại");
             }
         }
         break;
-      } // ✅ Đóng ngoặc nhọn
+      } 
       case 'kick': {
         if (window.confirm(`⚠️ Bạn muốn đuổi học viên "${targetUser.fullName || targetUser.username}" ra khỏi lớp?`)) {
             try {
@@ -206,12 +258,7 @@ export default function UserList() {
       render: (role) => <KLBadge type={role === 'admin' ? 'warning' : 'success'}>{role}</KLBadge>
     },
     
-    // Cột Khóa học: Chỉ hiện cho Teacher để biết học sinh thuộc lớp nào (nếu API trả về)
-    isTeacher && {
-        key: "courseName", 
-        title: "Khóa học",
-        render: (v) => <span className="text-xs font-bold text-gray-500">{v || "---"}</span>
-    },
+
 
     {
       key: "isActive",
@@ -330,49 +377,102 @@ export default function UserList() {
       </KLCard>
 
       {/* TABLE SECTION */}
-      <KLCard className="p-0 overflow-hidden border-none shadow-xl bg-transparent relative">
-        {loading ? (
-           <div className="py-24 text-center flex flex-col items-center">
-                <div className="w-10 h-10 border-4 border-gray-100 border-t-[#2d5a2d] rounded-full animate-spin mb-4"></div>
-                <p className="font-black text-gray-400 uppercase tracking-widest text-[10px]">Đang tải dữ liệu...</p>
+      {loading ? (
+         <KLCard className="p-0 overflow-hidden border-none shadow-xl bg-white py-24 text-center flex flex-col items-center justify-center rounded-[2.5rem]">
+              <div className="w-10 h-10 border-4 border-gray-100 border-t-[#2d5a2d] rounded-full animate-spin mb-4"></div>
+              <p className="font-black text-gray-400 uppercase tracking-widest text-[10px]">Đang tải dữ liệu...</p>
+         </KLCard>
+      ) : isTeacher ? (
+         classKeys.length === 0 ? (
+            <KLCard className="py-20 text-center bg-white rounded-[2.5rem] border-none shadow-md italic font-black text-gray-400 uppercase tracking-widest">
+                Hệ thống chưa ghi nhận dữ liệu học sinh
+            </KLCard>
+         ) : (
+            <div className="space-y-6">
+              {currentClassGroup && (
+                <KLCard className="p-0 overflow-hidden border-none shadow-xl bg-white rounded-[2.5rem] relative">
+                  {/* Group Header */}
+                  <div className="px-8 py-6 bg-gradient-to-r from-[#2d5a2d]/5 to-transparent border-b border-gray-50 flex justify-between items-center">
+                    <div>
+                      <h3 className="text-xl font-black text-[#2d5a2d] uppercase tracking-tight">
+                        {currentClassGroup.className}
+                      </h3>
+                      {currentClassGroup.courseTitle && (
+                        <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mt-1">
+                          Khóa học: {currentClassGroup.courseTitle}
+                        </p>
+                      )}
+                    </div>
+                    <KLBadge type="success">
+                      {currentClassGroup.students.length} Học viên
+                    </KLBadge>
+                  </div>
+                  
+                  {/* Table for this group */}
+                  <KLTable
+                    columns={columns}
+                    data={currentClassGroup.students}
+                    showAction={true}
+                    onAction={handleAction}
+                    hiddenActions={['edit', 'delete', 'lock', 'reset']}
+                  />
+
+                  {/* PAGINATION UI */}
+                  <div className="px-8 py-6 bg-white border-t border-gray-50 flex flex-col md:flex-row justify-between items-center gap-6 rounded-b-[2.5rem]">
+                     <div className="flex flex-col text-left">
+                         <span className="text-[11px] font-black text-gray-800 uppercase tracking-widest leading-none">
+                             Lớp {currentPage} / {totalPages}
+                         </span>
+                         <span className="text-[10px] font-bold text-gray-400 uppercase mt-1">
+                             Hiển thị {currentClassGroup.students.length} học viên trong lớp này
+                         </span>
+                     </div>
+
+                     <div className="flex items-center gap-3">
+                         <button onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))} disabled={currentPage === 1} className="p-2.5 rounded-2xl bg-gray-50 text-gray-400 disabled:opacity-20 hover:bg-gray-100 transition-all active:scale-90">
+                             <ChevronLeft size={20} strokeWidth={3} />
+                         </button>
+                         <button onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))} disabled={currentPage === totalPages || totalPages === 0} className="p-2.5 rounded-2xl bg-gray-50 text-gray-400 disabled:opacity-20 hover:bg-gray-100 transition-all active:scale-90">
+                             <ChevronRight size={20} strokeWidth={3} />
+                         </button>
+                     </div>
+                  </div>
+                </KLCard>
+              )}
+            </div>
+         )
+      ) : (
+         <KLCard className="p-0 overflow-hidden border-none shadow-xl bg-white rounded-[2.5rem] relative">
+           <KLTable
+              columns={columns}
+              data={paginatedData}
+              showAction={true}
+              onAction={handleAction}
+              hiddenActions={['reset', 'edit']}
+           />
+
+           {/* PAGINATION UI */}
+           <div className="px-8 py-6 bg-white border-t border-gray-50 flex flex-col md:flex-row justify-between items-center gap-6 rounded-b-[2.5rem]">
+              <div className="flex flex-col text-left">
+                  <span className="text-[11px] font-black text-gray-800 uppercase tracking-widest leading-none">
+                      Trang {currentPage} / {totalPages || 1}
+                  </span>
+                  <span className="text-[10px] font-bold text-gray-400 uppercase mt-1">
+                      Hiển thị {paginatedData.length} / {filteredDataset.length} kết quả
+                  </span>
+              </div>
+
+              <div className="flex items-center gap-3">
+                  <button onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))} disabled={currentPage === 1} className="p-2.5 rounded-2xl bg-gray-50 text-gray-400 disabled:opacity-20 hover:bg-gray-100 transition-all active:scale-90">
+                      <ChevronLeft size={20} strokeWidth={3} />
+                  </button>
+                  <button onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))} disabled={currentPage === totalPages || totalPages === 0} className="p-2.5 rounded-2xl bg-gray-50 text-gray-400 disabled:opacity-20 hover:bg-gray-100 transition-all active:scale-90">
+                      <ChevronRight size={20} strokeWidth={3} />
+                  </button>
+              </div>
            </div>
-        ) : (
-           <>
-             <KLTable
-                columns={columns}
-                data={paginatedData}
-                showAction={true}
-                onAction={handleAction}
-                /* 🚩 QUAN TRỌNG: Ẩn các nút hành động nhạy cảm đối với Teacher
-                   Teacher chỉ được xem (có thể thêm nút 'view' nếu muốn rõ ràng)
-                */
-                hiddenActions={isTeacher ? ['edit', 'delete', 'lock', 'reset'] : []}
-             />
-
-             {/* PAGINATION UI */}
-             <div className="px-8 py-6 bg-white border-t border-gray-50 flex flex-col md:flex-row justify-between items-center gap-6 rounded-b-[2.5rem]">
-                <div className="flex flex-col text-left">
-                    <span className="text-[11px] font-black text-gray-800 uppercase tracking-widest leading-none">
-                        Trang {currentPage} / {totalPages || 1}
-                    </span>
-                    <span className="text-[10px] font-bold text-gray-400 uppercase mt-1">
-                        Hiển thị {paginatedData.length} / {filteredDataset.length} kết quả
-                    </span>
-                </div>
-
-                <div className="flex items-center gap-3">
-                    <button onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))} disabled={currentPage === 1} className="p-2.5 rounded-2xl bg-gray-50 text-gray-400 disabled:opacity-20 hover:bg-gray-100 transition-all active:scale-90">
-                        <ChevronLeft size={20} strokeWidth={3} />
-                    </button>
-                    {/* ... (Logic render số trang giữ nguyên hoặc rút gọn như cũ) ... */}
-                    <button onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))} disabled={currentPage === totalPages || totalPages === 0} className="p-2.5 rounded-2xl bg-gray-50 text-gray-400 disabled:opacity-20 hover:bg-gray-100 transition-all active:scale-90">
-                        <ChevronRight size={20} strokeWidth={3} />
-                    </button>
-                </div>
-             </div>
-           </>
-        )}
-      </KLCard>
+         </KLCard>
+      )}
     </div>
   );
 }

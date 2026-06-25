@@ -4,10 +4,10 @@ import { createContext, useContext, useState, useEffect } from "react";
 const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
-  // --- Lấy user từ sessionStorage ---
+  // --- Lấy user: sessionStorage (ưu tiên) -> localStorage (fallback cho new tab) ---
   const [user, setUser] = useState(() => {
     try {
-      const saved = sessionStorage.getItem("user");
+      const saved = sessionStorage.getItem("user") || localStorage.getItem("user");
       return saved ? JSON.parse(saved) : null;
     } catch (err) {
       console.error("❌ Lỗi parse user:", err);
@@ -15,19 +15,32 @@ export const AuthProvider = ({ children }) => {
     }
   });
 
-  // --- Lấy JWT từ sessionStorage ---
-  const [jwt, setJwt] = useState(() => sessionStorage.getItem("jwt") || null);
+  // --- Lấy JWT: sessionStorage -> localStorage fallback ---
+  const [jwt, setJwt] = useState(
+    () => sessionStorage.getItem("jwt") || localStorage.getItem("jwt") || null
+  );
 
-  // --- Lưu user vào sessionStorage khi thay đổi ---
+  // --- Lưu user vào cả hai storage ---
   useEffect(() => {
-    if (user) sessionStorage.setItem("user", JSON.stringify(user));
-    else sessionStorage.removeItem("user");
+    if (user) {
+      const str = JSON.stringify(user);
+      sessionStorage.setItem("user", str);
+      localStorage.setItem("user", str);
+    } else {
+      sessionStorage.removeItem("user");
+      localStorage.removeItem("user");
+    }
   }, [user]);
 
-  // --- Lưu jwt vào sessionStorage khi thay đổi ---
+  // --- Lưu jwt vào cả hai storage ---
   useEffect(() => {
-    if (jwt) sessionStorage.setItem("jwt", jwt);
-    else sessionStorage.removeItem("jwt");
+    if (jwt) {
+      sessionStorage.setItem("jwt", jwt);
+      localStorage.setItem("jwt", jwt);
+    } else {
+      sessionStorage.removeItem("jwt");
+      localStorage.removeItem("jwt");
+    }
   }, [jwt]);
 
   // --- LOGIN: set user + jwt ---
@@ -40,6 +53,8 @@ export const AuthProvider = ({ children }) => {
   const logout = () => {
     sessionStorage.removeItem("user");
     sessionStorage.removeItem("jwt");
+    localStorage.removeItem("user");
+    localStorage.removeItem("jwt");
     setUser(null);
     setJwt(null);
   };

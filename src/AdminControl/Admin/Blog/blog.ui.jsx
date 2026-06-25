@@ -2,7 +2,7 @@ import React, { useEffect, useCallback, useState, useMemo } from "react";
 import { 
     FileText, Plus, Search, User, Calendar, 
     Eye, Globe, Archive, Trash2, Edit3, 
-    ChevronLeft, ChevronRight, Rss, PenTool 
+    ChevronLeft, ChevronRight, Rss, PenTool, X, AlertCircle, Loader2
 } from "lucide-react";
 
 // Components
@@ -10,6 +10,7 @@ import { KLCard } from "../../Component/Card";
 import { KLTable } from "../../Component/Table";
 import { KLButton } from "../../Component/Button";
 import { KLBadge } from "../../Component/Badge";
+import { KLInput } from "../../Component/Input";
 
 // Logic
 import useCallApiHandler from "../../../hooks/HookHander/useCallApiHandler";
@@ -20,20 +21,52 @@ export default function BlogManagement() {
     const [currentPage, setCurrentPage] = useState(1);
     const pageSize = 10;
 
+    // Modal States
+    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [selectedBlog, setSelectedBlog] = useState(null);
+
+    // Form inputs
+    const [title, setTitle] = useState("");
+    const [status, setStatus] = useState("draft");
+    const [thumbnail, setThumbnail] = useState("");
+    const [content, setContent] = useState("");
+    const [formError, setFormError] = useState("");
+    const [isSaving, setIsSaving] = useState(false);
+
     // --- 1. FETCH DATA ---
     const fetchBlogsFn = useCallback(() => 
         blogService.getAll({ 
-            page: currentPage, 
-            limit: pageSize, 
-            search: searchTerm 
+            search: searchTerm,
+            all: "true"
         }), 
-    [currentPage, searchTerm]);
+    [searchTerm]);
 
     const { data: response, loading, call: refresh } = useCallApiHandler(fetchBlogsFn);
 
     useEffect(() => {
         refresh();
     }, [refresh]);
+
+    // Parse dataset
+    const dataset = useMemo(() => {
+        if (!response) return [];
+        if (Array.isArray(response)) return response;
+        if (Array.isArray(response.items)) return response.items;
+        return [];
+    }, [response]);
+
+    // Client-side pagination
+    const paginatedData = useMemo(() => {
+        const startIndex = (currentPage - 1) * pageSize;
+        return dataset.slice(startIndex, startIndex + pageSize);
+    }, [dataset, currentPage, pageSize]);
+
+    const totalPages = Math.max(1, Math.ceil(dataset.length / pageSize));
+
+    // Reset pagination page on search change
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [searchTerm]);
 
     // --- 2. COLUMNS DEFINITION ---
     const columns = [
@@ -75,7 +108,7 @@ export default function BlogManagement() {
                         )}
                     </div>
                     <span className="text-[12px] font-bold text-gray-700">
-                        {author ? `${author.firstName} ${author.lastName}` : "Admin"}
+                        {author ? (author.fullName || `${author.firstName || ''} ${author.lastName || ''}`.trim()) : "Admin"}
                     </span>
                 </div>
             )
@@ -93,14 +126,17 @@ export default function BlogManagement() {
         {
             key: "status",
             title: "Trạng thái",
-            render: (val) => (
-                <KLBadge type={val === "PUBLISHED" ? "success" : "default"}>
-                    <div className="flex items-center gap-1">
-                        {val === "PUBLISHED" ? <Globe size={10} /> : <Archive size={10} />}
-                        <span className="text-[10px] font-black uppercase">{val}</span>
-                    </div>
-                </KLBadge>
-            )
+            render: (val) => {
+                const isPublished = val?.toLowerCase() === "published";
+                return (
+                    <KLBadge type={isPublished ? "success" : "default"}>
+                        <div className="flex items-center gap-1">
+                            {isPublished ? <Globe size={10} /> : <Archive size={10} />}
+                            <span className="text-[10px] font-black uppercase">{val}</span>
+                        </div>
+                    </KLBadge>
+                );
+            }
         }
     ];
 
@@ -108,18 +144,82 @@ export default function BlogManagement() {
     const handleAction = async (type, row) => {
         if (type === 'delete') {
             if (window.confirm(`Bạn có chắc chắn muốn xóa bài viết: ${row.title}?`)) {
-                await blogService.delete(row.id);
-                refresh();
+                try {
+                    await blogService.delete(row.id);
+                    refresh();
+                } catch (err) {
+                    console.error("Lỗi khi xóa bài viết:", err);
+                    alert("Không thể xóa bài viết");
+                }
             }
         }
         if (type === 'edit') {
-            // Logic điều hướng đến trang sửa bài viết
-            console.log("Edit post:", row.id);
+            setSelectedBlog(row);
+            setTitle(row.title || "");
+            setStatus(row.status?.toLowerCase() || "draft");
+            setThumbnail(row.thumbnail || "");
+            setContent(row.content || "");
+            setFormError("");
+            setIsModalOpen(true);
         }
     };
 
-    // Tính toán phân trang (Giả định backend trả về meta, nếu không mặc định 1)
-    const totalPages = response?.meta?.totalPages || 1;
+    const handleOpenCreateModal = () => {
+        setSelectedBlog(null);
+        setTitle("");
+        setStatus("draft");
+        setThumbnail("");
+        setContent("");
+        setFormError("");
+        setIsModalOpen(true);
+    };
+
+    const handleFormSubmit = async (e) => {
+        e.preventDefault();
+        setFormError("");
+
+        if (!title.trim()) {
+            setFormError("Vui lòng nhập tiêu đề bài viết.");
+            return;
+        }
+        if (!content.trim()) {
+            setFormError("Vui lòng nhập nội dung bài viết.");
+            return;
+        }
+
+        const payload = {
+            title: title.trim(),
+            content: content.trim(),
+            thumbnail: thumbnail.trim() || undefined,
+            status: status
+        };
+
+        setIsSaving(true);
+        try {
+            if (selectedBlog) {
+                await blogService.update(selectedBlog.id, payload);
+            } else {
+                await blogService.create(payload);
+            }
+            setIsModalOpen(false);
+            refresh();
+        } catch (err) {
+            console.error("Lỗi khi lưu bài viết:", err);
+            setFormError(err.response?.data?.message || "Không thể lưu bài viết. Hãy thử lại.");
+        } finally {
+            setIsSaving(false);
+        }
+    };
+
+    // Calculate metrics
+    const stats = useMemo(() => {
+        const publishedCount = dataset.filter(p => p.status?.toLowerCase() === "published").length;
+        return {
+            total: dataset.length,
+            drafts: dataset.length - publishedCount,
+            published: publishedCount
+        };
+    }, [dataset]);
 
     return (
         <div className="space-y-8 p-4 animate-in fade-in duration-700">
@@ -132,24 +232,31 @@ export default function BlogManagement() {
                     <p className="text-gray-400 font-bold mt-2 uppercase text-[10px] tracking-[0.2em]">Tin tức & Kiến thức KoreanLab</p>
                 </div>
                 <div className="flex gap-2">
-                    <KLButton icon={Plus} className="bg-[#2d5a2d] shadow-lg shadow-green-100">Viết bài mới</KLButton>
+                    <KLButton icon={Plus} className="bg-[#2d5a2d] shadow-lg shadow-green-100" onClick={handleOpenCreateModal}>Viết bài mới</KLButton>
                 </div>
             </div>
 
             {/* QUICK STATS */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                <KLCard className="bg-white p-4 border-none shadow-sm flex items-center gap-4">
-                    <div className="p-3 bg-green-50 text-[#2d5a2d] rounded-xl"><Rss size={20} /></div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <KLCard className="bg-white p-6 border-none shadow-sm flex items-center gap-4">
+                    <div className="p-4 bg-green-50 text-[#2d5a2d] rounded-2xl"><Rss size={24} /></div>
                     <div className="text-left">
-                        <p className="text-[9px] font-black text-gray-400 uppercase tracking-tighter">Tổng bài viết</p>
-                        <h3 className="text-xl font-black text-gray-900">{response?.length || 0}</h3>
+                        <p className="text-[10px] font-black text-gray-400 uppercase">Tổng bài viết</p>
+                        <h3 className="text-2xl font-black text-gray-900">{stats.total}</h3>
                     </div>
                 </KLCard>
-                <KLCard className="bg-white p-4 border-none shadow-sm flex items-center gap-4">
-                    <div className="p-3 bg-blue-50 text-blue-500 rounded-xl"><PenTool size={20} /></div>
+                <KLCard className="bg-white p-6 border-none shadow-sm flex items-center gap-4">
+                    <div className="p-4 bg-blue-50 text-blue-500 rounded-2xl"><Globe size={24} /></div>
                     <div className="text-left">
-                        <p className="text-[9px] font-black text-gray-400 uppercase tracking-tighter">Đang biên tập</p>
-                        <h3 className="text-xl font-black text-gray-900">3</h3>
+                        <p className="text-[10px] font-black text-gray-400 uppercase">Đã xuất bản</p>
+                        <h3 className="text-2xl font-black text-gray-900">{stats.published}</h3>
+                    </div>
+                </KLCard>
+                <KLCard className="bg-white p-6 border-none shadow-sm flex items-center gap-4">
+                    <div className="p-4 bg-orange-50 text-orange-500 rounded-2xl"><PenTool size={24} /></div>
+                    <div className="text-left">
+                        <p className="text-[10px] font-black text-gray-400 uppercase">Đang biên tập</p>
+                        <h3 className="text-2xl font-black text-gray-900">{stats.drafts}</h3>
                     </div>
                 </KLCard>
             </div>
@@ -162,7 +269,7 @@ export default function BlogManagement() {
                         <input
                             type="text"
                             placeholder="Tìm kiếm tiêu đề bài viết..."
-                            className="w-full pl-12 pr-4 py-3 bg-gray-50 rounded-xl border-none focus:ring-2 focus:ring-[#2d5a2d]/10 font-bold text-sm transition-all"
+                            className="w-full pl-12 pr-4 py-3.5 bg-gray-50 rounded-2xl border-none focus:ring-2 focus:ring-[#2d5a2d]/10 font-bold text-sm transition-all outline-none"
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
                         />
@@ -177,38 +284,116 @@ export default function BlogManagement() {
                     <>
                         <KLTable 
                             columns={columns} 
-                            data={Array.isArray(response) ? response : response?.items || []} 
+                            data={paginatedData} 
                             onAction={handleAction}
                             hiddenActions={['reset', 'lock']}
                         />
 
                         {/* PAGINATION */}
-                        <div className="px-8 py-6 border-t border-gray-50 flex justify-between items-center bg-gray-50/30">
-                            <span className="text-[11px] font-black text-gray-400 uppercase">
-                                Trang {currentPage} / {totalPages}
-                            </span>
-                            <div className="flex items-center gap-2">
-                                <KLButton 
-                                    variant="outline" 
-                                    onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                                    disabled={currentPage === 1}
-                                    className="p-2 h-auto"
-                                >
-                                    <ChevronLeft size={16} />
-                                </KLButton>
-                                <KLButton 
-                                    variant="outline" 
-                                    onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-                                    disabled={currentPage === totalPages}
-                                    className="p-2 h-auto"
-                                >
-                                    <ChevronRight size={16} />
-                                </KLButton>
+                        <div className="px-8 py-6 border-t border-gray-50 flex justify-between items-center bg-gray-50/30 rounded-b-[2.5rem]">
+                            <div className="flex flex-col text-left font-black text-gray-800 uppercase text-[11px] leading-tight">
+                                <span>Trang {currentPage} / {totalPages}</span>
+                                <span className="text-[10px] text-gray-400 font-bold mt-1 tracking-wider">Tổng cộng: {dataset.length} bài viết</span>
                             </div>
+                            {totalPages > 1 && (
+                                <div className="flex items-center gap-1.5">
+                                    <button 
+                                        onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                                        disabled={currentPage === 1}
+                                        className="px-4 py-2 bg-gray-50 text-gray-400 font-bold text-xs rounded-xl disabled:opacity-30 hover:bg-gray-100 transition-all"
+                                    >
+                                        Trước
+                                    </button>
+                                    <button 
+                                        onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                                        disabled={currentPage === totalPages}
+                                        className="px-4 py-2 bg-gray-50 text-gray-400 font-bold text-xs rounded-xl disabled:opacity-30 hover:bg-gray-100 transition-all"
+                                    >
+                                        Sau
+                                    </button>
+                                </div>
+                            )}
                         </div>
                     </>
                 )}
             </KLCard>
+
+            {/* WRITE / EDIT MODAL */}
+            {isModalOpen && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
+                    <div className="bg-white rounded-[2.5rem] w-full max-w-2xl overflow-hidden shadow-2xl border border-gray-100 flex flex-col animate-in zoom-in-95 duration-200 text-left">
+                        
+                        {/* Header */}
+                        <div className="p-8 border-b flex justify-between items-center bg-gray-50/50">
+                            <div>
+                                <h3 className="text-2xl font-black text-gray-950 uppercase tracking-tight italic">
+                                    {selectedBlog ? "Sửa bài viết" : "Viết bài mới"}
+                                </h3>
+                                <p className="text-[10px] font-black text-gray-400 uppercase tracking-wider mt-1">Biên tập nội dung bản tin chia sẻ học tập</p>
+                            </div>
+                            <button onClick={() => setIsModalOpen(false)} className="p-2 hover:bg-gray-100 rounded-full text-gray-400 transition-colors">
+                                <X size={20} strokeWidth={3} />
+                            </button>
+                        </div>
+
+                        {/* Form Body */}
+                        <form onSubmit={handleFormSubmit} className="p-8 space-y-6 max-h-[70vh] overflow-y-auto custom-scrollbar">
+                            {formError && (
+                                <div className="p-4 bg-red-50 rounded-2xl flex items-start gap-3 text-red-700 font-bold text-xs">
+                                    <AlertCircle className="shrink-0 mt-0.5" size={16} />
+                                    <span>{formError}</span>
+                                </div>
+                            )}
+
+                            <KLInput 
+                                label="Tiêu đề bài viết" 
+                                placeholder="Nhập tiêu đề thu hút người đọc..." 
+                                value={title}
+                                onChange={(e) => setTitle(e.target.value)}
+                            />
+
+                            <div className="grid grid-cols-2 gap-4">
+                                <KLInput 
+                                    label="Đường dẫn Ảnh bìa (Thumbnail URL)" 
+                                    placeholder="https://example.com/cover.jpg" 
+                                    value={thumbnail}
+                                    onChange={(e) => setThumbnail(e.target.value)}
+                                />
+
+                                <div className="flex flex-col gap-2 w-full">
+                                    <label className="text-[11px] font-black uppercase tracking-widest text-gray-500 ml-2">Trạng thái xuất bản</label>
+                                    <select 
+                                        className="w-full bg-gray-50 border-2 border-gray-100 rounded-2xl py-4 px-6 font-bold text-gray-800 outline-none focus:border-[#2d5a2d] transition-all"
+                                        value={status}
+                                        onChange={(e) => setStatus(e.target.value)}
+                                    >
+                                        <option value="draft">Bản nháp (Draft)</option>
+                                        <option value="published">Xuất bản (Published)</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div className="flex flex-col gap-2 w-full">
+                                <label className="text-[11px] font-black uppercase tracking-widest text-gray-500 ml-2">Nội dung bài viết</label>
+                                <textarea
+                                    rows={10}
+                                    placeholder="Viết nội dung bài chia sẻ tại đây..."
+                                    className="w-full bg-gray-50 border-2 border-gray-100 rounded-3xl py-4 px-6 font-bold text-gray-800 outline-none focus:border-[#2d5a2d] transition-all"
+                                    value={content}
+                                    onChange={(e) => setContent(e.target.value)}
+                                />
+                            </div>
+
+                            <div className="flex gap-4 pt-4 justify-end border-t">
+                                <KLButton variant="outline" type="button" onClick={() => setIsModalOpen(false)}>Hủy</KLButton>
+                                <KLButton type="submit" disabled={isSaving}>
+                                    {isSaving ? <Loader2 size={16} className="animate-spin" /> : "Lưu bài viết"}
+                                </KLButton>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

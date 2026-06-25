@@ -2,12 +2,13 @@ import React, { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { 
   ArrowLeft, Save, School, BookOpen, Clock, Loader2, Video, Users,
-  CalendarCheck, ShieldCheck, GraduationCap, AlertCircle
+  CalendarCheck, ShieldCheck, GraduationCap, AlertCircle, User
 } from "lucide-react";
 
 import courseClassService from "../../Service/API/courseServiceAPI/course-class.service";
 import courseService from "../../Service/API/courseServiceAPI/course.service";
 import { useAuth } from "../../../context/authContext";
+import userService from "../../Service/API/userServiceAPI/user.service";
 
 export default function EditClass() {
   const { id } = useParams(); // Lấy ID lớp từ URL
@@ -18,6 +19,7 @@ export default function EditClass() {
   const [isFetching, setIsFetching] = useState(true);
 
   const [courses, setCourses] = useState([]);
+  const [teachers, setTeachers] = useState([]);
   
   // Lưu thông tin giáo viên hiện tại của lớp (để hiển thị UI)
   const [currentTeacher, setCurrentTeacher] = useState(null);
@@ -46,6 +48,12 @@ export default function EditClass() {
         // A. Lấy danh sách khóa học (cho dropdown)
         const coursesRes = await courseService.getAllCourses(1, 100); 
         setCourses(coursesRes?.data || []);
+
+        // Tải danh sách giáo viên nếu là Admin
+        if (userRole === "admin") {
+          const teachersRes = await userService.getTeachers(1, 100);
+          setTeachers(teachersRes?.data || teachersRes || []);
+        }
 
         // B. Lấy chi tiết lớp học cần sửa
         const classData = await courseClassService.getClassDetail(id);
@@ -80,7 +88,7 @@ export default function EditClass() {
       }
     };
     fetchData();
-  }, [id, navigate, redirectPath]);
+  }, [id, navigate, redirectPath, userRole]);
 
   // --- 2. HANDLERS ---
   const handleChange = (field, value) => {
@@ -91,6 +99,11 @@ export default function EditClass() {
     // 1. Validate
     if (!formData.name || !formData.courseId || !formData.startDate) {
       alert("Vui lòng điền đủ: Tên lớp, Khóa học gốc và Ngày khai giảng!");
+      return;
+    }
+
+    if (userRole === "admin" && !formData.teacherId) {
+      alert("Vui lòng chọn giáo viên phụ trách!");
       return;
     }
 
@@ -106,7 +119,7 @@ export default function EditClass() {
           scheduleDescription: formData.schedule, 
           startDate: new Date(formData.startDate).toISOString(), 
           googleMeetLink: formData.googleMeetLink,
-          teacherId: Number(formData.teacherId) // Giữ nguyên giáo viên cũ
+          teacherId: Number(formData.teacherId) // Cập nhật giáo viên được chọn
       };
       
       console.log("📡 Updating Class Payload:", payload); 
@@ -256,36 +269,50 @@ export default function EditClass() {
                  </div>
               </div>
 
-              {/* 2. GIÁO VIÊN (READ-ONLY) */}
+              {/* 2. GIÁO VIÊN */}
               <div>
                  <label className="text-[10px] font-black uppercase text-gray-400 mb-2 block">
-                    Người phụ trách (Cố định)
+                    {userRole === "admin" ? "Giáo viên phụ trách" : "Người phụ trách (Cố định)"}
                  </label>
                  
-                 {currentTeacher ? (
-                      <div className="flex items-center gap-3 bg-gray-50 p-3 rounded-2xl border border-gray-200 opacity-70">
-                         <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center text-gray-600 font-black text-sm border-2 border-white shadow-sm flex-shrink-0">
-                             {currentTeacher.fullName ? currentTeacher.fullName.charAt(0).toUpperCase() : "T"}
-                         </div>
-                         <div className="flex flex-col overflow-hidden">
-                             <span className="text-sm font-black text-[#1e293b] truncate">
-                                 {currentTeacher.fullName || "Unknown Teacher"}
-                             </span>
-                             <span className="text-[10px] font-bold text-gray-400 italic">
-                                 ID: {currentTeacher.id} • {getRoleDisplayName(currentTeacher.role)}
-                             </span>
-                         </div>
-                      </div>
+                 {userRole === "admin" ? (
+                   <div className="relative">
+                      <User className="absolute left-4 top-1/2 -translate-y-1/2 text-[#2d5a2d]" size={18}/>
+                      <select 
+                         className="w-full pl-12 pr-4 py-4 bg-[#2d5a2d]/5 hover:bg-[#2d5a2d]/10 rounded-2xl font-bold text-[#2d5a2d] outline-none cursor-pointer appearance-none transition-colors border border-transparent focus:border-[#2d5a2d]" 
+                         value={formData.teacherId} 
+                         onChange={(e) => handleChange("teacherId", e.target.value)}
+                      >
+                         <option value="">-- Chọn giáo viên --</option>
+                         {teachers.map(t => (
+                           <option key={t.id} value={t.id}>
+                             {t.fullName} (ID: {t.id})
+                           </option>
+                         ))}
+                      </select>
+                   </div>
                  ) : (
-                      <div className="p-3 bg-red-50 text-red-400 rounded-xl text-xs font-bold flex items-center gap-2">
-                         <AlertCircle size={14} /> Chưa gán giáo viên
-                      </div>
-                 )}
-                 {/* Chỉ hiển thị dòng note nếu user là Admin (vì Admin có thể thắc mắc sao ko sửa được) */}
-                 {!isTeacher && (
-                    <p className="text-[9px] text-gray-400 mt-2 ml-1 italic">
-                       * Để thay đổi giảng viên, vui lòng sử dụng chức năng "Chuyển lớp" (nếu có).
-                    </p>
+                   <>
+                     {currentTeacher ? (
+                          <div className="flex items-center gap-3 bg-gray-50 p-3 rounded-2xl border border-gray-200 opacity-70">
+                             <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center text-gray-600 font-black text-sm border-2 border-white shadow-sm flex-shrink-0">
+                                 {currentTeacher.fullName ? currentTeacher.fullName.charAt(0).toUpperCase() : "T"}
+                             </div>
+                             <div className="flex flex-col overflow-hidden">
+                                 <span className="text-sm font-black text-[#1e293b] truncate">
+                                     {currentTeacher.fullName || "Unknown Teacher"}
+                                 </span>
+                                 <span className="text-[10px] font-bold text-gray-400 italic">
+                                     ID: {currentTeacher.id} • {getRoleDisplayName(currentTeacher.role)}
+                                 </span>
+                             </div>
+                          </div>
+                     ) : (
+                          <div className="p-3 bg-red-50 text-red-400 rounded-xl text-xs font-bold flex items-center gap-2">
+                             <AlertCircle size={14} /> Chưa gán giáo viên
+                          </div>
+                     )}
+                   </>
                  )}
               </div>
 

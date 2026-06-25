@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useMemo } from "react";
 import {
   ChevronLeft, ChevronRight, Video, BookOpen,
   Plus, X, Trash2, CheckCircle2, Calendar as CalendarIcon, Clock, ExternalLink, Bell, Loader2
@@ -27,6 +27,78 @@ const ScheduleTeacher = () => {
     const d = new Date(date);
     return d.toISOString().split('T')[0];
   };
+
+  const getClassColor = (title) => {
+    if (!title) return { bg: "bg-gray-100", text: "text-gray-700", border: "border-gray-200", label: "text-gray-800" };
+    
+    // Clean up title (remove "[KoreanLab]" prefix)
+    const cleanTitle = title.replace(/\[KoreanLab\]\s*/i, "").trim();
+    
+    // Hash function to pick a stable color index
+    let hash = 0;
+    for (let i = 0; i < cleanTitle.length; i++) {
+      hash = cleanTitle.charCodeAt(i) + ((hash << 5) - hash);
+    }
+    
+    const colors = [
+      { bg: "bg-blue-50 text-blue-700 border-blue-100", label: "text-blue-800" },
+      { bg: "bg-purple-50 text-purple-700 border-purple-100", label: "text-purple-800" },
+      { bg: "bg-pink-50 text-pink-700 border-pink-100", label: "text-pink-800" },
+      { bg: "bg-yellow-50 text-yellow-700 border-yellow-100", label: "text-yellow-800" },
+      { bg: "bg-indigo-50 text-indigo-700 border-indigo-100", label: "text-indigo-800" },
+      { bg: "bg-cyan-50 text-cyan-700 border-cyan-100", label: "text-cyan-800" },
+      { bg: "bg-rose-50 text-rose-700 border-rose-100", label: "text-rose-800" },
+      { bg: "bg-[#E4FBE1] text-[#2d5a2d] border-[#d1f7cc]", label: "text-[#2d5a2d]" }
+    ];
+    
+    const index = Math.abs(hash) % colors.length;
+    return colors[index];
+  };
+
+  const overlapConflict = useMemo(() => {
+    if (!selectedDate || !newTask.trim()) return null;
+    const datePart = formatDateKey(selectedDate);
+    const candStart = new Date(`${datePart}T${startTime}:00`);
+    const candEnd = new Date(`${datePart}T${endTime}:00`);
+    
+    if (candEnd <= candStart) return null;
+    
+    // Check against Google events
+    const conflictingGoogleEvent = googleEvents.find(ev => {
+      if (!ev.start || ev.start.length <= 10) return false;
+      if (!ev.start.startsWith(datePart)) return false;
+      
+      const exStart = new Date(ev.start);
+      const exEnd = ev.end ? new Date(ev.end) : new Date(exStart.getTime() + 60 * 60000);
+      
+      return candStart < exEnd && exStart < candEnd;
+    });
+    
+    if (conflictingGoogleEvent) {
+      return `Trùng lịch với sự kiện Google Calendar: "${conflictingGoogleEvent.summary}"`;
+    }
+    
+    // Check against local tasks
+    const conflictingLocalTask = localTasks.find(task => {
+      if (task.date !== datePart) return false;
+      
+      const exStart = new Date(`${datePart}T${task.time}:00`);
+      const taskEndTime = task.endTime || task.time;
+      const exEnd = new Date(`${datePart}T${taskEndTime}:00`);
+      
+      const finalExEnd = exStart.getTime() === exEnd.getTime() 
+        ? new Date(exStart.getTime() + 60 * 60000) 
+        : exEnd;
+        
+      return candStart < finalExEnd && exStart < candEnd;
+    });
+    
+    if (conflictingLocalTask) {
+      return `Trùng lịch với lịch tự học: "${conflictingLocalTask.title}"`;
+    }
+    
+    return null;
+  }, [selectedDate, startTime, endTime, newTask, googleEvents, localTasks]);
 
   useEffect(() => {
     if ("Notification" in window) Notification.requestPermission();
@@ -95,6 +167,11 @@ const ScheduleTeacher = () => {
   const handleAddTask = async () => {
     if (!newTask.trim()) return;
 
+    if (overlapConflict) {
+      alert(`⚠️ Không thể tạo: ${overlapConflict}`);
+      return;
+    }
+
     // 1. Tính toán duration (phút) từ startTime và endTime
     const start = new Date(`2000-01-01T${startTime}`);
     const end = new Date(`2000-01-01T${endTime}`);
@@ -129,20 +206,21 @@ const ScheduleTeacher = () => {
         }
       } catch (err) {
         console.error(err);
-        saveToLocal(fullDateTimeString, durationMinutes);
+        saveToLocal();
       } finally {
         setIsSubmitting(false);
       }
     } else {
-      saveToLocal(fullDateTimeString, durationMinutes);
+      saveToLocal();
     }
   };
 
-  const saveToLocal = (timeStr) => {
+  const saveToLocal = () => {
     const newTaskObj = {
       id: Date.now(),
       date: formatDateKey(selectedDate),
       time: startTime,
+      endTime: endTime,
       title: newTask,
       type: "SELF_STUDY",
       isCompleted: false
@@ -156,6 +234,7 @@ const ScheduleTeacher = () => {
     setIsModalOpen(true);
     setNewTask("");
     setStartTime("08:00");
+    setEndTime("09:00");
   };
 
   const { days, firstDayIndex } = (() => {
@@ -220,11 +299,14 @@ const ScheduleTeacher = () => {
                   {dayItems.length > 0 && <span className="text-[9px] bg-gray-100 px-1.5 py-0.5 rounded-lg text-gray-500 font-black">{dayItems.length}</span>}
                 </div>
                 <div className="flex-1 overflow-hidden flex flex-col gap-1">
-                  {dayItems.slice(0, 2).map((item, idx) => (
-                    <div key={idx} className={`px-2 py-1 rounded-lg text-[9px] font-black truncate uppercase tracking-tighter ${item.meetLink ? 'bg-[#377437] text-white' : 'bg-orange-100 text-orange-700'}`}>
-                      {item.summary || item.title}
-                    </div>
-                  ))}
+                  {dayItems.slice(0, 2).map((item, idx) => {
+                    const colorClasses = getClassColor(item.summary || item.title);
+                    return (
+                      <div key={idx} className={`px-2 py-1 rounded-lg text-[9px] font-black truncate uppercase tracking-tighter border ${colorClasses.bg}`}>
+                        {item.summary || item.title}
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             );
@@ -257,22 +339,34 @@ const ScheduleTeacher = () => {
                 <div className="text-center py-12 text-gray-300 font-black uppercase text-xs tracking-[0.2em]">No events scheduled</div>
               ) : (
                 <>
-                  {googleEvents.filter(e => e.start?.startsWith(formatDateKey(selectedDate))).map(ev => {
-                    const glowing = isGlowing(ev.start);
-                    const time = ev.start.length > 10 ? new Date(ev.start).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'All Day';
+                  {[
+                    ...googleEvents.filter(e => e.start?.startsWith(formatDateKey(selectedDate))),
+                    ...localTasks.filter(t => t.date === formatDateKey(selectedDate))
+                  ].map(ev => {
+                    const isGoogle = !ev.hasOwnProperty('isCompleted');
+                    const timeStr = isGoogle ? ev.start : `${ev.date}T${ev.time}:00`;
+                    const glowing = isGlowing(timeStr);
+                    const time = (timeStr && timeStr.length > 10) 
+                      ? new Date(timeStr).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) 
+                      : 'All Day';
+                    const colorClasses = getClassColor(ev.summary || ev.title);
                     return (
                       <div key={ev.id} className="flex gap-4 items-center group">
                         <div className="w-14 text-right shrink-0 font-black text-[11px] text-gray-400 uppercase">{time}</div>
-                        <div className={`flex-1 p-4 rounded-3xl border-2 flex items-center justify-between gap-3 transition-all duration-500 ${glowing ? 'bg-white border-green-500 shadow-[0_0_20px_rgba(34,197,94,0.3)] animate-pulse scale-[1.02]' : 'bg-green-50/50 border-green-100'}`}>
+                        <div className={`flex-1 p-4 rounded-3xl border-2 flex items-center justify-between gap-3 transition-all duration-500 ${glowing ? 'bg-white border-green-500 shadow-[0_0_20px_rgba(34,197,94,0.3)] animate-pulse scale-[1.02]' : `bg-white ${colorClasses.bg} border-gray-100`}`}>
                           <div className="flex items-center gap-3">
-                            <div className="p-2.5 bg-white rounded-2xl shadow-sm text-[#377437]">{ev.meetLink ? <Video size={18} /> : <CalendarIcon size={18} />}</div>
+                            <div className="p-2.5 bg-white rounded-2xl shadow-sm text-gray-700">
+                              {ev.meetLink ? <Video size={18} /> : <CalendarIcon size={18} />}
+                            </div>
                             <div>
-                              <h4 className="font-black text-gray-800 text-sm uppercase tracking-tight">{ev.summary}</h4>
-                              <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest mt-0.5">Google Calendar</p>
+                              <h4 className={`font-black text-sm uppercase tracking-tight ${colorClasses.label}`}>{ev.summary || ev.title}</h4>
+                              <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest mt-0.5">
+                                {isGoogle ? 'Google Calendar' : 'Local Schedule'}
+                              </p>
                             </div>
                           </div>
                           {ev.meetLink && (
-                            <a href={ev.meetLink} target="_blank" className={`p-2.5 rounded-xl transition-all ${glowing ? 'bg-green-600 text-white shadow-lg' : 'bg-white text-gray-300 border border-gray-100 hover:text-[#377437]'}`}><ExternalLink size={16} /></a>
+                            <a href={ev.meetLink} target="_blank" className={`p-2.5 rounded-xl transition-all ${glowing ? 'bg-green-600 text-white shadow-lg' : 'bg-white text-gray-300 border border-gray-100 hover:text-green-600'}`}><ExternalLink size={16} /></a>
                           )}
                         </div>
                       </div>
@@ -285,6 +379,12 @@ const ScheduleTeacher = () => {
             {/* --- FOOTER: NHẬP LIỆU CÓ THÊM CỘT THỜI GIAN --- */}
             <div className="p-5 border-t border-gray-100 bg-gray-50/80 shrink-0">
               <div className="flex flex-col gap-4">
+                {overlapConflict && (
+                  <div className="bg-red-50 text-red-600 text-xs font-bold p-3 rounded-2xl border border-red-100 flex items-center gap-2 text-left animate-in slide-in-from-bottom-2 duration-300">
+                    <Bell size={14} className="shrink-0 animate-bounce" />
+                    <span>{overlapConflict}</span>
+                  </div>
+                )}
                 <div className="flex gap-2 items-end">
                   {/* 1. Ô nhập tên bài học */}
                   <div className="flex-1 flex flex-col gap-1">
@@ -293,7 +393,7 @@ const ScheduleTeacher = () => {
                       type="text"
                       value={newTask}
                       onChange={(e) => setNewTask(e.target.value)}
-                      placeholder="VD: Học từ vựng..."
+                      placeholder="VD: Lớp Tiếng Hàn Sơ Cấp 1..."
                       className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm font-bold outline-none focus:border-[#377437] bg-white shadow-sm"
                     />
                   </div>
@@ -329,7 +429,7 @@ const ScheduleTeacher = () => {
                   {/* Nút lưu */}
                   <button
                     onClick={handleAddTask}
-                    disabled={isSubmitting || !newTask.trim()}
+                    disabled={isSubmitting || !newTask.trim() || !!overlapConflict}
                     className="bg-[#377437] hover:bg-green-800 text-white p-3.5 rounded-xl shadow-md transition-all active:scale-95 disabled:bg-gray-300"
                   >
                     {isSubmitting ? <Loader2 size={20} className="animate-spin" /> : <Plus size={24} />}

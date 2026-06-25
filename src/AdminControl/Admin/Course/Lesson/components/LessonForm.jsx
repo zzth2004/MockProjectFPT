@@ -36,9 +36,8 @@ export default function LessonForm({
       contentText: data.contentText || "",
       isPreview: data.isPreview || false,
       isPublic: data.isPublic ?? true,
-      // Nếu đang sửa (data.courseId) thì lấy nó, 
-      // Nếu đang tạo mới mà cha truyền xuống (preSelectedCourseId) thì lấy cái đó
-      courseId: data.courseId || preSelectedCourseId || "",
+      // Ưu tiên preSelectedCourseId do component cha quản lý động
+      courseId: preSelectedCourseId || data.courseId || "",
     }));
   }, [initialData, preSelectedCourseId]); 
 

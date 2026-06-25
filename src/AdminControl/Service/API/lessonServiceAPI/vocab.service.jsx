@@ -53,6 +53,21 @@ const vocabService = {
       });
   },
 
+  // Tạo mới từ vựng
+  create: async (data) => {
+    console.log("[create] Tạo mới từ vựng, Payload:", data);
+    return axiosClient
+      .post("/materials/vocabulary/new", data)
+      .then(res => {
+        console.log("[create] Tạo mới thành công:", res.data.data);
+        return res.data.data;
+      })
+      .catch(err => {
+        console.error("[create] Lỗi khi tạo mới từ vựng:", err);
+        throw err;
+      });
+  },
+
   // 3. Cập nhật từ vựng
   update: async (id, data) => {
     console.log(`[update] Cập nhật ID: ${id}, Payload:`, data);

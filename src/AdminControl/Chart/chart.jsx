@@ -5,6 +5,7 @@ import {
   BarChart, Bar,
   PieChart, Pie,
   RadarChart, Radar,
+  LineChart, Line,
   XAxis, YAxis,
   Tooltip, CartesianGrid,
   Cell, Legend,
