@@ -171,6 +171,7 @@ function AnimatedRoutes() {
           <Route path="/user/active-courses" element={<PageWrapper><ActiveCourses /></PageWrapper>} />
           <Route path="/user/active-courses/detail/:courseId" element={<PageWrapper><CourseDetail /></PageWrapper>} />
           <Route path="/user/active-courses/payment/:courseId" element={<PageWrapper><PaymentPage /></PageWrapper>} />
+          <Route path="/user/payment/:itemType/:itemId" element={<PageWrapper><PaymentPage /></PageWrapper>} />
 
           <Route path="/user/ai-support" element={<PageWrapper><AiSupportConsole /></PageWrapper>} />
           <Route path="/user/message" element={<PageWrapper><ChatUI /></PageWrapper>} />

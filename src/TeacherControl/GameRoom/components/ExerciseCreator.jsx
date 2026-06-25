@@ -65,12 +65,13 @@ const S = {
   },
 };
 
-const TABS_CREATE = ["manual", "json", "import", "ai"];
+const TABS_CREATE = ["manual", "json", "import", "ai", "mix"];
 const TAB_LABELS = {
   manual: "✏️ Tạo thủ công",
   json: "📄 Nhập JSON",
   import: "📁 Import File → AI",
   ai: "🤖 AI theo yêu cầu",
+  mix: "🔀 Trộn bài",
 };
 
 export default function ExerciseCreator({
@@ -105,6 +106,17 @@ export default function ExerciseCreator({
   handleCreateJson,
   handleImport,
   handleAiGenerate,
+  // Mix props
+  exercises,
+  mixSources,
+  setMixSources,
+  mixCount,
+  setMixCount,
+  mixTitle,
+  setMixTitle,
+  mixDesc,
+  setMixDesc,
+  handleMixExercises,
 }) {
   return (
     <div style={S.card("#a855f7")}>
@@ -426,6 +438,168 @@ export default function ExerciseCreator({
               }}
             >
               {creating ? "⏳ AI đang sinh đề..." : "🤖 AI Sinh đề thi ngay"}
+            </button>
+          </div>
+        )}
+
+        {/* ── TAB: MIX ── */}
+        {createTab === "mix" && (
+          <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+            <p style={{ margin: 0, fontSize: 13, color: "#94a3b8" }}>
+              Chọn nhiều bài tập có sẵn → trộn câu hỏi → tạo bài mới với số câu tùy chỉnh.
+            </p>
+
+            {/* Title & Description */}
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+              <div>
+                <label style={S.label}>Tiêu đề bài mới</label>
+                <input
+                  style={S.input}
+                  value={mixTitle}
+                  onChange={(e) => setMixTitle(e.target.value)}
+                  placeholder="VD: Đề thi tổng hợp TOPIK 2..."
+                />
+              </div>
+              <div>
+                <label style={S.label}>Số câu hỏi muốn lấy *</label>
+                <input
+                  style={S.input}
+                  type="number"
+                  min={1}
+                  max={200}
+                  value={mixCount}
+                  onChange={(e) => setMixCount(e.target.value)}
+                />
+              </div>
+            </div>
+            <div>
+              <label style={S.label}>Mô tả (tuỳ chọn)</label>
+              <input
+                style={S.input}
+                value={mixDesc}
+                onChange={(e) => setMixDesc(e.target.value)}
+                placeholder="Mô tả ngắn cho bài trộn..."
+              />
+            </div>
+
+            {/* Source exercise picker */}
+            <div>
+              <label style={S.label}>
+                Chọn bài tập nguồn ({mixSources.length} đã chọn)
+              </label>
+              <div style={{
+                maxHeight: 220,
+                overflowY: "auto",
+                background: "#0f172a",
+                border: "1px solid #334155",
+                borderRadius: 10,
+              }}>
+                {(!exercises || exercises.length === 0) ? (
+                  <p style={{ textAlign: "center", padding: 16, color: "#475569", fontSize: 13 }}>
+                    Không có bài tập. Hãy tải danh sách trước.
+                  </p>
+                ) : (
+                  exercises.map((ex) => {
+                    const isSelected = mixSources.some((s) => s.id === ex.id);
+                    return (
+                      <div
+                        key={ex.id}
+                        onClick={() => {
+                          if (isSelected) {
+                            setMixSources((prev) => prev.filter((s) => s.id !== ex.id));
+                          } else {
+                            setMixSources((prev) => [...prev, ex]);
+                          }
+                        }}
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 10,
+                          padding: "8px 14px",
+                          borderBottom: "1px solid #1e293b",
+                          cursor: "pointer",
+                          background: isSelected ? "rgba(168,85,247,0.12)" : "transparent",
+                          transition: "background 0.15s",
+                        }}
+                      >
+                        <span style={{
+                          width: 18, height: 18, borderRadius: 4,
+                          border: `2px solid ${isSelected ? "#a855f7" : "#475569"}`,
+                          background: isSelected ? "#a855f7" : "transparent",
+                          display: "flex", alignItems: "center", justifyContent: "center",
+                          fontSize: 12, color: "#fff", fontWeight: 700, flexShrink: 0,
+                        }}>
+                          {isSelected ? "✓" : ""}
+                        </span>
+                        <div style={{ minWidth: 0, flex: 1 }}>
+                          <p style={{
+                            margin: 0, fontSize: 13, fontWeight: 600, color: "#f8fafc",
+                            overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+                          }}>
+                            {ex.title || `Bài tập #${ex.id}`}
+                          </p>
+                          <span style={{ fontSize: 11, color: "#475569" }}>
+                            ID: {ex.id}
+                            {ex.questions?.length != null && ` • ${ex.questions.length} câu`}
+                          </span>
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+            </div>
+
+            {/* Selected chips */}
+            {mixSources.length > 0 && (
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                {mixSources.map((ex) => (
+                  <span
+                    key={ex.id}
+                    style={{
+                      display: "inline-flex", alignItems: "center", gap: 4,
+                      background: "rgba(168,85,247,0.15)", border: "1px solid #a855f7",
+                      color: "#c084fc", padding: "3px 10px", borderRadius: 20,
+                      fontSize: 11, fontWeight: 600,
+                    }}
+                  >
+                    {ex.title || `#${ex.id}`}
+                    <span
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setMixSources((prev) => prev.filter((s) => s.id !== ex.id));
+                      }}
+                      style={{ cursor: "pointer", marginLeft: 2, color: "#ef4444", fontWeight: 700 }}
+                    >
+                      ✕
+                    </span>
+                  </span>
+                ))}
+                <button
+                  onClick={() => setMixSources([])}
+                  style={{ ...S.btn("#1e293b", "#ef4444"), padding: "3px 10px", fontSize: 11, border: "1px solid #334155" }}
+                >
+                  Bỏ chọn tất cả
+                </button>
+              </div>
+            )}
+
+            {/* Action button */}
+            <button
+              onClick={handleMixExercises}
+              disabled={creating || mixSources.length === 0}
+              style={{
+                ...S.btn(
+                  creating || mixSources.length === 0 ? "#334155" : "#a855f7",
+                  creating || mixSources.length === 0 ? "#94a3b8" : "#fff"
+                ),
+                justifyContent: "center",
+                fontWeight: 700,
+                opacity: creating || mixSources.length === 0 ? 0.5 : 1,
+                cursor: creating || mixSources.length === 0 ? "not-allowed" : "pointer",
+              }}
+            >
+              {creating ? "⏳ Đang trộn và tạo bài..." : `🔀 Trộn & Tạo bài (${mixCount} câu)`}
             </button>
           </div>
         )}

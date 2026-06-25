@@ -67,6 +67,12 @@ export default function useExerciseManager(addLog) {
   const [aiCount, setAiCount] = useState(5);
   const [aiLevel, setAiLevel] = useState("topik_1");
 
+  // Mix Exercises Form
+  const [mixSources, setMixSources] = useState([]); // list of exercise objects selected as source
+  const [mixCount, setMixCount] = useState(10);     // number of questions to pick
+  const [mixTitle, setMixTitle] = useState("");     // title for new mixed exercise
+  const [mixDesc, setMixDesc] = useState("");       // description for new mixed exercise
+
   // Load JSON templates on mount
   const loadJsonTemplate = useCallback(async () => {
     try {
@@ -314,6 +320,80 @@ export default function useExerciseManager(addLog) {
     }
   }, [aiTopic, aiCount, user, loadExercises, addLog]);
 
+  // Mix Exercises handler — fetch details of selected exercises, shuffle questions, pick N, create new
+  const handleMixExercises = useCallback(async () => {
+    if (mixSources.length === 0) {
+      addLog("Chọn ít nhất 1 bài tập nguồn!", "error");
+      return;
+    }
+    const title = mixTitle.trim() || `Bài trộn ${new Date().toLocaleTimeString("vi-VN")}`;
+    const wantCount = Math.max(1, Number(mixCount) || 10);
+
+    setCreating(true);
+    addLog(`🔀 Đang tải chi tiết ${mixSources.length} bài tập nguồn...`, "info");
+
+    try {
+      // 1. Fetch detail (with questions) for each source exercise in parallel
+      const detailResults = await Promise.allSettled(
+        mixSources.map(ex => exerciseService.getDetail(ex.id))
+      );
+
+      // 2. Collect all questions from successful fetches
+      let allQuestions = [];
+      detailResults.forEach((result, idx) => {
+        if (result.status === "fulfilled") {
+          const detail = result.value;
+          const qs = detail?.questions || detail?.data?.questions || [];
+          addLog(`  ✓ ${mixSources[idx].title}: ${qs.length} câu`, "info");
+          allQuestions = [...allQuestions, ...qs];
+        } else {
+          addLog(`  ✗ Lỗi tải bài "${mixSources[idx].title}": ${result.reason?.message}`, "error");
+        }
+      });
+
+      if (allQuestions.length === 0) {
+        addLog("Không tải được câu hỏi nào từ các bài đã chọn!", "error");
+        return;
+      }
+
+      // 3. Fisher-Yates shuffle
+      const shuffled = [...allQuestions];
+      for (let i = shuffled.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+      }
+
+      // 4. Take requested count (or all if fewer available)
+      const picked = shuffled.slice(0, Math.min(wantCount, shuffled.length));
+      addLog(`🎲 Đã trộn: ${allQuestions.length} câu → chọn ${picked.length} câu`, "info");
+
+      // 5. Build payload and POST to manual endpoint
+      const payload = {
+        title,
+        description: mixDesc.trim() || `Bài trộn từ: ${mixSources.map(e => e.title).join(", ")}`,
+        timeLimit: 30,
+        skill: "reading",
+        level: "topik_1",
+        createdBy: user?.id,
+        questions: picked.map(({ id, createdAt, updatedAt, exerciseId, ...q }) => ({
+          ...q,
+          options: (q.options || []).map(({ id: oid, createdAt: oc, updatedAt: ou, questionId: qi, ...o }) => o),
+        })),
+      };
+
+      const res = await axiosClient.post("/game-rooms/exercises/manual", payload);
+      const d = res.data?.data || res.data;
+      addLog(`✅ Tạo bài trộn thành công! ID: ${d.id} — ${d.title} (${picked.length} câu)`, "success");
+      setCreateResult(d);
+      setSelectedEx(d);
+      loadExercises();
+    } catch (e) {
+      addLog("Lỗi tạo bài trộn: " + (e.response?.data?.message || e.message), "error");
+    } finally {
+      setCreating(false);
+    }
+  }, [mixSources, mixCount, mixTitle, mixDesc, user, loadExercises, addLog]);
+
   // Initial loads
   useEffect(() => {
     loadExercises();
@@ -362,11 +442,22 @@ export default function useExerciseManager(addLog) {
     aiLevel,
     setAiLevel,
 
+    // Mix exercises
+    mixSources,
+    setMixSources,
+    mixCount,
+    setMixCount,
+    mixTitle,
+    setMixTitle,
+    mixDesc,
+    setMixDesc,
+
     // Actions
     loadExercises,
     handleCreateManual,
     handleCreateJson,
     handleImport,
     handleAiGenerate,
+    handleMixExercises,
   };
 }

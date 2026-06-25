@@ -1,7 +1,8 @@
 import React, { useEffect, useCallback, useMemo } from "react";
 import {
   Users, PlusCircle, GraduationCap, ClipboardCheck,
-  Clock, CalendarDays, Activity, Loader2
+  Clock, CalendarDays, Activity, Loader2,
+  BookOpen, Award, Chrome, ChevronRight
 } from "lucide-react";
 import { useNavigate } from "react-router-dom"; // 1. Import useNavigate
 
@@ -17,7 +18,18 @@ import { getTimeData } from '../AdminControl/Service/timeService';
 import teacherService from "../AdminControl/Service/API/userServiceAPI/teacher.service"; 
 
 // Charts
-import { KLAreaChart, KLDonutChart } from "../AdminControl/Chart/chart";
+import { KLAreaChart, KLDonutChart, KLBarChart } from "../AdminControl/Chart/chart";
+import {
+  ResponsiveContainer,
+  ComposedChart,
+  Bar,
+  Line,
+  XAxis,
+  YAxis,
+  Tooltip,
+  CartesianGrid,
+  Legend
+} from "recharts";
 
 // --- DỮ LIỆU MẪU (MOCK DATA) ---
 const MOCK_STATS = {
@@ -36,6 +48,13 @@ const MOCK_STATS = {
     { name: 'Đang chờ', value: 25, color: '#FFB800' }
   ]
 };
+
+const MOCK_CLASSES_STATS = [
+  { classId: 1, className: "Sơ cấp 1A", studentCount: 15, avgProgress: 75, avgScore: 82 },
+  { classId: 2, className: "Sơ cấp 1B", studentCount: 12, avgProgress: 60, avgScore: 78 },
+  { classId: 3, className: "TOPIK I", studentCount: 8, avgProgress: 90, avgScore: 88 },
+  { classId: 4, className: "Giao tiếp", studentCount: 10, avgProgress: 45, avgScore: 72 }
+];
 
 const MOCK_STUDENTS = [
   { id: 'm1', fullName: "Học viên mẫu A", email: "sample-a@gmail.com", courseName: "Khóa học mẫu", status: "active", joinedAt: new Date().toISOString() },
@@ -78,6 +97,11 @@ export default function TeacherDashboardHome() {
         ? s.submissionStats 
         : MOCK_STATS.submissionStats
     };
+  }, [stats]);
+
+  const displayClassesStats = useMemo(() => {
+    const realStats = stats?.classesStats || [];
+    return realStats.length > 0 ? realStats : MOCK_CLASSES_STATS;
   }, [stats]);
 
   const displayStudents = useMemo(() => {
@@ -139,7 +163,7 @@ export default function TeacherDashboardHome() {
             <KLButton 
                 icon={PlusCircle} 
                 className="bg-[#377437] text-[10px] font-black hover:bg-[#2a522a]"
-                onClick={() => alert("Chức năng giao bài tập đang phát triển!")}
+                onClick={() => navigate(`${basePath}/exercises`)}
             >
                 Giao bài tập
             </KLButton>
@@ -177,16 +201,81 @@ export default function TeacherDashboardHome() {
 
       {/* 3. CHARTS */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <KLCard className="lg:col-span-2" title="Tiến độ học tập">
+        <KLCard className="lg:col-span-2" title="Tiến độ học tập chung" subtitle="Điểm số trung bình tích lũy của học viên theo tháng">
           <KLAreaChart
             data={displayStats.performanceHistory}
             xKey="month"
             dataKey="score"
           />
         </KLCard>
-        <KLCard title="Trạng thái nộp bài">
+        <KLCard title="Trạng thái nộp bài" subtitle="Tỷ lệ nộp bài tập về nhà">
           <div className="h-[240px] flex items-center justify-center">
             <KLDonutChart data={displayStats.submissionStats} />
+          </div>
+        </KLCard>
+      </div>
+
+      {/* 3.5. CHI TIẾT LỚP HỌC & NĂNG LỰC HỌC VIÊN (DỮ LIỆU THỰC TẾ) */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <KLCard className="lg:col-span-1" title="Sĩ số học viên theo lớp" subtitle="Số học sinh thực tế đang hoạt động trong từng lớp dạy">
+          <div className="h-[300px] w-full">
+            <KLBarChart
+              data={displayClassesStats}
+              xKey="className"
+              yKey="studentCount"
+              color="#3b82f6"
+            />
+          </div>
+        </KLCard>
+
+        <KLCard className="lg:col-span-2" title="Tiến độ & Năng lực học tập" subtitle="So sánh song song Tiến độ (%) và Điểm số (%) trung bình theo lớp">
+          <div className="h-[300px] w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <ComposedChart data={displayClassesStats} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                <XAxis 
+                  dataKey="className" 
+                  axisLine={false} 
+                  tickLine={false} 
+                  tick={{ fill: "#0f172a", fontSize: 11, fontWeight: 900 }} 
+                />
+                <YAxis 
+                  axisLine={false} 
+                  tickLine={false} 
+                  tick={{ fill: "#0f172a", fontSize: 12, fontWeight: 900 }} 
+                />
+                <Tooltip 
+                  contentStyle={{ 
+                    borderRadius: '16px', 
+                    border: 'none', 
+                    boxShadow: '0 20px 25px -5px rgb(0 0 0 / 0.1)', 
+                    fontWeight: '900' 
+                  }} 
+                />
+                <Legend 
+                  verticalAlign="top" 
+                  align="right"
+                  iconType="circle"
+                  wrapperStyle={{ fontWeight: '900', fontSize: '11px', paddingBottom: '15px' }}
+                />
+                <Bar 
+                  name="Tiến độ trung bình (%)" 
+                  dataKey="avgProgress" 
+                  fill="#4ea84e" 
+                  radius={[8, 8, 0, 0]} 
+                  barSize={30} 
+                />
+                <Line 
+                  name="Điểm trung bình (%)" 
+                  type="monotone" 
+                  dataKey="avgScore" 
+                  stroke="#f59e0b" 
+                  strokeWidth={4} 
+                  dot={{ r: 6, fill: "#f59e0b", strokeWidth: 3, stroke: '#fff' }} 
+                  activeDot={{ r: 8, strokeWidth: 0 }}
+                />
+              </ComposedChart>
+            </ResponsiveContainer>
           </div>
         </KLCard>
       </div>

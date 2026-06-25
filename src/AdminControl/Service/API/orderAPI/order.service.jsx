@@ -14,6 +14,16 @@ const orderService = {
   // Giả lập thanh toán thành công (Admin / Webhook mock)
   completeOrder: async (id) => {
     return axiosClient.patch(`/orders/${id}/complete`).then(res => res.data.data);
+  },
+
+  // Tạo đơn hàng mới (Checkout)
+  checkout: async (data) => {
+    return axiosClient.post("/orders/checkout", data).then(res => res.data.data || res.data);
+  },
+
+  // Giả lập thanh toán qua Webhook tự động (Casso/PayOS mock)
+  simulatePayment: async (orderCode, amount) => {
+    return axiosClient.post("/orders/webhook/bank-transfer", { orderCode, amount }).then(res => res.data);
   }
 };
 

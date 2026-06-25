@@ -1,5 +1,7 @@
-import React from 'react';
-import { Check, X, Star, Sparkles, ShieldCheck, Zap } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Check, X, Star, Sparkles, ShieldCheck, Zap, Loader2 } from 'lucide-react';
+import subscriptionService from '../../../AdminControl/Service/API/subscriptonAPI/subscription.service';
 
 const COLORS = {
   primary: "#377437",
@@ -7,54 +9,73 @@ const COLORS = {
 };
 
 export default function UpgradePage() {
-  const plans = [
-    { 
-      name: "6 Months", 
-      price: "569,000", 
-      oldPrice: "1,198,000", 
-      voucher: "Save 30k", 
-      color: "from-emerald-400 to-cyan-500",
-      description: "Perfect for short-term goals"
-    },
-    { 
-      name: "1 Year", 
-      price: "854,000", 
-      oldPrice: "1,798,000", 
-      voucher: "Save 45k", 
-      color: "from-orange-400 to-yellow-500", 
-      popular: true,
-      description: "Best value for serious learners"
-    },
-    { 
-      name: "Lifetime", 
-      price: "1,424,000", 
-      oldPrice: "2,998,000", 
-      voucher: "Save 75k", 
-      color: "from-cyan-400 to-blue-500",
-      description: "Ultimate access forever"
-    },
-  ];
+  const navigate = useNavigate();
+  const [plans, setPlans] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    subscriptionService.getPlans()
+      .then(data => {
+        const styles = [
+          { color: "from-emerald-400 to-cyan-500", voucher: "Giảm 30k", oldPricePercent: 1.5, desc: "Phù hợp mục tiêu ngắn hạn" },
+          { color: "from-orange-400 to-yellow-500", voucher: "Giảm 45k", oldPricePercent: 1.6, desc: "Lựa chọn tốt nhất cho học viên lâu dài", popular: true },
+          { color: "from-cyan-400 to-blue-500", voucher: "Giảm 75k", oldPricePercent: 1.8, desc: "Học tập không giới hạn" },
+        ];
+        const mapped = data.map((plan, idx) => {
+          const style = styles[idx % styles.length];
+          const priceNum = parseFloat(plan.price) || 0;
+          const oldPriceVal = Math.round(priceNum * (style.oldPricePercent || 1.5));
+          return {
+            id: plan.id,
+            name: plan.name,
+            price: priceNum.toLocaleString('vi-VN'),
+            priceVal: priceNum,
+            oldPrice: oldPriceVal.toLocaleString('vi-VN'),
+            voucher: style.voucher,
+            color: style.color,
+            popular: style.popular || false,
+            description: plan.description || style.desc,
+          };
+        });
+        setPlans(mapped);
+      })
+      .catch(err => {
+        console.error("Failed to load plans:", err);
+      })
+      .finally(() => {
+        setLoading(false);
+      });
+  }, []);
 
   const comparisonData = [
-    { feature: "Unlock all premium lessons", free: false, pro: true },
-    { feature: "Daily updated mock tests", free: false, pro: true },
-    { feature: "Offline mode access", free: false, pro: true },
-    { feature: "Remove all advertisements", free: false, pro: true },
-    { feature: "Vocabulary & Grammar practice", free: true, pro: true },
-    { feature: "Full mock exam simulations", free: "10 tests", pro: "60+ tests" },
-    { feature: "Total question bank", free: "2,000", pro: "10,000+" },
-    { feature: "Multi-device synchronization", free: false, pro: true },
+    { feature: "Mở khóa toàn bộ bài học Premium", free: false, pro: true },
+    { feature: "Đề thi thử TOPIK cập nhật hàng ngày", free: false, pro: true },
+    { feature: "Học offline tiện lợi", free: false, pro: true },
+    { feature: "Loại bỏ hoàn toàn quảng cáo", free: false, pro: true },
+    { feature: "Luyện tập Từ vựng & Ngữ pháp", free: true, pro: true },
+    { feature: "Simulate thi thử TOPIK", free: "10 bài test", pro: "60+ bài test" },
+    { feature: "Ngân hàng câu hỏi đồ sộ", free: "2,000 câu", pro: "10,000+ câu" },
+    { feature: "Đồng bộ hóa nhiều thiết bị", free: false, pro: true },
   ];
+
+  if (loading) {
+    return (
+      <div className="w-full h-screen flex flex-col items-center justify-center bg-[#F8F9FC]">
+        <Loader2 className="w-10 h-10 text-[#377437] animate-spin mb-4" />
+        <p className="text-gray-500 font-bold uppercase tracking-widest text-[10px]">Đang tải danh sách gói...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[#F8FAFC] py-12 px-4 sm:px-6 lg:px-8">
       {/* --- HEADER --- */}
       <div className="max-w-4xl mx-auto text-center mb-16">
         <h2 className="text-4xl font-black text-slate-900 mb-4 tracking-tight">
-          Upgrade to <span style={{ color: COLORS.primary }}>KoreanLab Premium</span>
+          Nâng cấp tài khoản <span style={{ color: COLORS.primary }}>KoreanLab Premium</span>
         </h2>
         <p className="text-lg text-slate-500 font-medium">
-          Master TOPIK faster with exclusive features and unlimited practice.
+          Chinh phục điểm số TOPIK cao hơn với các đặc quyền VIP không giới hạn.
         </p>
       </div>
 
@@ -69,7 +90,7 @@ export default function UpgradePage() {
           >
             {plan.popular && (
               <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-orange-500 text-white px-6 py-1.5 rounded-full text-xs font-black uppercase tracking-widest shadow-lg">
-                Most Popular
+                Phổ biến nhất
               </div>
             )}
             
@@ -90,8 +111,11 @@ export default function UpgradePage() {
               <span className="text-slate-400 line-through text-sm">{plan.oldPrice} VND</span>
             </div>
 
-            <button className={`w-full py-4 rounded-2xl text-white font-black text-sm tracking-wider bg-gradient-to-r ${plan.color} shadow-lg hover:brightness-110 active:scale-95 transition-all`}>
-              GET STARTED NOW
+            <button 
+              onClick={() => navigate(`/user/payment/subscription/${plan.id}`)}
+              className={`w-full py-4 rounded-2xl text-white font-black text-sm tracking-wider bg-gradient-to-r ${plan.color} shadow-lg hover:brightness-110 active:scale-95 transition-all`}
+            >
+              MUA NGAY BÂY GIỜ
             </button>
           </div>
         ))}

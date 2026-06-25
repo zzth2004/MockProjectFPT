@@ -3,6 +3,7 @@ import { useSearchParams, useNavigate } from "react-router-dom";
 import { io } from "socket.io-client";
 import { useAuth } from "../../../context/authContext";
 
+
 const SOCKET_URL = "http://localhost:3000/game-room";
 const OPTION_COLORS = [
   { bg: "#ef4444", glow: "rgba(239,68,68,0.35)", light: "#fca5a5" },
@@ -136,10 +137,24 @@ export default function GameRoomPlayer() {
     setIsAnswered(true);
     setSelected(option);
 
-    const addedScore = isTimeout ? 0 : Math.max(10, Math.round(timeLeft * 1.5));
+    const q = questions[qIdx];
+    const basePoints = q?.points || 10;
+    const limit = q?.timeLimit || 30;
+    const isCorrect = !isTimeout && option?.isCorrect === true;
+
+    // Điểm chính: chỉ cộng khi đúng
+    const earnedBase = isCorrect ? basePoints : 0;
+
+    // Điểm tốc độ: 1/5 điểm chính, giảm dần theo thời gian còn lại
+    // speedBonus = (basePoints / 5) * (timeLeft / limit)
+    const speedBonus = isCorrect
+      ? Math.round((basePoints / 5) * (timeLeft / limit))
+      : 0;
+
+    const addedScore = earnedBase + speedBonus;
     const newScore = score + addedScore;
     setScore(newScore);
-    setFeedbackData({ isTimeout, addedScore });
+    setFeedbackData({ isTimeout, isCorrect, earnedBase, speedBonus, addedScore });
 
     socketRef.current?.emit("submitProgress", {
       pin,
@@ -159,7 +174,7 @@ export default function GameRoomPlayer() {
       }
     }, 2500);
     setScreen("FEEDBACK");
-  }, [isAnswered, timeLeft, score, qIdx, questions.length, pin]);
+  }, [isAnswered, timeLeft, score, qIdx, questions, pin]);
 
   const handleExit = () => {
     stopTimer();
@@ -471,32 +486,65 @@ export default function GameRoomPlayer() {
   // ════════════════════════════════════════════════════════════════════════
   if (screen === "FEEDBACK") {
     const isTimeout = feedbackData?.isTimeout;
+    const isCorrect = feedbackData?.isCorrect;
     return (
       <div style={S.page}>
         <div style={S.particles} />
         <div style={{ ...S.glass, maxWidth: 440, width: "100%", textAlign: "center", padding: "48px 36px", zIndex: 1, position: "relative", overflow: "hidden" }}>
-          {!isTimeout && feedbackData?.addedScore > 0 && (
+          {/* Top accent bar */}
+          {isCorrect && (
             <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: 4, background: "linear-gradient(90deg, #10b981, #34d399)" }} />
           )}
+          {!isTimeout && !isCorrect && (
+            <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: 4, background: "linear-gradient(90deg, #ef4444, #f87171)" }} />
+          )}
+
           <div style={{ fontSize: 80, marginBottom: 20, animation: "bounceIn 0.5s ease" }}>
-            {isTimeout ? "⏰" : selected ? "⚡" : "🤔"}
+            {isTimeout ? "⏰" : isCorrect ? "✅" : "❌"}
           </div>
           <h2 style={{ margin: "0 0 10px", fontSize: 24, fontWeight: 900, color: "#f8fafc" }}>
-            {isTimeout ? "Hết giờ!" : selected ? "Đã ghi nhận!" : "Không trả lời"}
+            {isTimeout ? "Hết giờ!" : isCorrect ? "Chính xác!" : "Sai rồi!"}
           </h2>
           <p style={{ margin: "0 0 24px", color: "#94a3b8", fontSize: 14, lineHeight: 1.5 }}>
-            {isTimeout ? "Bạn không kịp chọn đáp án." : `Bạn đã chọn: "${selected?.optionText}"`}
+            {isTimeout
+              ? "Bạn không kịp chọn đáp án."
+              : `Bạn đã chọn: "${selected?.optionText}"`}
           </p>
 
-          {!isTimeout && feedbackData?.addedScore > 0 && (
+          {/* Score breakdown — chỉ hiện khi đúng */}
+          {isCorrect && (
+            <div style={{ display: "flex", gap: 10, justifyContent: "center", marginBottom: 24, animation: "scaleUp 0.4s ease 0.2s both" }}>
+              <div style={{
+                padding: "12px 20px", borderRadius: 14,
+                background: "rgba(16,185,129,0.12)", border: "1px solid rgba(16,185,129,0.3)",
+                textAlign: "center",
+              }}>
+                <div style={{ fontSize: 24, fontWeight: 900, color: "#10b981" }}>+{feedbackData.earnedBase}</div>
+                <div style={{ fontSize: 11, color: "#6ee7b7", fontWeight: 600 }}>điểm chính</div>
+              </div>
+              {feedbackData.speedBonus > 0 && (
+                <div style={{
+                  padding: "12px 20px", borderRadius: 14,
+                  background: "rgba(251,191,36,0.12)", border: "1px solid rgba(251,191,36,0.3)",
+                  textAlign: "center",
+                }}>
+                  <div style={{ fontSize: 24, fontWeight: 900, color: "#fbbf24" }}>+{feedbackData.speedBonus}</div>
+                  <div style={{ fontSize: 11, color: "#fcd34d", fontWeight: 600 }}>tốc độ</div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Sai thì hiện 0 điểm */}
+          {!isTimeout && !isCorrect && (
             <div style={{
               display: "inline-flex", alignItems: "baseline", gap: 8,
               padding: "14px 28px", borderRadius: 16,
-              background: "rgba(16,185,129,0.12)", border: "1px solid rgba(16,185,129,0.3)",
-              marginBottom: 24, animation: "scaleUp 0.4s ease 0.2s both",
+              background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.25)",
+              marginBottom: 24,
             }}>
-              <span style={{ fontSize: 32, fontWeight: 900, color: "#10b981" }}>+{feedbackData.addedScore}</span>
-              <span style={{ fontSize: 13, color: "#6ee7b7", fontWeight: 600 }}>điểm tốc độ</span>
+              <span style={{ fontSize: 24, fontWeight: 900, color: "#ef4444" }}>+0</span>
+              <span style={{ fontSize: 13, color: "#fca5a5", fontWeight: 600 }}>không có điểm</span>
             </div>
           )}
 

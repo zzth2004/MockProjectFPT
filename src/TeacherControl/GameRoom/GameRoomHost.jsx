@@ -86,6 +86,16 @@ export default function GameRoomHost() {
             handleCreateJson={exManager.handleCreateJson}
             handleImport={exManager.handleImport}
             handleAiGenerate={exManager.handleAiGenerate}
+            exercises={exManager.exercises}
+            mixSources={exManager.mixSources}
+            setMixSources={exManager.setMixSources}
+            mixCount={exManager.mixCount}
+            setMixCount={exManager.setMixCount}
+            mixTitle={exManager.mixTitle}
+            setMixTitle={exManager.setMixTitle}
+            mixDesc={exManager.mixDesc}
+            setMixDesc={exManager.setMixDesc}
+            handleMixExercises={exManager.handleMixExercises}
           />
 
           {/* Leaderboard table */}
