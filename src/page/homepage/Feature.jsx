@@ -37,7 +37,7 @@ const personas = [
       "Nhận diện giọng nói (Whisper)",
       "Đánh giá phát âm, chấm điểm",
       "Giả lập hội thoại, phản hồi tự nhiên theo ngữ cảnh",
-      "Gợi ý cá nhân hóa lộ trình học",
+      "Chấm điểm phát âm và gợi ý cải thiện",
     ],
     interaction: "Cao",
   },
@@ -105,7 +105,7 @@ const Feature = () => {
               <ul className="list-disc list-inside text-gray-700 space-y-1">
                 <li>Quản lý người dùng, lớp học, phân quyền</li>
                 <li>Theo dõi tiến độ học tập, điểm số</li>
-                <li>Báo cáo thống kê & đề xuất lộ trình cá nhân hóa</li>
+                <li>Báo cáo thống kê tiến độ học tập</li>
               </ul>
             </div>
           </div>

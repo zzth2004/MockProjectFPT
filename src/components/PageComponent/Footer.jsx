@@ -1,111 +1,139 @@
 import { Link } from "react-router-dom";
-import { BookOpen } from "lucide-react";
+import { BookOpen, Twitter, Facebook, Youtube, Mail, Heart } from "lucide-react";
 
-const PRIMARY = "#008236";
-
-// Button custom
-const Button = ({ to, onClick, children, variant = "primary", className = "" }) => {
-  const base =
-    "inline-flex items-center gap-2 px-5 py-3 rounded-2xl text-sm font-semibold transition focus:outline-none focus:ring-2 focus:ring-offset-2";
-
-  if (variant === "primary") {
-    return (
-      <Link
-        to={to || "#"}
-        onClick={onClick}
-        className={`${base} text-white ${className}`}
-        style={{
-          backgroundColor: PRIMARY,
-          boxShadow: "0 6px 18px rgba(0,130,54,0.25)",
-        }}
-      >
-        {children}
-      </Link>
-    );
-  }
-
-  if (variant === "ghost") {
-    return (
-      <Link
-        to={to || "#"}
-        onClick={onClick}
-        className={`${base} border text-white hover:bg-gray-700 ${className}`}
-        style={{ borderColor: PRIMARY }}
-      >
-        {children}
-      </Link>
-    );
-  }
-
-  return (
-    <Link
-      to={to || "#"}
-      onClick={onClick}
-      className={`${base} bg-gray-700 text-white hover:bg-gray-600 ${className}`}
-    >
-      {children}
-    </Link>
-  );
+const FOOTER_LINKS = {
+  "Sản phẩm": [
+    { label: "Tính năng", to: "/homeindex/features" },
+    { label: "Khoá học", to: "/homeindex/courses" },
+    { label: "Cộng đồng", to: "/homeindex/community" },
+    { label: "Bảng giá", to: "/#fees" },
+  ],
+  "Hỗ trợ": [
+    { label: "Về chúng tôi", to: "/homeindex/aboutus" },
+    { label: "Trung tâm trợ giúp", to: "#" },
+    { label: "Điều khoản dịch vụ", to: "#" },
+    { label: "Quyền riêng tư", to: "#" },
+  ],
 };
+
+const SOCIAL = [
+  { icon: Facebook, href: "#", label: "Facebook" },
+  { icon: Youtube, href: "#", label: "YouTube" },
+  { icon: Twitter, href: "#", label: "Twitter" },
+  { icon: Mail, href: "#", label: "Email" },
+];
 
 export default function Footer() {
   return (
-    <footer className="border-t border-gray-700 bg-gray-900">
-      <div className="max-w-7xl mx-auto px-6 py-10 grid md:grid-cols-4 gap-8">
-        {/* Logo + intro */}
-        <div>
-          <div className="flex items-center gap-2">
-            <div
-              className="w-9 h-9 rounded-2xl flex items-center justify-center"
-              style={{ background: PRIMARY }}
-            >
-              <BookOpen size={20} className="text-white" />
+    <footer style={{ background: "linear-gradient(180deg, #0a1f12 0%, #071510 100%)" }}>
+      {/* ── TOP DIVIDER ── */}
+      <div
+        className="h-px w-full"
+        style={{ background: "linear-gradient(90deg, transparent, rgba(26,122,60,0.5), transparent)" }}
+      />
+
+      <div className="max-w-7xl mx-auto px-5 md:px-8 pt-14 pb-8">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-10 mb-12">
+
+          {/* ── BRAND ── */}
+          <div className="col-span-2 md:col-span-1">
+            <Link to="/" className="flex items-center gap-2.5 group mb-4">
+              <div
+                className="w-10 h-10 rounded-xl flex items-center justify-center shadow-lg transition-transform group-hover:scale-110"
+                style={{
+                  background: "linear-gradient(135deg, #1a7a3c 0%, #2da05a 100%)",
+                  boxShadow: "0 4px 16px rgba(26,122,60,0.4)",
+                }}
+              >
+                <BookOpen size={18} className="text-white" strokeWidth={2.5} />
+              </div>
+              <span className="text-xl font-extrabold text-white tracking-tight">KoreanLab</span>
+            </Link>
+
+            <p className="text-sm leading-relaxed mb-5" style={{ color: "rgba(255,255,255,0.45)" }}>
+              Nền tảng học tiếng Hàn thông minh, tối ưu cho người bận rộn Việt Nam.
+            </p>
+
+            {/* Social */}
+            <div className="flex gap-2.5">
+              {SOCIAL.map(({ icon: Icon, href, label }) => (
+                <a
+                  key={label}
+                  href={href}
+                  aria-label={label}
+                  className="w-8 h-8 rounded-lg flex items-center justify-center transition-all duration-200"
+                  style={{ background: "rgba(255,255,255,0.07)", color: "rgba(255,255,255,0.5)" }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = "rgba(26,122,60,0.3)";
+                    e.currentTarget.style.color = "#86efac";
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = "rgba(255,255,255,0.07)";
+                    e.currentTarget.style.color = "rgba(255,255,255,0.5)";
+                  }}
+                >
+                  <Icon size={15} />
+                </a>
+              ))}
             </div>
-            <span
-              className="text-lg font-extrabold text-white"
+          </div>
+
+          {/* ── LINK GROUPS ── */}
+          {Object.entries(FOOTER_LINKS).map(([group, links]) => (
+            <div key={group}>
+              <h4 className="text-sm font-extrabold text-white mb-4 tracking-wide">{group}</h4>
+              <ul className="space-y-2.5">
+                {links.map(({ label, to }) => (
+                  <li key={label}>
+                    <Link
+                      to={to}
+                      className="text-sm transition-colors duration-150"
+                      style={{ color: "rgba(255,255,255,0.45)" }}
+                      onMouseEnter={(e) => { e.currentTarget.style.color = "#86efac"; }}
+                      onMouseLeave={(e) => { e.currentTarget.style.color = "rgba(255,255,255,0.45)"; }}
+                    >
+                      {label}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
+
+          {/* ── CTA ── */}
+          <div>
+            <h4 className="text-sm font-extrabold text-white mb-4 tracking-wide">Bắt đầu ngay</h4>
+            <p className="text-sm mb-4" style={{ color: "rgba(255,255,255,0.45)" }}>
+              Miễn phí 100% cho khoá nhập môn tiếng Hàn cơ bản.
+            </p>
+            <Link
+              to="/register"
+              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold transition-all duration-200"
+              style={{
+                background: "linear-gradient(135deg, #1a7a3c, #2da05a)",
+                color: "white",
+                boxShadow: "0 4px 16px rgba(26,122,60,0.35)",
+              }}
+              onMouseEnter={(e) => { e.currentTarget.style.transform = "translateY(-2px)"; e.currentTarget.style.boxShadow = "0 8px 24px rgba(26,122,60,0.45)"; }}
+              onMouseLeave={(e) => { e.currentTarget.style.transform = ""; e.currentTarget.style.boxShadow = "0 4px 16px rgba(26,122,60,0.35)"; }}
             >
-              KoreanLab
-            </span>
-          </div>
-          <p className="mt-3 text-sm text-gray-300">
-            Học tiếng Hàn thông minh cho người bận rộn.
-          </p>
-        </div>
-
-        {/* Sản phẩm */}
-        <div>
-          <div className="font-semibold mb-2 text-white">Sản phẩm</div>
-          <ul className="space-y-1 text-sm text-gray-300">
-            <li><Link to="#features" className="hover:text-white">Tính năng</Link></li>
-            <li><Link to="#courses" className="hover:text-white">Khoá học</Link></li>
-            <li><Link to="#community" className="hover:text-white">Cộng đồng</Link></li>
-          </ul>
-        </div>
-
-        {/* Hỗ trợ */}
-        <div>
-          <div className="font-semibold mb-2 text-white">Hỗ trợ</div>
-          <ul className="space-y-1 text-sm text-gray-300">
-            <li><a href="#" className="hover:text-white">Trung tâm trợ giúp</a></li>
-            <li><a href="#" className="hover:text-white">Điều khoản</a></li>
-            <li><a href="#" className="hover:text-white">Quyền riêng tư</a></li>
-          </ul>
-        </div>
-
-        {/* CTA */}
-        <div>
-          <div className="font-semibold mb-2 text-white">Bắt đầu</div>
-          <p className="text-sm text-gray-300">
-            Miễn phí 100% cho khoá nhập môn.
-          </p>
-          <div className="mt-3">
-            <Button to="/register">Đăng ký miễn phí</Button>
+              Đăng ký miễn phí
+            </Link>
           </div>
         </div>
-      </div>
 
-      <div className="text-center text-xs text-gray-500 pb-6">
-        © {new Date().getFullYear()} KoreanLab. All rights reserved.
+        {/* ── BOTTOM ── */}
+        <div
+          className="pt-6 flex flex-col sm:flex-row items-center justify-between gap-3"
+          style={{ borderTop: "1px solid rgba(255,255,255,0.07)" }}
+        >
+          <p className="text-xs" style={{ color: "rgba(255,255,255,0.3)" }}>
+            © {new Date().getFullYear()} KoreanLab. Tất cả quyền được bảo lưu.
+          </p>
+          <p className="text-xs flex items-center gap-1" style={{ color: "rgba(255,255,255,0.3)" }}>
+            Được xây dựng với <Heart size={11} className="text-red-400" fill="currentColor" /> tại Việt Nam 🇻🇳
+          </p>
+        </div>
       </div>
     </footer>
   );

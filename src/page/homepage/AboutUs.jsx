@@ -25,15 +25,14 @@ const achievements = [
 ];
 
 const whatTheyGet = [
-  "Lộ trình học cá nhân hóa AI",
-  "Flashcards và quiz minh họa",
+  "Flashcard thông minh và quiz tương tác",
   "Phản hồi phát âm chi tiết",
   "Hội thoại mô phỏng thực tế",
 ];
 
 const faqData = [
   { question: "Ứng dụng phù hợp với ai?", answer: "Dành cho người mới bắt đầu học tiếng Hàn, muốn học hiệu quả và tiện lợi." },
-  { question: "Có cần kiến thức nền tảng không?", answer: "Không, ứng dụng thiết kế lộ trình từ cơ bản, từng bước, dễ theo dõi." },
+  { question: "Có cần kiến thức nền tảng không?", answer: "Không, ứng dụng thiết kế từ bài cơ bản, từng bước, dễ theo dõi." },
   { question: "AI có hỗ trợ phát âm không?", answer: "Có, AI nhận diện giọng nói, đánh giá phát âm và đưa ra phản hồi chi tiết." },
 ];
 
@@ -51,7 +50,7 @@ const AboutUs = () => {
               </h1>
               <p className="text-gray-700 text-lg md:text-xl leading-relaxed">
                 Ứng dụng trợ lý học tiếng Hàn với AI dành cho người mới bắt đầu. 
-                Lộ trình chuẩn, flashcards, quiz, luyện nói và mô phỏng hội thoại thực tế.
+                Flashcards, quiz, luyện nói và mô phỏng hội thoại thực tế.
               </p>
             </div>
           </AnimateOnView>
@@ -199,7 +198,7 @@ const AboutUs = () => {
               Tham gia ngay hôm nay!
             </h2>
             <p className="text-gray-700 text-lg md:text-xl mb-6">
-              Tạo tài khoản để trải nghiệm lộ trình học tiếng Hàn cá nhân hóa với AI thông minh.
+              Tạo tài khoản để trải nghiệm học tiếng Hàn cùng AI hỗ trợ và flashcard thông minh.
             </p>
             <a
               href="/register"

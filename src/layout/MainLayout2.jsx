@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Outlet, useLocation } from "react-router-dom";
-import { motion, AnimatePresence } from "framer-motion";
-import { X } from "lucide-react";
+import { AnimatePresence, motion } from "framer-motion";
 
 import MainHeader from "../components/PageComponent/MainHeader";
 import Footer from "../components/PageComponent/Footer";
@@ -11,40 +10,77 @@ import { LoadingComponent } from "../components/LoadingComponent";
 import DraggableAIButton from "../components/Chatbot/DraggableAIButton";
 
 export default function MainLayout2() {
-  const [open, setOpen] = useState(false);
+  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
   const [loading, setLoading] = useState(true);
-  const location = useLocation(); // Thêm hook này
+  const location = useLocation();
 
-  // Logic bật loading mỗi khi đổi trang con
+  // Loading animation on route change
   useEffect(() => {
     setLoading(true);
-    const timer = setTimeout(() => setLoading(false), 800);
+    setIsMobileSidebarOpen(false); // close on route change
+    const timer = setTimeout(() => setLoading(false), 700);
     return () => clearTimeout(timer);
   }, [location.pathname]);
-  const isAiPage = location.pathname.includes('/ai');
+
+  const isAiPage = location.pathname.includes("/ai");
+  const isMyCoursePage = location.pathname.startsWith("/courses/mycourses") || location.pathname.startsWith("/courses/mycourses");
 
   return (
-    <div className="flex h-screen w-full bg-[#F7F9F8] overflow-hidden font-sans">
-      
-      {/* 1. SIDEBAR DESKTOP - Luôn hiện, không bị đè */}
-      <div className="hidden lg:block h-full shadow-sm z-30">
+    <div
+      className="flex h-screen w-full overflow-hidden font-sans"
+      style={{ background: "var(--surface-app)" }}
+    >
+      {/* ── DESKTOP SIDEBAR ── */}
+      <div className="hidden lg:flex h-full flex-shrink-0" style={{ zIndex: 30 }}>
         <Sidebar isMobile={false} />
       </div>
 
-      {/* --- SIDEBAR MOBILE --- */}
-      {/* ... giữ nguyên code Sidebar Mobile của bạn ... */}
+      {/* ── MOBILE SIDEBAR OVERLAY ── */}
+      <AnimatePresence>
+        {isMobileSidebarOpen && (
+          <>
+            {/* Backdrop */}
+            <motion.div
+              key="backdrop"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              className="fixed inset-0 lg:hidden z-40"
+              style={{ background: "rgba(0,0,0,0.55)", backdropFilter: "blur(4px)" }}
+              onClick={() => setIsMobileSidebarOpen(false)}
+            />
 
-      {/* --- CỘT NỘI DUNG CHÍNH --- */}
-      <div className="flex-1 flex flex-col min-w-0 h-full relative">
-        
-        {/* 2. HEADER - Luôn hiện, z-index cao hơn loader trang con */}
-        <MainHeader onMenuClick={() => setOpen(true)} className="z-40" />
+            {/* Sidebar drawer */}
+            <motion.div
+              key="mobile-sidebar"
+              initial={{ x: -280 }}
+              animate={{ x: 0 }}
+              exit={{ x: -280 }}
+              transition={{ type: "spring", stiffness: 300, damping: 30 }}
+              className="fixed left-0 top-0 bottom-0 w-[260px] lg:hidden z-50"
+            >
+              <Sidebar
+                isMobile={true}
+                onClose={() => setIsMobileSidebarOpen(false)}
+              />
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
 
-        {/* 3. VÙNG NỘI DUNG BIẾN ĐỔI (MAIN) */}
-        {/* PHẢI CÓ 'relative' Ở ĐÂY để "giam" absolute loader */}
-        <main className="flex-1 overflow-x-hidden overflow-y-auto relative scroll-smooth bg-white">
-          
-          {/* LOADER: Chỉ nằm trong vùng main này */}
+      {/* ── MAIN CONTENT COLUMN ── */}
+      <div className="flex-1 flex flex-col min-w-0 h-full overflow-hidden">
+
+        {/* Top Header */}
+        <MainHeader onMenuClick={() => setIsMobileSidebarOpen(true)} />
+
+        {/* Scrollable main area */}
+        <main
+          className={`flex-1 relative custom-scrollbar ${isAiPage ? "overflow-hidden flex flex-col" : "overflow-x-hidden overflow-y-auto"}`}
+          style={{ background: "var(--surface-app)" }}
+        >
+          {/* Page transition loader */}
           <AnimatePresence>
             {loading && (
               <div className="absolute inset-0 z-20">
@@ -53,19 +89,22 @@ export default function MainLayout2() {
             )}
           </AnimatePresence>
 
-          <div className={`
-            mx-auto max-w-7xl p-4 sm:p-6 lg:p-8 min-h-full
-            transition-all duration-500
-            ${loading ? "opacity-0 translate-y-4" : "opacity-100 translate-y-0"}
-          `}>
-             <Outlet /> 
-             <Footer />
-          </div>
+          {/* Content */}
+          <motion.div
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: loading ? 0 : 1, y: loading ? 8 : 0 }}
+            transition={{ duration: 0.3 }}
+            className={isAiPage ? "h-full flex flex-col" : "mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8 min-h-full"}
+          >
+            <Outlet />
+            {!isAiPage && <Footer />}
+          </motion.div>
         </main>
       </div>
 
+      {/* Floating utilities */}
       <ScrollToTopButton />
-      {!isAiPage && <DraggableAIButton />}
+      {!isAiPage && !isMyCoursePage && <DraggableAIButton />}
     </div>
   );
 }
