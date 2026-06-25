@@ -48,31 +48,22 @@ export default function MainHeader({ onMenuClick }) {
   const { user } = useAuth();
 
   const [isProfileOpen, setIsProfileOpen] = useState(false);
-<<<<<<< HEAD
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [selectedTab, setSelectedTab] = useState("ALL");
-=======
-  const [isNotifOpen, setIsNotifOpen] = useState(false);
->>>>>>> origin/master
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [searchFocused, setSearchFocused] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
 
   const dropdownRef = useRef(null);
-<<<<<<< HEAD
   const notificationsRef = useRef(null);
-=======
-  const notifRef = useRef(null);
->>>>>>> origin/master
 
   const isAdmin = user?.role === "admin";
   const isTeacher = user?.role === "teacher";
   const hasConsoleAccess = isAdmin || isTeacher;
 
-<<<<<<< HEAD
   // 5. Cấu hình loại thông báo dịch vụ
   const typeConfigs = {
     SYSTEM: { label: "Hệ thống", icon: AlertCircle, colorClass: "bg-red-50 text-red-600 border border-red-100" },
@@ -122,7 +113,6 @@ export default function MainHeader({ onMenuClick }) {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-<<<<<<< HEAD
   // Fetch dữ liệu thông báo
   const fetchNotifications = async () => {
     if (!user) return;
