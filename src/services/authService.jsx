@@ -113,6 +113,15 @@ export async function loginWithGoogle() {
       firebaseToken: idToken,
     });
 
+    // Tương tự loginApi, lấy data thực
+    if (res.data && res.data.status === "success" && res.data.data) {
+        return res.data.data; // Trả về { user, jwt }
+    }
+    
+    if (res.data && res.data.user) {
+        return res.data; // Trả về thẳng nếu backend ko bọc trong data
+    }
+
     // 🟢 Trả về data thực
     return res.data; 
 

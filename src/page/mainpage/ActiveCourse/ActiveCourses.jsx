@@ -1,7 +1,7 @@
 import React, { useEffect, useCallback, useState, useMemo, memo } from "react";
 import { 
   BookOpen, Search, Filter, X, ChevronLeft, ChevronRight, 
-  Layers, AudioWaveform, MessageCircle, Star, Users 
+  Layers, AudioWaveform, Star, Users 
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
@@ -294,16 +294,6 @@ export default function ActiveCourses() {
                         />
                     </>
                 )}
-            </div>
-
-            {/* Nút Chat nổi giữ nguyên từ yêu cầu */}
-            <div className="fixed bottom-10 right-10 z-50">
-                <button className="w-20 h-20 bg-[#242424] text-white rounded-[2rem] flex items-center justify-center shadow-2xl hover:scale-110 hover:rotate-6 transition-all group overflow-hidden">
-                    <div className="relative">
-                        <MessageCircle size={36} className="group-hover:scale-110 transition-transform"/>
-                        <div className="absolute -top-1 -right-1 w-4 h-4 bg-green-500 rounded-full border-4 border-[#242424]"></div>
-                    </div>
-                </button>
             </div>
         </div>
     );

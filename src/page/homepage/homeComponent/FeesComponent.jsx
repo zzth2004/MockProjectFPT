@@ -1,92 +1,212 @@
-// src/components/FeesSection.jsx
-import React from "react";
+import React, { useState } from "react";
 import { motion } from "framer-motion";
-import { CheckCircle2 } from "lucide-react";
-import Button from "./ButtonComponent";
-import AnimateOnView from "../../../components/Wrapper/WrapperMotion"; 
-
-const PRIMARY = "#008236";
+import { CheckCircle2, ArrowRight, Sparkles, Zap, Crown } from "lucide-react";
+import { Link } from "react-router-dom";
+import AnimateOnView from "../../../components/Wrapper/WrapperMotion";
 
 const FEES = [
   {
     title: "Miễn phí",
     price: "0₫",
-    desc: "Khoá nhập môn cơ bản, lý tưởng cho người mới bắt đầu.",
+    period: "mãi mãi",
+    desc: "Bắt đầu học tiếng Hàn không cần trả phí.",
+    icon: Zap,
+    iconColor: "#374151",
+    gradient: "linear-gradient(135deg, #f3f4f6, #e5e7eb)",
+    featured: false,
     features: [
       "10 bài học nhập môn",
       "Flashcards từ vựng cơ bản",
       "Luyện nói cơ bản với AI",
       "Học mọi lúc, mọi nơi",
-      "Theo dõi tiến trình học"
-    ]
+      "Theo dõi tiến trình học",
+    ],
+    included: [true, true, true, true, true],
   },
   {
     title: "Cơ bản",
-    price: "99,000₫ / tháng",
-    desc: "Khoá giao tiếp cơ bản, phù hợp muốn nâng trình nhanh.",
+    price: "99.000₫",
+    period: "/ tháng",
+    desc: "Nâng trình nhanh với toàn bộ khoá giao tiếp.",
+    icon: Sparkles,
+    iconColor: "#1a7a3c",
+    gradient: "linear-gradient(135deg, #1a7a3c 0%, #2da05a 100%)",
+    featured: true,
     features: [
-      "20 bài học từ Beginner → Intermediate",
-      "Ngữ pháp và từ vựng nâng cao",
-      "Luyện nói và hội thoại AI",
+      "20 bài học Beginner → Intermediate",
+      "Ngữ pháp & từ vựng nâng cao",
+      "Luyện nói và hội thoại AI không giới hạn",
       "Quiz & Flashcards nâng cao",
-      "Đánh giá tiến độ học theo tuần",
-      "Hỗ trợ giải đáp thắc mắc"
-    ]
+      "Đánh giá tiến độ theo tuần",
+      "Hỗ trợ giải đáp thắc mắc",
+    ],
+    included: [true, true, true, true, true, true],
   },
   {
     title: "Toàn diện",
-    price: "199,000₫ / tháng",
-    desc: "Tất cả khoá học, luyện đề TOPIK, từ vựng học thuật.",
+    price: "199.000₫",
+    period: "/ tháng",
+    desc: "Tất cả tính năng cao cấp, học đến thành thạo.",
+    icon: Crown,
+    iconColor: "#b45309",
+    gradient: "linear-gradient(135deg, #92400e 0%, #d97706 100%)",
+    featured: false,
     features: [
       "Full khoá Beginner → Expert",
       "Luyện đề TOPIK I & II",
-      "Luyện nghe tin tức và hội thoại thực tế",
-      "Học theo lộ trình cá nhân hóa",
+      "Nghe tin tức và hội thoại thực tế",
+      "Luyện đề TOPIK có chấm điểm tự động",
       "Hỗ trợ AI + mentor trực tuyến",
-      "Quiz nâng cao & Flashcards toàn bộ"
-    ]
-  }
+      "Quiz nâng cao & Flashcards toàn bộ",
+    ],
+    included: [true, true, true, true, true, true],
+  },
 ];
 
 export default function FeesSection() {
   return (
     <AnimateOnView>
-      <section id="fees" className="py-16 bg-gray-50">
-        <div className="max-w-7xl mx-auto px-6">
-          <div className="flex flex-col md:flex-row items-end justify-between gap-4">
-            <div>
-              <h3 className="text-2xl md:text-3xl font-extrabold text-gray-900">Chi phí khoá học</h3>
-              <p className="text-gray-600 mt-1 text-base">
-                Chọn gói phù hợp với nhu cầu học tập, linh hoạt và chi phí hợp lý.
-              </p>
+      <section id="fees" className="py-24 bg-white">
+        <div className="max-w-7xl mx-auto px-5 md:px-8">
+
+          {/* ── HEADER ── */}
+          <div className="text-center max-w-2xl mx-auto mb-14">
+            <div
+              className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-bold mb-4"
+              style={{ background: "rgba(26,122,60,0.08)", color: "#1a7a3c", border: "1px solid rgba(26,122,60,0.15)" }}
+            >
+              💰 Chi phí khoá học
             </div>
-            <Button to="/register" className="mt-3 md:mt-0">Đăng ký học</Button>
+            <h2 className="text-3xl md:text-4xl font-extrabold text-gray-900">
+              Chọn gói{" "}
+              <span className="gradient-text">phù hợp với bạn</span>
+            </h2>
+            <p className="mt-3 text-gray-500 text-base">
+              Linh hoạt và hợp lý — bắt đầu miễn phí, nâng cấp khi bạn sẵn sàng.
+            </p>
           </div>
 
-          <div className="mt-8 grid sm:grid-cols-1 md:grid-cols-3 gap-6">
-            {FEES.map((f, i) => (
-              <motion.div key={i} whileHover={{ y: -4 }} className="rounded-3xl overflow-hidden border bg-white shadow-sm flex flex-col">
-                <div className="p-6 flex-1 flex flex-col">
-                  <h4 className="mt-1 text-xl font-bold" style={{ color: PRIMARY }}>{f.title}</h4>
-                  <p className="mt-2 text-gray-600 text-base">{f.desc}</p>
-                  <div className="mt-4 text-2xl font-extrabold" style={{ color: PRIMARY }}>{f.price}</div>
+          {/* ── PRICING CARDS ── */}
+          <div className="grid md:grid-cols-3 gap-6 items-start">
+            {FEES.map((plan, i) => {
+              const Icon = plan.icon;
+              return (
+                <motion.div
+                  key={i}
+                  initial={{ opacity: 0, y: 28 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ duration: 0.5, delay: i * 0.1 }}
+                  className="relative rounded-2xl overflow-hidden flex flex-col"
+                  style={{
+                    background: plan.featured
+                      ? "linear-gradient(160deg, #0f5a2a 0%, #1a7a3c 100%)"
+                      : "white",
+                    border: plan.featured ? "none" : "1px solid rgba(0,0,0,0.07)",
+                    boxShadow: plan.featured
+                      ? "0 24px 64px rgba(26,122,60,0.28), 0 8px 24px rgba(0,0,0,0.1)"
+                      : "0 4px 20px rgba(0,0,0,0.06)",
+                    transform: plan.featured ? "scale(1.03)" : "scale(1)",
+                  }}
+                >
+                  {/* Featured badge */}
+                  {plan.featured && (
+                    <div className="absolute top-5 right-5 px-3 py-1 rounded-full text-[11px] font-extrabold text-[#1a7a3c] bg-white shadow-sm">
+                      ⭐ Phổ biến nhất
+                    </div>
+                  )}
 
-                  <ul className="mt-4 space-y-2 text-gray-600 text-base flex-1">
-                    {f.features.map((feature, idx) => (
-                      <li key={idx} className="flex items-start gap-2">
-                        <CheckCircle2 size={16} style={{ color: PRIMARY, marginTop: 4 }} />
-                        {feature}
-                      </li>
-                    ))}
-                  </ul>
+                  <div className="p-7 flex flex-col flex-1">
+                    {/* Icon */}
+                    <div
+                      className="w-11 h-11 rounded-xl flex items-center justify-center mb-5"
+                      style={{
+                        background: plan.featured ? "rgba(255,255,255,0.15)" : plan.gradient,
+                      }}
+                    >
+                      <Icon
+                        size={20}
+                        style={{ color: plan.featured ? "white" : plan.iconColor }}
+                        strokeWidth={2}
+                      />
+                    </div>
 
-                  <div className="mt-6">
-                    <Button to="/register" className="w-full">Đăng ký gói này</Button>
+                    {/* Plan info */}
+                    <h3
+                      className="text-lg font-extrabold mb-1"
+                      style={{ color: plan.featured ? "white" : "#111827" }}
+                    >
+                      {plan.title}
+                    </h3>
+                    <p
+                      className="text-sm mb-5 leading-relaxed"
+                      style={{ color: plan.featured ? "rgba(255,255,255,0.7)" : "#6b7280" }}
+                    >
+                      {plan.desc}
+                    </p>
+
+                    {/* Price */}
+                    <div className="mb-6">
+                      <span
+                        className="text-3xl font-extrabold"
+                        style={{ color: plan.featured ? "white" : "#111827" }}
+                      >
+                        {plan.price}
+                      </span>
+                      <span
+                        className="text-sm ml-1"
+                        style={{ color: plan.featured ? "rgba(255,255,255,0.6)" : "#9ca3af" }}
+                      >
+                        {plan.period}
+                      </span>
+                    </div>
+
+                    {/* Divider */}
+                    <div
+                      className="mb-5 h-px w-full"
+                      style={{ background: plan.featured ? "rgba(255,255,255,0.15)" : "#f3f4f6" }}
+                    />
+
+                    {/* Features */}
+                    <ul className="space-y-3 flex-1 mb-7">
+                      {plan.features.map((feat, j) => (
+                        <li key={j} className="flex items-start gap-2.5 text-sm">
+                          <CheckCircle2
+                            size={15}
+                            className="flex-shrink-0 mt-0.5"
+                            style={{ color: plan.featured ? "#86efac" : "#1a7a3c" }}
+                          />
+                          <span style={{ color: plan.featured ? "rgba(255,255,255,0.85)" : "#374151" }}>
+                            {feat}
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
+
+                    {/* CTA */}
+                    <Link
+                      to="/register"
+                      className="flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-bold transition-all duration-200"
+                      style={{
+                        background: plan.featured ? "white" : "linear-gradient(135deg, #1a7a3c, #2da05a)",
+                        color: plan.featured ? "#1a7a3c" : "white",
+                        boxShadow: plan.featured
+                          ? "0 4px 16px rgba(255,255,255,0.25)"
+                          : "0 4px 16px rgba(26,122,60,0.25)",
+                      }}
+                    >
+                      {i === 0 ? "Bắt đầu miễn phí" : "Đăng ký gói này"} <ArrowRight size={14} />
+                    </Link>
                   </div>
-                </div>
-              </motion.div>
-            ))}
+                </motion.div>
+              );
+            })}
           </div>
+
+          {/* ── FOOTNOTE ── */}
+          <p className="text-center text-sm text-gray-400 mt-8">
+            Tất cả gói đều có thể hủy bất kỳ lúc nào. Không phí ẩn. 🔒 Thanh toán bảo mật.
+          </p>
         </div>
       </section>
     </AnimateOnView>

@@ -48,6 +48,10 @@ import PaymentPage from "../page/mainpage/Payment/Payment.jsx";
 import AiSupportConsole from "../page/mainpage/AISupport/AiSupportConsole.jsx";
 import SupportPage from "../page/mainpage/Settings/Support.jsx";
 import UpgradePage from "../page/mainpage/Upgrade/Upgrade.jsx";
+import GamesPage from "../page/mainpage/Games/GamesPage.jsx";
+import TopikPrepPage from "../page/mainpage/TopikPrep/TopikPrepPage.jsx";
+import LeaderboardPage from "../page/mainpage/Leaderboard/Leaderboard.jsx";
+import QuizRoomPage from "../page/mainpage/QuizRoom/QuizRoomPage.jsx";
 
 // --- ADMIN & TEACHER PAGES ---
 import AdminLayout from "../layout/adminLayout.jsx"; 
@@ -88,15 +92,15 @@ import CatchAll404 from "./CatchAll404.jsx";
 
 function AnimatedRoutes() {
   const location = useLocation();
-  const { user } = useAuth(); // Lấy thông tin user để điều hướng trang chủ
+  const { user } = useAuth();
 
-  // Component điều hướng thông minh cho đường dẫn gốc "/"
   const RootRedirect = () => {
     if (!user) return <Navigate to="/homeindex" replace />;
     if (user.role === 'admin') return <Navigate to="/admin" replace />;
     if (user.role === 'teacher') return <Navigate to="/teacher/dashboard" replace />;
     return <Navigate to="/user/dashboard" replace />;
   };
+
 
   return (
     <AnimatePresence mode="wait">
@@ -161,6 +165,10 @@ function AnimatedRoutes() {
           <Route path="/user/upgrade" element={<PageWrapper><UpgradePage /></PageWrapper>} />
           <Route path="/user/chats" element={<PageWrapper><ChatPage /></PageWrapper>} />
           <Route path="/user/chats/:id" element={<PageWrapper><ChatPage /></PageWrapper>} />
+          <Route path="/user/games" element={<PageWrapper><GamesPage /></PageWrapper>} />
+          <Route path="/user/leaderboard" element={<PageWrapper><LeaderboardPage /></PageWrapper>} />
+          <Route path="/user/quiz" element={<PageWrapper><QuizRoomPage /></PageWrapper>} />
+          <Route path="/topik-learn" element={<PageWrapper><TopikPrepPage /></PageWrapper>} />
         </Route>
 
         {/* --- 3. ADMIN ROUTES (URL: /admin/...) --- */}

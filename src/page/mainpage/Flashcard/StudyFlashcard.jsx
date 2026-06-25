@@ -1,224 +1,464 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { 
-  ChevronLeft, 
-  ChevronRight, 
-  RotateCcw, 
-  Settings, 
-  Volume2, 
-  Layers,
-  ArrowLeft
+import {
+  ArrowLeft, Star, Volume2, RotateCcw,
+  ChevronLeft, ChevronRight, CheckCircle2,
+  BookOpen, ArrowRight,
 } from "lucide-react";
+
+// ─── Mock data ───
+const MOCK_FLASHCARDS = [
+  { id: 1, front: "안녕하세요", back: "Xin chào", romanization: "Annyeonghaseyo", example: "안녕하세요, 만나서 반갑습니다.", exampleTrans: "Xin chào, rất vui được gặp bạn." },
+  { id: 2, front: "감사합니다", back: "Cảm ơn", romanization: "Gamsahamnida", example: "도와주셔서 감사합니다.", exampleTrans: "Cảm ơn vì đã giúp đỡ tôi." },
+  { id: 3, front: "죄송합니다", back: "Xin lỗi", romanization: "Joesonghamnida", example: "늦어서 죄송합니다.", exampleTrans: "Xin lỗi vì đến muộn." },
+  { id: 4, front: "사랑해요", back: "Tôi yêu bạn", romanization: "Saranghaeyo", example: "당신을 사랑해요.", exampleTrans: "Tôi yêu bạn." },
+  { id: 5, front: "학교", back: "Trường học", romanization: "Hakgyo", example: "학교에 갑니다.", exampleTrans: "Tôi đi học." },
+  { id: 6, front: "선생님", back: "Giáo viên", romanization: "Seonsaengnim", example: "선생님은 친절합니다.", exampleTrans: "Giáo viên rất tử tế." },
+  { id: 7, front: "친구", back: "Bạn bè", romanization: "Chingu", example: "친구와 함께 갑니다.", exampleTrans: "Tôi đi cùng bạn bè." },
+];
+
+// ─── Confetti Component ───
+function ConfettiPiece({ delay, left, color, duration }) {
+  return (
+    <div
+      className="confetti-piece"
+      style={{
+        left: `${left}%`,
+        background: color,
+        animationDelay: `${delay}s`,
+        animationDuration: `${duration}s`,
+        borderRadius: Math.random() > 0.5 ? "50%" : "2px",
+        width: Math.random() * 8 + 6 + "px",
+        height: Math.random() * 8 + 6 + "px",
+      }}
+    />
+  );
+}
+
+const CONFETTI_COLORS = ["#4ade80", "#f59e0b", "#6366f1", "#ec4899", "#22d3ee", "#f97316"];
+
+function ConfettiAnimation() {
+  const pieces = Array.from({ length: 40 }, (_, i) => ({
+    id: i,
+    delay: Math.random() * 2,
+    left: Math.random() * 100,
+    color: CONFETTI_COLORS[Math.floor(Math.random() * CONFETTI_COLORS.length)],
+    duration: Math.random() * 2 + 2,
+  }));
+
+  return (
+    <div className="fixed inset-0 pointer-events-none z-50 overflow-hidden">
+      {pieces.map((p) => (
+        <ConfettiPiece key={p.id} {...p} />
+      ))}
+    </div>
+  );
+}
 
 export default function StudyFlashcard() {
   const { setId } = useParams();
   const navigate = useNavigate();
 
-  // Mock Data: Danh sách từ vựng giả lập
-  const flashcards = [
-    { id: 1, front: "안녕하세요", back: "Xin chào", example: "안녕하세요, 만나서 반갑습니다." },
-    { id: 2, front: "감사합니다", back: "Cảm ơn", example: "도와주셔서 감사합니다." },
-    { id: 3, front: "죄송합니다", back: "Xin lỗi", example: "늦어서 죄송합니다." },
-    { id: 4, front: "사랑해요", back: "Tôi yêu bạn", example: "" },
-    { id: 5, front: "학교", back: "Trường học", example: "학교에 갑니다." },
-  ];
+  const flashcards = MOCK_FLASHCARDS;
 
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isFlipped, setIsFlipped] = useState(false);
   const [isFinished, setIsFinished] = useState(false);
+  const [starredIds, setStarredIds] = useState(new Set());
+  const [showConfetti, setShowConfetti] = useState(false);
+  const [isTransitioning, setIsTransitioning] = useState(false);
 
-  // --- LOGIC XỬ LÝ ---
-  const handleFlip = () => setIsFlipped(!isFlipped);
+  const card = flashcards[currentIndex];
+  const progress = ((currentIndex + 1) / flashcards.length) * 100;
+  const isStarred = starredIds.has(card?.id);
 
-  const handleNext = () => {
-    if (currentIndex < flashcards.length - 1) {
-      setIsFlipped(false);
-      setTimeout(() => setCurrentIndex(prev => prev + 1), 200); // Tăng delay xíu cho mượt
-    } else {
-      setIsFinished(true);
-    }
+  // ── Toggle star ──
+  const toggleStar = (e) => {
+    e.stopPropagation();
+    setStarredIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(card.id)) next.delete(card.id);
+      else next.add(card.id);
+      return next;
+    });
   };
 
-  const handlePrev = () => {
-    if (currentIndex > 0) {
-      setIsFlipped(false);
-      setTimeout(() => setCurrentIndex(prev => prev - 1), 200);
-    }
-  };
+  // ── Flip card ──
+  const handleFlip = useCallback(() => {
+    if (isTransitioning) return;
+    setIsFlipped((prev) => !prev);
+  }, [isTransitioning]);
 
-  // Phím tắt bàn phím
+  // ── Go to next card ──
+  const handleNext = useCallback(() => {
+    if (isTransitioning) return;
+    setIsTransitioning(true);
+    setTimeout(() => {
+      setIsFlipped(false);
+      setTimeout(() => {
+        if (currentIndex < flashcards.length - 1) {
+          setCurrentIndex((prev) => prev + 1);
+        } else {
+          setIsFinished(true);
+          setShowConfetti(true);
+          setTimeout(() => setShowConfetti(false), 3500);
+        }
+        setIsTransitioning(false);
+      }, 200);
+    }, 150);
+  }, [currentIndex, flashcards.length, isTransitioning]);
+
+  // ── Keyboard shortcuts ──
   useEffect(() => {
-    const handleKeyDown = (e) => {
+    const handler = (e) => {
       if (e.code === "Space") { e.preventDefault(); handleFlip(); }
-      if (e.code === "ArrowRight") handleNext();
-      if (e.code === "ArrowLeft") handlePrev();
+      if (isFlipped && (e.key === "Enter" || e.key === "ArrowRight")) {
+        handleNext();
+      }
     };
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [currentIndex, isFlipped]);
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [handleFlip, handleNext, isFlipped]);
 
-  // --- GIAO DIỆN KHI HOÀN THÀNH ---
+  // ─────────────────────────────────────────────────────────────────
+  // COMPLETION SCREEN
+  // ─────────────────────────────────────────────────────────────────
   if (isFinished) {
     return (
-      <div className="min-h-screen bg-[#F8F9FC] flex flex-col items-center justify-center p-6 text-center animate-in fade-in duration-500">
-        <div className="w-24 h-24 bg-green-100 rounded-full flex items-center justify-center text-[#377437] mb-6 shadow-lg shadow-green-100">
-           <Layers size={48} />
+      <>
+        {showConfetti && <ConfettiAnimation />}
+
+        <div
+          className="min-h-screen flex flex-col items-center justify-center p-6 text-center font-sans"
+          style={{ background: "linear-gradient(135deg, #f0fdf4 0%, #f8faff 100%)" }}
+        >
+          {/* Success icon */}
+          <div
+            className="w-28 h-28 rounded-3xl flex items-center justify-center mb-8 mx-auto"
+            style={{
+              background: "linear-gradient(135deg, #1a7a3c 0%, #22c55e 100%)",
+              boxShadow: "0 16px 48px rgba(26,122,60,0.35)",
+            }}
+          >
+            <CheckCircle2 size={52} className="text-white" strokeWidth={2} />
+          </div>
+
+          <h2 className="text-3xl font-extrabold text-gray-900 mb-2">
+            Xuất sắc! 🎉
+          </h2>
+          <p className="text-gray-500 font-medium mb-2 text-lg">
+            Bạn đã hoàn thành bộ thẻ hôm nay
+          </p>
+          <p className="text-sm text-gray-400 mb-10">
+            {flashcards.length} thẻ · {starredIds.size} từ đã gắn ⭐
+          </p>
+
+          {/* Starred summary */}
+          {starredIds.size > 0 && (
+            <div
+              className="mb-8 px-6 py-4 rounded-2xl text-center"
+              style={{ background: "rgba(245,158,11,0.08)", border: "1px solid rgba(245,158,11,0.2)" }}
+            >
+              <p className="text-sm font-bold text-amber-600 mb-1">
+                ⭐ {starredIds.size} từ đã đánh dấu
+              </p>
+              <p className="text-xs text-gray-400">Ôn lại từ đã ⭐ trong Starred Vocabulary</p>
+            </div>
+          )}
+
+          <div className="flex flex-col sm:flex-row gap-3 w-full max-w-sm">
+            <button
+              onClick={() => {
+                setIsFinished(false);
+                setCurrentIndex(0);
+                setIsFlipped(false);
+              }}
+              className="flex-1 py-3.5 rounded-2xl font-bold text-gray-700 bg-white border-2 border-gray-200 hover:border-gray-400 transition-all text-sm flex items-center justify-center gap-2"
+              onMouseEnter={(e) => { e.currentTarget.style.transform = "translateY(-1px)"; }}
+              onMouseLeave={(e) => { e.currentTarget.style.transform = ""; }}
+            >
+              <RotateCcw size={16} />
+              Study Again
+            </button>
+            <button
+              onClick={() => navigate("/user/flashcards")}
+              className="flex-1 py-3.5 rounded-2xl font-bold text-white text-sm flex items-center justify-center gap-2 transition-all"
+              style={{
+                background: "linear-gradient(135deg, #1a7a3c, #22c55e)",
+                boxShadow: "0 8px 24px rgba(26,122,60,0.3)",
+              }}
+              onMouseEnter={(e) => { e.currentTarget.style.transform = "translateY(-1px)"; e.currentTarget.style.boxShadow = "0 12px 32px rgba(26,122,60,0.4)"; }}
+              onMouseLeave={(e) => { e.currentTarget.style.transform = ""; e.currentTarget.style.boxShadow = "0 8px 24px rgba(26,122,60,0.3)"; }}
+            >
+              <BookOpen size={16} />
+              Back to Library
+            </button>
+          </div>
         </div>
-        <h2 className="text-3xl font-black text-gray-900 mb-2">Xuất sắc!</h2>
-        <p className="text-gray-500 font-medium mb-10 text-lg">Bạn đã ôn tập xong {flashcards.length} thẻ.</p>
-        
-        <div className="flex gap-4">
-           <button 
-             onClick={() => { setIsFinished(false); setCurrentIndex(0); setIsFlipped(false); }}
-             className="px-8 py-3 bg-white border-2 border-gray-200 rounded-2xl font-bold text-gray-600 hover:border-[#377437] hover:text-[#377437] transition-all"
-           >
-             Học lại
-           </button>
-           <button 
-             onClick={() => navigate('/user/flashcards')}
-             className="px-8 py-3 bg-[#377437] text-white rounded-2xl font-bold shadow-lg shadow-green-900/20 hover:bg-green-800 transition-all hover:-translate-y-1"
-           >
-             Về thư viện
-           </button>
-        </div>
-      </div>
+      </>
     );
   }
 
-  const progress = ((currentIndex + 1) / flashcards.length) * 100;
-
+  // ─────────────────────────────────────────────────────────────────
+  // MAIN STUDY SCREEN
+  // ─────────────────────────────────────────────────────────────────
   return (
-    <div className="min-h-screen bg-[#F8F9FC] flex flex-col font-sans overflow-hidden">
-      
-      {/* --- HEADER --- */}
-      <div className="h-16 px-6 flex items-center justify-between bg-white/80 backdrop-blur-md border-b border-gray-200 sticky top-0 z-50">
-        {/* Nút Quay lại */}
-        <button 
-          onClick={() => navigate(-1)} 
-          className="flex items-center gap-2 px-3 py-2 rounded-xl text-gray-600 hover:bg-gray-100 hover:text-gray-900 transition-all font-bold text-sm"
+    <div
+      className="min-h-screen flex flex-col font-sans overflow-hidden"
+      style={{ background: "linear-gradient(180deg, #f8faff 0%, #f0f4f8 100%)" }}
+    >
+      {/* ── TOP BAR ── */}
+      <div
+        className="flex-shrink-0 h-[60px] px-4 sm:px-6 flex items-center justify-between sticky top-0 z-30"
+        style={{
+          background: "rgba(255,255,255,0.9)",
+          backdropFilter: "blur(16px)",
+          borderBottom: "1px solid rgba(0,0,0,0.06)",
+          boxShadow: "0 2px 12px rgba(0,0,0,0.04)",
+        }}
+      >
+        {/* Back */}
+        <button
+          onClick={() => navigate(-1)}
+          className="flex items-center gap-2 px-3 py-2 rounded-xl text-gray-600 font-bold text-sm transition-all"
+          onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(0,0,0,0.05)"; }}
+          onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}
         >
-           <ArrowLeft size={20} />
-           <span>Quay lại</span>
+          <ArrowLeft size={18} />
+          <span className="hidden sm:inline">Quay lại</span>
         </button>
 
-        {/* Bộ đếm số trang */}
-        <span className="font-black text-gray-700 text-sm bg-gray-100 px-4 py-1.5 rounded-full">
-           {currentIndex + 1} / {flashcards.length}
-        </span>
+        {/* Counter */}
+        <div className="flex items-center gap-3">
+          <span
+            className="font-extrabold text-sm px-3 py-1.5 rounded-full"
+            style={{ background: "rgba(0,0,0,0.05)", color: "#374151" }}
+          >
+            {currentIndex + 1} / {flashcards.length}
+          </span>
+          {starredIds.size > 0 && (
+            <span
+              className="font-bold text-xs px-2.5 py-1 rounded-full flex items-center gap-1"
+              style={{ background: "rgba(245,158,11,0.1)", color: "#f59e0b" }}
+            >
+              <Star size={11} fill="#f59e0b" /> {starredIds.size}
+            </span>
+          )}
+        </div>
 
-        {/* Nút cài đặt (Placeholder) */}
-        <button className="p-2 hover:bg-gray-100 rounded-full text-gray-400 hover:text-gray-600 transition-colors">
-           <Settings size={20} />
-        </button>
+        {/* Right actions */}
+        <div className="flex items-center gap-1">
+          <button
+            className="p-2 rounded-xl text-gray-400 transition-all"
+            onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(0,0,0,0.05)"; e.currentTarget.style.color = "#6b7280"; }}
+            onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = "#9ca3af"; }}
+          >
+            <ChevronLeft size={18} onClick={() => { if (currentIndex > 0) { setIsFlipped(false); setTimeout(() => setCurrentIndex((p) => p - 1), 150); } }} />
+          </button>
+          <button
+            className="p-2 rounded-xl text-gray-400 transition-all"
+            onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(0,0,0,0.05)"; e.currentTarget.style.color = "#6b7280"; }}
+            onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = "#9ca3af"; }}
+          >
+            <ChevronRight size={18} onClick={() => { if (currentIndex < flashcards.length - 1) { setIsFlipped(false); setTimeout(() => setCurrentIndex((p) => p + 1), 150); } }} />
+          </button>
+        </div>
       </div>
 
-      {/* --- THANH PROGRESS BAR --- */}
-      <div className="h-1.5 w-full bg-gray-200">
-         <div 
-            className="h-full bg-gradient-to-r from-[#377437] to-green-400 transition-all duration-500 ease-out shadow-[0_0_10px_#377437]" 
-            style={{ width: `${progress}%` }}
-         ></div>
+      {/* ── PROGRESS BAR ── */}
+      <div
+        className="h-1.5 w-full flex-shrink-0"
+        style={{ background: "rgba(0,0,0,0.06)" }}
+      >
+        <div
+          className="h-full transition-all duration-500 ease-out"
+          style={{
+            width: `${progress}%`,
+            background: "linear-gradient(90deg, #1a7a3c, #4ade80)",
+            boxShadow: "0 0 12px rgba(74,222,128,0.5)",
+          }}
+        />
       </div>
 
-      {/* --- MAIN CONTENT --- */}
-      <div className="flex-1 flex flex-col items-center justify-center p-6 relative">
-        
-        {/* KHUNG THẺ 3D */}
-        <div 
-          className="relative w-full max-w-2xl aspect-[5/3] cursor-pointer group select-none"
-          onClick={handleFlip}
-          style={{ perspective: "1000px" }} // Tạo chiều sâu 3D
+      {/* ── MAIN CONTENT ── */}
+      <div className="flex-1 flex flex-col items-center justify-center px-4 py-8">
+
+        {/* CARD */}
+        <div
+          className="flashcard-scene w-full max-w-2xl mb-8"
+          style={{ height: "clamp(280px, 40vh, 360px)" }}
         >
-           <div 
-              className="w-full h-full relative transition-all duration-500 ease-in-out"
-              style={{ 
-                transformStyle: "preserve-3d", 
-                transform: isFlipped ? "rotateY(180deg)" : "rotateY(0deg)"
-              }}
-           >
-              
-              {/* === MẶT TRƯỚC (FRONT) === */}
-              <div 
-                className="absolute inset-0 w-full h-full bg-white rounded-[2.5rem] shadow-2xl shadow-gray-200/50 border border-white flex flex-col items-center justify-center z-10 overflow-hidden"
-                style={{ backfaceVisibility: "hidden" }}
+          <div
+            className={`flashcard-inner ${isFlipped ? "is-flipped" : ""}`}
+            style={{ cursor: isTransitioning ? "default" : "pointer" }}
+            onClick={handleFlip}
+          >
+
+            {/* ── FRONT FACE ── */}
+            <div
+              className="flashcard-face"
+              style={{ background: "white", boxShadow: "0 24px 64px rgba(0,0,0,0.1), 0 8px 24px rgba(0,0,0,0.07)" }}
+            >
+              {/* Top accent */}
+              <div
+                className="absolute top-0 left-0 right-0 h-1"
+                style={{ background: "linear-gradient(90deg, transparent, #1a7a3c, #4ade80, #1a7a3c, transparent)" }}
+              />
+
+              {/* Star button */}
+              <button
+                onClick={toggleStar}
+                className={`absolute top-5 right-5 p-2 rounded-xl transition-all z-20 ${isStarred ? "star-pop" : ""}`}
+                style={{
+                  background: isStarred ? "rgba(245,158,11,0.12)" : "rgba(0,0,0,0.04)",
+                  color: isStarred ? "#f59e0b" : "#d1d5db",
+                }}
+                onMouseEnter={(e) => { if (!isStarred) { e.currentTarget.style.background = "rgba(245,158,11,0.08)"; e.currentTarget.style.color = "#f59e0b"; } }}
+                onMouseLeave={(e) => { if (!isStarred) { e.currentTarget.style.background = "rgba(0,0,0,0.04)"; e.currentTarget.style.color = "#d1d5db"; } }}
               >
-                 {/* Decor nền nhẹ */}
-                 <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-transparent via-[#377437] to-transparent opacity-20"></div>
-                 
-                 <span className="text-4xl md:text-6xl font-black text-gray-800 text-center px-4 tracking-tight">
-                    {flashcards[currentIndex].front}
-                 </span>
-                 
-                 <div className="absolute bottom-8 flex flex-col items-center animate-pulse">
-                    <span className="text-[10px] font-black text-gray-300 uppercase tracking-[0.2em]">Click to Flip</span>
-                 </div>
+                <Star size={18} fill={isStarred ? "#f59e0b" : "none"} />
+              </button>
+
+              {/* Korean word */}
+              <div className="absolute inset-0 flex flex-col items-center justify-center px-8">
+                <p
+                  className="text-5xl sm:text-6xl font-extrabold text-gray-900 text-center leading-none mb-4 tracking-tight"
+                  style={{ letterSpacing: "-0.02em" }}
+                >
+                  {card.front}
+                </p>
+                {card.romanization && (
+                  <p className="text-base text-gray-400 font-medium italic">
+                    {card.romanization}
+                  </p>
+                )}
               </div>
 
-              {/* === MẶT SAU (BACK) === */}
-              <div 
-                className="absolute inset-0 w-full h-full bg-gradient-to-br from-[#377437] to-[#2d662d] rounded-[2.5rem] shadow-2xl flex flex-col items-center justify-center text-white p-8 overflow-hidden"
-                style={{ 
-                  backfaceVisibility: "hidden", 
-                  transform: "rotateY(180deg)"
+              {/* Click hint */}
+              <div className="absolute bottom-6 inset-x-0 flex justify-center">
+                <span
+                  className="text-[10px] font-extrabold uppercase tracking-[0.2em] animate-pulse"
+                  style={{ color: "#d1d5db" }}
+                >
+                  Nhấn để lật thẻ
+                </span>
+              </div>
+            </div>
+
+            {/* ── BACK FACE ── */}
+            <div
+              className="flashcard-face flashcard-face--back"
+              style={{
+                background: "linear-gradient(135deg, #0f5a2a 0%, #1a7a3c 50%, #16a34a 100%)",
+                boxShadow: "0 24px 64px rgba(26,122,60,0.35), 0 8px 24px rgba(0,0,0,0.15)",
+              }}
+            >
+              {/* Decorative blobs */}
+              <div className="absolute -top-12 -right-12 w-40 h-40 rounded-full opacity-20" style={{ background: "radial-gradient(circle, #4ade80, transparent)" }} />
+              <div className="absolute -bottom-8 -left-8 w-32 h-32 rounded-full opacity-15" style={{ background: "radial-gradient(circle, #86efac, transparent)" }} />
+
+              {/* Speaker button */}
+              <button
+                onClick={(e) => e.stopPropagation()}
+                className="absolute top-5 right-5 p-2.5 rounded-xl transition-all z-20"
+                style={{ background: "rgba(255,255,255,0.12)", color: "white" }}
+                onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(255,255,255,0.2)"; }}
+                onMouseLeave={(e) => { e.currentTarget.style.background = "rgba(255,255,255,0.12)"; }}
+              >
+                <Volume2 size={18} />
+              </button>
+
+              {/* Meaning */}
+              <div className="absolute inset-0 flex flex-col items-center justify-center px-8 gap-4 z-10">
+                <p className="text-4xl sm:text-5xl font-extrabold text-white text-center leading-none drop-shadow-lg">
+                  {card.back}
+                </p>
+
+                {/* Example sentence */}
+                {card.example && (
+                  <div
+                    className="mt-2 px-5 py-3.5 rounded-2xl max-w-[90%] text-center"
+                    style={{ background: "rgba(255,255,255,0.1)", border: "1px solid rgba(255,255,255,0.12)" }}
+                  >
+                    <p className="text-sm font-medium text-white/80 italic mb-1">
+                      "{card.example}"
+                    </p>
+                    {card.exampleTrans && (
+                      <p className="text-xs text-white/50 font-medium">
+                        {card.exampleTrans}
+                      </p>
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        {/* ── NEXT BUTTON (appear after flip) ── */}
+        {isFlipped && !isTransitioning ? (
+          <div className="w-full max-w-2xl flex flex-col items-center gap-3">
+            <button
+              onClick={handleNext}
+              className="flex items-center gap-3 px-10 py-3.5 rounded-2xl font-bold text-white text-sm transition-all"
+              style={{
+                background: "linear-gradient(135deg, #1a7a3c, #22c55e)",
+                boxShadow: "0 8px 24px rgba(26,122,60,0.3)",
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.transform = "translateY(-2px)";
+                e.currentTarget.style.boxShadow = "0 12px 32px rgba(26,122,60,0.4)";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.transform = "";
+                e.currentTarget.style.boxShadow = "0 8px 24px rgba(26,122,60,0.3)";
+              }}
+            >
+              {currentIndex < flashcards.length - 1 ? (
+                <>Tiếp theo <ArrowRight size={16} /></>
+              ) : (
+                <>Hoàn thành <CheckCircle2 size={16} /></>
+              )}
+            </button>
+            <p className="text-[10px] text-gray-300 font-bold uppercase tracking-widest">
+              Hoặc nhấn <kbd className="bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded font-mono text-[9px]">Enter</kbd>
+            </p>
+          </div>
+        ) : (
+          /* Flip button when card not yet flipped */
+          !isTransitioning && (
+            <div className="flex flex-col items-center gap-3">
+              <button
+                onClick={handleFlip}
+                className="flex items-center gap-3 px-8 py-3.5 rounded-2xl font-bold text-gray-600 transition-all text-sm"
+                style={{
+                  background: "white",
+                  border: "2px solid rgba(0,0,0,0.1)",
+                  boxShadow: "0 4px 12px rgba(0,0,0,0.06)",
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.borderColor = "rgba(26,122,60,0.3)";
+                  e.currentTarget.style.color = "#1a7a3c";
+                  e.currentTarget.style.transform = "translateY(-1px)";
+                  e.currentTarget.style.boxShadow = "0 8px 24px rgba(26,122,60,0.12)";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.borderColor = "rgba(0,0,0,0.1)";
+                  e.currentTarget.style.color = "#4b5563";
+                  e.currentTarget.style.transform = "";
+                  e.currentTarget.style.boxShadow = "0 4px 12px rgba(0,0,0,0.06)";
                 }}
               >
-                 {/* Nút Loa */}
-                 <button 
-                    onClick={(e) => { e.stopPropagation(); alert("Đọc mẫu!"); }}
-                    className="absolute top-6 right-6 p-3 bg-white/10 hover:bg-white/20 rounded-full backdrop-blur-md transition-all active:scale-95"
-                 >
-                    <Volume2 size={24} />
-                 </button>
-
-                 <h2 className="text-3xl md:text-5xl font-black mb-6 text-center drop-shadow-md">
-                    {flashcards[currentIndex].back}
-                 </h2>
-                 
-                 {/* Ví dụ */}
-                 {flashcards[currentIndex].example && (
-                    <div className="bg-white/10 backdrop-blur-md px-6 py-4 rounded-2xl border border-white/10 max-w-[90%]">
-                       <p className="text-lg font-medium italic text-green-50 text-center leading-relaxed">
-                          "{flashcards[currentIndex].example}"
-                       </p>
-                    </div>
-                 )}
-              </div>
-
-           </div>
-        </div>
-
-        {/* --- CONTROLS --- */}
-        <div className="mt-12 flex items-center gap-6 md:gap-10">
-           {/* Nút Prev */}
-           <button 
-             onClick={handlePrev}
-             disabled={currentIndex === 0}
-             className="w-14 h-14 rounded-2xl bg-white shadow-sm border border-gray-100 flex items-center justify-center text-gray-400 hover:text-[#377437] hover:border-[#377437] hover:shadow-md disabled:opacity-30 disabled:cursor-not-allowed transition-all active:scale-95"
-           >
-              <ChevronLeft size={28} strokeWidth={3} />
-           </button>
-
-           {/* Nút Lật lớn */}
-           <button 
-             onClick={handleFlip}
-             className="h-16 px-8 bg-white border-2 border-gray-100 rounded-2xl font-black text-gray-600 shadow-sm hover:border-[#377437] hover:text-[#377437] hover:shadow-lg transition-all active:scale-95 flex items-center gap-3 min-w-[160px] justify-center"
-           >
-              <RotateCcw size={20} className={`transition-transform duration-500 ${isFlipped ? '-rotate-180' : ''}`} />
-              <span>{isFlipped ? "Quay lại" : "Xem đáp án"}</span>
-           </button>
-
-           {/* Nút Next */}
-           <button 
-             onClick={handleNext}
-             className="w-14 h-14 rounded-2xl bg-[#377437] shadow-lg shadow-green-900/20 flex items-center justify-center text-white hover:bg-green-800 hover:-translate-y-1 transition-all active:scale-95"
-           >
-              <ChevronRight size={28} strokeWidth={3} />
-           </button>
-        </div>
-
-        <p className="mt-8 text-[10px] font-bold text-gray-300 uppercase tracking-widest hidden md:block">
-           Phím tắt: Space (Lật) • Mũi tên (Di chuyển)
-        </p>
+                <RotateCcw size={18} />
+                Xem đáp án
+              </button>
+              <p className="text-[10px] text-gray-300 font-bold uppercase tracking-widest">
+                Hoặc nhấn <kbd className="bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded font-mono text-[9px]">Space</kbd>
+              </p>
+            </div>
+          )
+        )}
 
       </div>
     </div>

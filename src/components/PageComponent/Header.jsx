@@ -1,106 +1,163 @@
-import { Link } from "react-router-dom";
-import { BookOpen, ArrowRight } from "lucide-react";
+import { Link, useLocation } from "react-router-dom";
+import { BookOpen, ArrowRight, Menu, X } from "lucide-react";
+import { useState, useEffect } from "react";
 
-const PRIMARY = "#008236";
+const NAV_LINKS = [
+  { to: "/homeindex/aboutus", label: "Về chúng tôi" },
+  { to: "/homeindex/features", label: "Tính năng" },
+  { to: "/homeindex/courses", label: "Khoá học" },
+  { to: "/homeindex/community", label: "Cộng đồng" },
+];
 
-// Button custom
-const Button = ({ to, onClick, children, variant = "primary", className = "" }) => {
-    const base =
-        "inline-flex items-center gap-2 px-5 py-3 rounded-2xl text-sm font-semibold transition focus:outline-none focus:ring-2 focus:ring-offset-2";
-
-    if (variant === "primary") {
-        return (
-            <Link
-                to={to || "#"}
-                onClick={onClick}
-                className={`${base} text-white ${className}`}
-                style={{
-                    backgroundColor: PRIMARY,
-                    boxShadow: "0 6px 18px rgba(0,130,54,0.25)",
-                }}
-            >
-                {children}
-            </Link>
-        );
-    }
-
-    if (variant === "ghost") {
-        return (
-            <Link
-                to={to || "#"}
-                onClick={onClick}
-                className={`${base} border text-gray-800 hover:bg-gray-50 ${className}`}
-                style={{ borderColor: PRIMARY }}
-            >
-                {children}
-            </Link>
-        );
-    }
-
-    return (
-        <Link
-            to={to || "#"}
-            onClick={onClick}
-            className={`${base} bg-gray-200 text-gray-800 hover:bg-gray-300 ${className}`}
-        >
-            {children}
-        </Link>
-    );
-};
-
-// Header
 export default function Header() {
-    return (
-        <header className="sticky top-0 z-40 bg-white/80 backdrop-blur border-b">
-            <div className="max-w-7xl mx-auto px-6 py-3 flex items-center justify-between">
-                {/* Logo */}
-                <Link to="/" className="flex items-center gap-2">
-                    <div
-                        className="w-9 h-9 rounded-2xl flex items-center justify-center"
-                        style={{ background: PRIMARY }}
-                    >
-                        <BookOpen size={20} className="text-white" />
-                    </div>
-                    <span
-                        className="text-xl font-extrabold"
-                        style={{ color: PRIMARY }}
-                    >
-                        KoreanLab
-                    </span>
-                </Link>
+  const location = useLocation();
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
 
-                {/* Menu desktop */}
-                <nav className="hidden md:flex items-center gap-7 text-sm font-medium">
-                    <Link to="/homeindex/aboutus" className="text-gray-700 hover:opacity-80">
-                        Về chúng tôi
-                    </Link>
-                    <Link to="/homeindex/features" className="text-gray-700 hover:opacity-80">
-                        Tính năng
-                    </Link>
-                    <Link to="/homeindex/courses" className="text-gray-700 hover:opacity-80">
-                        Khoá học
-                    </Link>
-                    <Link to="/homeindex/community" className="text-gray-700 hover:opacity-80">
-                        Cộng đồng
-                    </Link>
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 20);
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
 
-                </nav>
+  // Close mobile on route change
+  useEffect(() => { setMobileOpen(false); }, [location.pathname]);
 
-                {/* Nút desktop */}
-                <div className="hidden md:flex items-center gap-3">
-                    <Button variant="ghost" to="/login">
-                        Đăng nhập
-                    </Button>
-                    <Button to="/register">
-                        Bắt đầu miễn phí <ArrowRight size={16} />
-                    </Button>
-                </div>
+  return (
+    <>
+      <header
+        className="sticky top-0 z-40 transition-all duration-300"
+        style={{
+          background: scrolled
+            ? "rgba(255,255,255,0.88)"
+            : "rgba(255,255,255,0.60)",
+          backdropFilter: "blur(20px) saturate(180%)",
+          WebkitBackdropFilter: "blur(20px) saturate(180%)",
+          borderBottom: scrolled
+            ? "1px solid rgba(26,122,60,0.12)"
+            : "1px solid rgba(255,255,255,0.4)",
+          boxShadow: scrolled ? "0 4px 24px rgba(0,0,0,0.06)" : "none",
+        }}
+      >
+        <div className="max-w-7xl mx-auto px-5 md:px-8 h-16 flex items-center justify-between">
 
-                {/* Mobile CTA */}
-                <Button to="/register" className="md:hidden">
-                    Bắt đầu <ArrowRight size={16} />
-                </Button>
+          {/* ── LOGO ── */}
+          <Link to="/" className="flex items-center gap-2.5 group">
+            <div
+              className="w-9 h-9 rounded-xl flex items-center justify-center shadow-md transition-transform duration-300 group-hover:scale-110"
+              style={{
+                background: "linear-gradient(135deg, #1a7a3c 0%, #2da05a 100%)",
+                boxShadow: "0 4px 14px rgba(26,122,60,0.35)",
+              }}
+            >
+              <BookOpen size={18} className="text-white" strokeWidth={2.5} />
             </div>
-        </header>
-    );
+            <span
+              className="text-xl font-extrabold tracking-tight"
+              style={{ color: "#1a7a3c" }}
+            >
+              KoreanLab
+            </span>
+          </Link>
+
+          {/* ── DESKTOP NAV ── */}
+          <nav className="hidden md:flex items-center gap-1">
+            {NAV_LINKS.map(({ to, label }) => {
+              const isActive = location.pathname === to;
+              return (
+                <Link
+                  key={to}
+                  to={to}
+                  className="nav-link px-4 py-2 rounded-xl text-sm font-semibold transition-all duration-200"
+                  style={{
+                    color: isActive ? "#1a7a3c" : "#374151",
+                    background: isActive ? "rgba(26,122,60,0.08)" : "transparent",
+                  }}
+                >
+                  {label}
+                </Link>
+              );
+            })}
+          </nav>
+
+          {/* ── DESKTOP ACTIONS ── */}
+          <div className="hidden md:flex items-center gap-3">
+            <Link
+              to="/login"
+              className="btn-ghost text-sm"
+              style={{ padding: "0.55rem 1.25rem" }}
+            >
+              Đăng nhập
+            </Link>
+            <Link
+              to="/register"
+              className="btn-primary text-sm"
+              style={{ padding: "0.55rem 1.25rem" }}
+            >
+              Bắt đầu miễn phí <ArrowRight size={14} strokeWidth={2.5} />
+            </Link>
+          </div>
+
+          {/* ── MOBILE TOGGLE ── */}
+          <button
+            onClick={() => setMobileOpen(!mobileOpen)}
+            className="md:hidden p-2 rounded-xl transition-colors hover:bg-gray-100"
+            style={{ color: "#1a7a3c" }}
+            aria-label="Toggle menu"
+          >
+            {mobileOpen ? <X size={22} /> : <Menu size={22} />}
+          </button>
+        </div>
+      </header>
+
+      {/* ── MOBILE MENU DRAWER ── */}
+      {mobileOpen && (
+        <div
+          className="fixed inset-0 z-30 md:hidden"
+          style={{ top: 64 }}
+          onClick={() => setMobileOpen(false)}
+        >
+          <div
+            className="absolute inset-0"
+            style={{ background: "rgba(0,0,0,0.2)", backdropFilter: "blur(4px)" }}
+          />
+          <div
+            className="absolute left-0 right-0 top-0 mx-4 mt-3 rounded-2xl p-5 shadow-2xl"
+            style={{
+              background: "rgba(255,255,255,0.97)",
+              border: "1px solid rgba(26,122,60,0.12)",
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <nav className="flex flex-col gap-1 mb-5">
+              {NAV_LINKS.map(({ to, label }) => {
+                const isActive = location.pathname === to;
+                return (
+                  <Link
+                    key={to}
+                    to={to}
+                    className="px-4 py-3 rounded-xl text-sm font-semibold transition-colors"
+                    style={{
+                      color: isActive ? "#1a7a3c" : "#374151",
+                      background: isActive ? "rgba(26,122,60,0.08)" : "transparent",
+                    }}
+                  >
+                    {label}
+                  </Link>
+                );
+              })}
+            </nav>
+            <div className="flex flex-col gap-2.5 pt-4" style={{ borderTop: "1px solid #f0f0f0" }}>
+              <Link to="/login" className="btn-ghost text-center justify-center">
+                Đăng nhập
+              </Link>
+              <Link to="/register" className="btn-primary justify-center">
+                Bắt đầu miễn phí <ArrowRight size={14} />
+              </Link>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
+  );
 }

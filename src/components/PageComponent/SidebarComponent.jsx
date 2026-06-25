@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
   LayoutDashboard,
@@ -9,167 +9,290 @@ import {
   LogOut,
   X,
   HelpCircle,
-  PenTool,
-  Lock,
+  Bot,
+  Layers,
   Sparkles,
   CheckCircle2,
-  Bot,
-  Layers // <-- 1. Import Icon mới cho Flashcard
+  ChevronRight,
+  Trophy,
+  Gamepad2,
+  ClipboardList,
+  User,
+  BookMarked,
+  Crown,
 } from "lucide-react";
+import { useAuth } from "../../context/authContext";
 
-const COLORS = {
-  primary: "#377437",
-  bgActive: "#E4FBE1",
-  textInactive: "#64748b",
-};
+const PRIMARY = "#1a7a3c";
+const PRIMARY_DARK = "#0f5a2a";
 
-export default function Sidebar({ isMobile, onClose, isVip = false }) {
+export default function Sidebar({ isMobile, onClose }) {
   const location = useLocation();
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const isVip = user?.subscriptionPlan === "vip" || user?.isVip;
 
   const navItems = [
-    { icon: LayoutDashboard, label: "Dashboard", to: "/user/dashboard", requireVip: false },
-    { icon: BookOpen, label: "Course", to: "/courses", requireVip: false },
-    
-    // 2. Thêm mục Flashcards vào đây
-    { icon: Layers, label: "Flashcards", to: "/user/flashcards", requireVip: false }, 
-
-    { icon: Bot, label: "AI Support", to: "/user/ai-support", requireVip: false },
-    { icon: CalendarDays, label: "Schedule", to: "/user/schedule", requireVip: false },
-    { icon: GraduationCap, label: "Active Course", to: "/user/active-courses", requireVip: false },
-   
+    { icon: LayoutDashboard, label: "Dashboard",    to: "/user/dashboard" },
+    { icon: BookOpen,        label: "Courses",       to: "/courses" },
+    { icon: BookMarked,      label: "TOPIK Prep",    to: "/topik-learn",         badge: "Hot",  badgeColor: "#ef4444" },
+    { icon: Layers,          label: "Flashcards",    to: "/user/flashcards",     badge: "New",  badgeColor: "#f97316" },
+    { icon: Bot,             label: "AI Support",    to: "/user/ai-support",     badge: "Beta", badgeColor: "#6366f1" },
+    { icon: Trophy,          label: "Leaderboard",   to: "/user/leaderboard" },
+    { icon: Gamepad2,        label: "Games",         to: "/user/games" },
+    { icon: ClipboardList,   label: "Quiz Room",     to: "/user/quiz" },
+    { icon: CalendarDays,    label: "Schedule",      to: "/user/schedule" },
+    { icon: GraduationCap,   label: "My Courses",    to: "/user/active-courses" },
   ];
 
   const bottomItems = [
-    { icon: Settings, label: "Settings", to: "/user/settings" },
-    { icon: HelpCircle, label: "Support", to: "/user/support" },
-    { icon: LogOut, label: "Log out", to: "/user/logout" },
+    { icon: User,       label: "Profile",   to: "/user/profile" },
+    { icon: Settings,   label: "Settings",  to: "/user/settings" },
+    { icon: HelpCircle, label: "Support",   to: "/user/support" },
+    { icon: LogOut,     label: "Logout",    to: "/user/logout", danger: true },
   ];
 
   const NavItem = ({ item }) => {
-    // Logic giữ nguyên như cũ, chỉ kiểm tra xem đường dẫn có khớp không
-    // Lưu ý: Flashcard có thể có nhiều trang con (create, list...), nên dùng startsWith là chuẩn
-    const isActive = location.pathname.startsWith(item.to) || 
-                     (item.label === "Flashcards" && location.pathname.includes("/user/flashcard")); 
-
-    const isLocked = item.requireVip && !isVip;
+    const isActive =
+      location.pathname === item.to ||
+      (item.to !== "/user/dashboard" && location.pathname.startsWith(item.to));
     const Icon = item.icon;
-
-    const handleClick = (e) => {
-      if (isLocked) {
-        e.preventDefault();
-        navigate('/user/upgrade');
-        return;
-      }
-      if (isMobile) onClose();
-    };
 
     return (
       <Link
-        to={isLocked ? "#" : item.to}
-        onClick={handleClick}
-        className={`
-          group flex items-center justify-between px-4 py-3 mx-3 rounded-xl transition-all duration-200 font-medium mb-1
-          ${isActive ? "shadow-sm" : "hover:bg-gray-50"}
-          ${isLocked ? "opacity-60" : "cursor-pointer"}
-        `}
+        to={item.to}
+        onClick={isMobile && onClose ? onClose : undefined}
+        className="group relative flex items-center gap-3 px-3 py-2.5 mx-2 mb-0.5 rounded-xl transition-all duration-200 overflow-hidden"
         style={{
-          backgroundColor: isActive ? COLORS.bgActive : "transparent",
-          color: isActive ? COLORS.primary : COLORS.textInactive,
+          background: isActive
+            ? "linear-gradient(135deg, rgba(26,122,60,0.1) 0%, rgba(34,197,94,0.07) 100%)"
+            : "transparent",
+          color: item.danger ? "#ef4444" : isActive ? PRIMARY : "#64748b",
+          border: isActive ? "1px solid rgba(26,122,60,0.15)" : "1px solid transparent",
+        }}
+        onMouseEnter={(e) => {
+          if (!isActive) {
+            e.currentTarget.style.background = item.danger
+              ? "rgba(239,68,68,0.06)"
+              : "rgba(26,122,60,0.05)";
+            e.currentTarget.style.color = item.danger ? "#dc2626" : PRIMARY;
+          }
+        }}
+        onMouseLeave={(e) => {
+          if (!isActive) {
+            e.currentTarget.style.background = "transparent";
+            e.currentTarget.style.color = item.danger ? "#ef4444" : "#64748b";
+          }
         }}
       >
-        <div className="flex items-center gap-3">
-          <Icon 
-            size={20} 
-            strokeWidth={isActive ? 2.5 : 2}
-            className={`transition-colors ${isActive ? "" : "group-hover:text-[#377437]"}`}
+        {/* Active left indicator */}
+        {isActive && (
+          <div
+            className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 rounded-r-full"
+            style={{
+              background: `linear-gradient(180deg, ${PRIMARY}, #22c55e)`,
+              height: "20px",
+            }}
           />
-          <span className="text-sm font-semibold tracking-wide">{item.label}</span>
-          
-          {/* Badge Mới cho Flashcard nếu muốn nổi bật */}
-          {item.label === "Flashcards" && (
-             <span className="bg-orange-100 text-orange-600 text-[9px] px-1.5 py-0.5 rounded font-black uppercase ml-1">New</span>
-          )}
-          
-          {item.label === "AI Support" && !isLocked && (
-            <span className="bg-[#377437] text-white text-[8px] px-1.5 py-0.5 rounded-md font-black uppercase ml-1 animate-pulse">Beta</span>
-          )}
+        )}
+
+        {/* Icon */}
+        <div
+          className="flex-shrink-0 w-8 h-8 flex items-center justify-center rounded-lg transition-all duration-200"
+          style={{
+            background: isActive
+              ? "rgba(26,122,60,0.12)"
+              : "rgba(0,0,0,0.04)",
+          }}
+        >
+          <Icon
+            size={16}
+            strokeWidth={isActive ? 2.5 : 2}
+            className="flex-shrink-0"
+          />
         </div>
-        {isLocked && <Lock size={14} className="text-gray-400" />}
+
+        {/* Label */}
+        <span className={`flex-1 text-sm ${isActive ? "font-bold" : "font-medium"}`}>
+          {item.label}
+        </span>
+
+        {/* Badge */}
+        {item.badge && (
+          <span
+            className="text-[9px] px-1.5 py-0.5 rounded-md font-extrabold text-white leading-none"
+            style={{ background: item.badgeColor }}
+          >
+            {item.badge}
+          </span>
+        )}
+
+        {isActive && (
+          <ChevronRight size={13} className="opacity-40 flex-shrink-0" />
+        )}
       </Link>
     );
   };
 
   return (
-    <aside className={`flex flex-col h-full bg-white border-r border-gray-100 transition-all ${isMobile ? "w-full" : "w-[260px]"}`}>
-      
-      {/* HEADER - Giữ nguyên */}
-      <div className="h-20 flex items-center px-6 justify-between flex-shrink-0">
-        <Link to="/user/dashboard" className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl flex items-center justify-center text-white shadow-md" style={{ backgroundColor: COLORS.primary }}>
-            <span className="font-bold text-lg">KL</span>
+    <aside
+      className={`flex flex-col h-full transition-all ${isMobile ? "w-full" : "w-[260px]"}`}
+      style={{
+        background: "white",
+        borderRight: "1px solid rgba(0,0,0,0.07)",
+        boxShadow: "4px 0 24px rgba(0,0,0,0.04)",
+      }}
+    >
+      {/* ── HEADER / LOGO ── */}
+      <div
+        className="h-[68px] flex items-center px-5 justify-between flex-shrink-0"
+        style={{ borderBottom: "1px solid rgba(0,0,0,0.06)" }}
+      >
+        <Link to="/user/dashboard" className="flex items-center gap-3 group">
+          <div
+            className="relative w-9 h-9 rounded-xl flex items-center justify-center text-white flex-shrink-0 overflow-hidden transition-transform group-hover:scale-105"
+            style={{
+              background: `linear-gradient(135deg, ${PRIMARY_DARK} 0%, ${PRIMARY} 50%, #22c55e 100%)`,
+              boxShadow: "0 4px 14px rgba(26,122,60,0.3)",
+            }}
+          >
+            <div
+              className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+              style={{ background: "radial-gradient(circle at 30% 30%, rgba(255,255,255,0.2), transparent)" }}
+            />
+            <span className="font-extrabold text-sm tracking-tight relative z-10">KL</span>
           </div>
-          <div className="flex flex-col">
-             <span className="font-extrabold text-xl tracking-tight text-gray-800 leading-tight">KoreanLab</span>
-             <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">E-Learning</span>
+          <div className="flex flex-col leading-tight">
+            <span className="font-extrabold text-base tracking-tight text-gray-900">KoreanLab</span>
+            <span className="text-[9px] font-bold uppercase tracking-[0.15em]" style={{ color: PRIMARY }}>
+              E-Learning
+            </span>
           </div>
         </Link>
+
         {isMobile && (
-          <button onClick={onClose} className="p-2 text-gray-500 hover:bg-gray-100 rounded-full transition-colors">
-            <X size={24} />
+          <button
+            onClick={onClose}
+            className="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
+          >
+            <X size={18} />
           </button>
         )}
       </div>
 
-      {/* BODY */}
-      <div className="flex-1 overflow-y-auto py-4 custom-scrollbar">
-        <div className="px-6 mb-2 text-[11px] font-bold text-gray-400 uppercase tracking-[0.1em]">Overview</div>
-        <nav className="space-y-1">
+      {/* ── BODY ── */}
+      <div className="flex-1 overflow-y-auto py-3 custom-scrollbar">
+        {/* Navigation label */}
+        <div className="px-5 mb-2 mt-1">
+          <span className="text-[9px] font-extrabold uppercase tracking-[0.2em] text-gray-300">
+            Main Menu
+          </span>
+        </div>
+
+        <nav className="mb-2">
           {navItems.map((item) => (
             <NavItem key={item.to} item={item} />
           ))}
         </nav>
 
-        <div className="mt-8 px-6 mb-2 text-[11px] font-bold text-gray-400 uppercase tracking-[0.1em]">System</div>
-        <nav className="space-y-1">
+        {/* Divider */}
+        <div
+          className="mx-5 my-3"
+          style={{
+            height: "1px",
+            background: "linear-gradient(90deg, transparent, rgba(0,0,0,0.07), transparent)",
+          }}
+        />
+
+        {/* System label */}
+        <div className="px-5 mb-2">
+          <span className="text-[9px] font-extrabold uppercase tracking-[0.2em] text-gray-300">
+            System
+          </span>
+        </div>
+
+        <nav>
           {bottomItems.map((item) => (
             <NavItem key={item.to} item={item} />
           ))}
         </nav>
       </div>
 
-      {/* FOOTER - Giữ nguyên phần VIP */}
-      <div className="p-4 mt-auto border-t border-gray-50">
-        <div className={`relative overflow-hidden rounded-2xl p-5 shadow-xl transition-all duration-300 ${isVip ? 'bg-gradient-to-br from-green-600 to-green-800' : 'bg-slate-900'}`}>
-          <div className="absolute -right-4 -top-4 h-20 w-20 rounded-full bg-white/10 blur-2xl" />
-          
-          <div className="relative z-10">
-            <div className="flex items-center gap-2 mb-3">
-              <div className={`flex h-7 w-7 items-center justify-center rounded-lg ${isVip ? 'bg-white text-green-700' : 'bg-green-500 text-white'}`}>
-                {isVip ? <CheckCircle2 size={16} /> : <Sparkles size={16} fill="white" />}
+      {/* ── VIP / UPGRADE CARD ── */}
+      <div
+        className="p-3 flex-shrink-0"
+        style={{ borderTop: "1px solid rgba(0,0,0,0.06)" }}
+      >
+        {isVip ? (
+          <div
+            className="relative overflow-hidden rounded-xl p-3.5 cursor-pointer transition-all duration-200"
+            style={{
+              background: "linear-gradient(135deg, #1a7a3c 0%, #2da05a 100%)",
+              boxShadow: "0 8px 24px rgba(26,122,60,0.25)",
+            }}
+            onClick={() => navigate("/user/upgrade")}
+            onMouseEnter={(e) => { e.currentTarget.style.transform = "translateY(-1px)"; }}
+            onMouseLeave={(e) => { e.currentTarget.style.transform = ""; }}
+          >
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: "rgba(255,255,255,0.2)" }}>
+                <Crown size={15} className="text-white" />
               </div>
-              <span className="text-sm font-bold text-white">
-                {isVip ? 'VIP Member' : 'Go Premium'}
-              </span>
+              <div className="min-w-0">
+                <p className="text-xs font-bold text-white truncate">VIP Member</p>
+                <p className="text-[10px]" style={{ color: "rgba(255,255,255,0.65)" }}>Full access unlocked</p>
+              </div>
+              <CheckCircle2 size={14} className="text-white/70 flex-shrink-0 ml-auto" />
             </div>
-            
-            <p className="mb-4 text-[11px] leading-relaxed text-slate-100/80">
-              {isVip 
-                ? "You are enjoying all premium features!" 
-                : "Unlock AI Support & Unlimited Flashcards."
-              }
-            </p>
-            
-            <button 
-              onClick={() => navigate('/user/upgrade')}
-              className={`w-full rounded-xl py-2 text-[12px] font-bold transition-all duration-200 active:scale-95 shadow-md ${
-                isVip 
-                ? 'bg-white/20 text-white hover:bg-white/30 backdrop-blur-sm' 
-                : 'bg-green-600 text-white hover:bg-green-500'
-              }`}
-            >
-              {isVip ? 'View Plan Details' : 'Upgrade Now'}
-            </button>
+          </div>
+        ) : (
+          <div
+            className="relative overflow-hidden rounded-xl p-3.5 cursor-pointer transition-all duration-200"
+            style={{
+              background: "linear-gradient(135deg, #111827 0%, #1f2937 100%)",
+              boxShadow: "0 8px 24px rgba(0,0,0,0.15)",
+            }}
+            onClick={() => navigate("/user/upgrade")}
+            onMouseEnter={(e) => { e.currentTarget.style.transform = "translateY(-1px)"; }}
+            onMouseLeave={(e) => { e.currentTarget.style.transform = ""; }}
+          >
+            <div className="absolute -right-4 -top-4 w-16 h-16 rounded-full blur-xl opacity-20" style={{ background: "#4ade80" }} />
+            <div className="relative z-10">
+              <div className="flex items-center gap-2 mb-2">
+                <Sparkles size={13} className="text-green-400" />
+                <span className="text-xs font-extrabold text-white">Upgrade Premium</span>
+              </div>
+              <p className="text-[10px] mb-2.5 leading-relaxed" style={{ color: "rgba(255,255,255,0.5)" }}>
+                Mở khóa AI không giới hạn & toàn bộ Flashcards
+              </p>
+              <div
+                className="w-full py-1.5 rounded-lg text-[10px] font-bold text-center"
+                style={{ background: "rgba(74,222,128,0.2)", color: "#4ade80", border: "1px solid rgba(74,222,128,0.25)" }}
+              >
+                Upgrade ngay →
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* User info */}
+        <div className="mt-2.5 flex items-center gap-2.5 px-1">
+          <img
+            src={
+              user?.avatar ||
+              `https://ui-avatars.com/api/?name=${encodeURIComponent(user?.fullName || "User")}&background=1a7a3c&color=fff&bold=true`
+            }
+            className="w-7 h-7 rounded-lg object-cover flex-shrink-0"
+            style={{ border: "2px solid rgba(26,122,60,0.15)" }}
+            alt="Profile"
+          />
+          <div className="flex flex-col min-w-0">
+            <span className="text-xs font-bold truncate leading-none text-gray-800">
+              {user?.fullName || "Học viên"}
+            </span>
+            <span className="text-[9px] font-bold uppercase tracking-wide" style={{ color: PRIMARY }}>
+              learner
+            </span>
           </div>
         </div>
       </div>

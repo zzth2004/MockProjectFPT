@@ -388,7 +388,7 @@ export default function AiSupportConsole() {
     );
   };
   return (
-    <div className="flex h-[calc(100vh-80px)] bg-[#F8F9FC] p-4 gap-4 font-sans overflow-hidden">
+    <div className="flex h-full bg-[#F8F9FC] p-4 gap-4 font-sans overflow-hidden" style={{ minHeight: 0 }}>
       <style>{`
       @keyframes subtle-wave {
         0%, 100% { height: 8px; }
