@@ -14,7 +14,7 @@ export default function PageWrapper({ children }) {
       animate="animate"
       exit="exit"
       transition={{ duration: 0.4 }}
-      className="min-h-screen"
+      className="min-h-screen px-4 py-6 sm:px-6 lg:px-8"
     >
       {children}
     </motion.div>

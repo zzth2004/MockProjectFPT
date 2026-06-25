@@ -388,7 +388,7 @@ export default function AiSupportConsole() {
     );
   };
   return (
-    <div className="flex h-full bg-[#F8F9FC] p-4 gap-4 font-sans overflow-hidden" style={{ minHeight: 0 }}>
+    <div className="flex h-full pt-20 p-4 gap-4 font-sans overflow-hidden" style={{ minHeight: 0 }}>
       <style>{`
       @keyframes subtle-wave {
         0%, 100% { height: 8px; }
@@ -742,7 +742,7 @@ export default function AiSupportConsole() {
         {/* --- INPUT BAR CHO CÁC MODE CÒN LẠI --- */}
         {activeMode !== "PRONUNCIATION" && (
           <div className="absolute bottom-10 left-10 right-10 z-20">
-            <div className={`bg-gray-100/90 backdrop-blur-md rounded-[2.5rem] p-3 flex items-center gap-3 border transition-all duration-300 shadow-2xl
+            <div className={`bg-gray-100/90 hover:backdrop-blur-md rounded-[2.5rem] p-3 flex items-center gap-3 border transition-all duration-300 hover:shadow-2xl
                     ${isListening ? 'border-red-500 shadow-red-100 bg-white' : 'border-gray-200 focus-within:bg-white focus-within:border-[#377437]'}`}>
 
               <button

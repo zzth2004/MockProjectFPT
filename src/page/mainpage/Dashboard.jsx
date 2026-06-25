@@ -340,12 +340,8 @@ const Dashboard = () => {
     <div className="w-full min-h-screen font-sans flex flex-col gap-8 pb-10">
 
       {/* --- PHẦN 1: LỊCH HỌC GOOGLE (THAY THẾ PHẦN TRÊN BIỂU ĐỒ) --- */}
-      <div className="relative group overflow-hidden">
-        {/* Glow background hiệu ứng */}
-        <div className="absolute -inset-1 bg-gradient-to-r from-blue-100 to-green-100 rounded-[2.5rem] blur-2xl opacity-30"></div>
-
-        <div className="relative bg-white/40 backdrop-blur-2xl border border-white/60 shadow-[0_8px_32px_0_rgba(31,38,135,0.05)] p-8 rounded-[2.5rem]">
-          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+      <div className="relative bg-white rounded-[2.5rem] p-6 md:p-8">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
 
             {/* Cột trái: Thông tin kết nối */}
             <div className="flex flex-col gap-2">
@@ -411,7 +407,6 @@ const Dashboard = () => {
               )}
             </div>
           )}
-        </div>
       </div>
 
       {/* --- PHẦN 2: BIỂU ĐỒ THỐNG KÊ --- */}

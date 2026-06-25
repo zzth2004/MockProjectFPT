@@ -34,7 +34,7 @@ const SupportPage = () => {
   ];
 
   return (
-    <div className="w-full min-h-screen bg-[#F8F9FC] p-6 md:p-12 font-sans">
+    <div className="w-full min-h-screen p-6 md:p-12 font-sans">
       <div className="max-w-4xl mx-auto space-y-10">
         
         {/* --- HEADER --- */}

@@ -86,7 +86,7 @@ export default function Sidebar({ isMobile, onClose }) {
         }}
       >
         {/* Active left indicator */}
-        {isActive && (
+        {/* {isActive && (
           <div
             className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 rounded-r-full"
             style={{
@@ -94,7 +94,7 @@ export default function Sidebar({ isMobile, onClose }) {
               height: "20px",
             }}
           />
-        )}
+        )} */}
 
         {/* Icon */}
         <div

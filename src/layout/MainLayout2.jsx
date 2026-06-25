@@ -94,7 +94,7 @@ export default function MainLayout2() {
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: loading ? 0 : 1, y: loading ? 8 : 0 }}
             transition={{ duration: 0.3 }}
-            className={isAiPage ? "h-full flex flex-col" : "mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8 min-h-full"}
+            className={isAiPage ? "h-full flex flex-col" : "mx-auto max-w-7xl  min-h-full"}
           >
             <Outlet />
             {!isAiPage && <Footer />}
