@@ -2,6 +2,7 @@
 import { initializeApp } from "firebase/app";
 import { getAuth } from "firebase/auth";
 import { getAnalytics } from "firebase/analytics";
+import { getDatabase } from "firebase/database";
 
 // Cấu hình Firebase, lấy từ .env (Vite yêu cầu prefix VITE_)
 const firebaseConfig = {
@@ -19,3 +20,4 @@ const app = initializeApp(firebaseConfig);
 
 // Export Firebase Auth để dùng đăng nhập, đăng ký
 export const auth = getAuth(app);
+export const database = getDatabase(app);

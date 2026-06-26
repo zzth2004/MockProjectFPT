@@ -1,7 +1,7 @@
 import React, { useEffect, useCallback, useState, useMemo, memo } from "react";
-import { 
-  BookOpen, Search, Filter, X, ChevronLeft, ChevronRight, 
-  Layers, AudioWaveform, Star, Users 
+import {
+    BookOpen, Search, Filter, X, ChevronLeft, ChevronRight,
+    Layers, AudioWaveform, Star, Users
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
@@ -15,8 +15,8 @@ import useCallApiHandler from "../../../hooks/HookHander/useCallApiHandler";
 import courseService from "../../../AdminControl/Service/API/courseServiceAPI/course.service";
 
 // --- UTILS ---
-const formatVND = (price) => 
-  new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(price || 0);
+const formatVND = (price) =>
+    new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(price || 0);
 
 // --- SUB-COMPONENTS ---
 
@@ -101,10 +101,10 @@ const CourseCard = memo(({ course }) => {
             className="p-0 overflow-hidden flex flex-col h-full border-none shadow-sm hover:shadow-2xl transition-all duration-500 bg-white rounded-[2.5rem] group cursor-pointer"
         >
             <div className="h-56 w-full bg-gray-100 relative overflow-hidden">
-                <img 
-                    src={thumbnail || "https://img.freepik.com/free-vector/learning-concept-illustration_114360-6186.jpg"} 
-                    alt={title} 
-                    className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" 
+                <img
+                    src={thumbnail || "https://img.freepik.com/free-vector/learning-concept-illustration_114360-6186.jpg"}
+                    alt={title}
+                    className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
                 />
                 <div className="absolute top-4 left-4">
                     <KLBadge className="bg-white/90 backdrop-blur-md text-[#377437] border-none font-black text-[9px] uppercase px-3 py-1.5 rounded-full shadow-sm">
@@ -203,7 +203,7 @@ export default function ActiveCourses() {
 
     return (
         <div className="min-h-screen bg-[#F8F9FC] p-6 md:p-10 space-y-10 animate-in fade-in duration-700 relative">
-            
+
             {/* Header Section */}
             <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 pb-8 border-b-2 border-dashed border-gray-200 container mx-auto max-w-7xl">
                 <div>
@@ -239,7 +239,7 @@ export default function ActiveCourses() {
                             className={`rounded-[1.8rem] px-10 py-5 transition-all font-black text-[11px] uppercase italic tracking-widest flex gap-2
                                 ${showFilters ? 'bg-black text-white' : 'bg-[#377437] text-white hover:bg-[#2d5e2d] shadow-lg shadow-green-100'}`}
                         >
-                            {showFilters ? <X size={16}/> : <Filter size={16}/>}
+                            {showFilters ? <X size={16} /> : <Filter size={16} />}
                             {showFilters ? "Đóng bộ lọc" : "Lọc trình độ"}
                         </KLButton>
                     </div>
@@ -278,7 +278,7 @@ export default function ActiveCourses() {
                             <BookOpen size={48} className="text-gray-200" />
                         </div>
                         <p className="text-gray-400 font-black uppercase text-sm tracking-[0.3em]">Không tìm thấy khóa học phù hợp</p>
-                        <KLButton variant="outline" className="mt-6 rounded-xl" onClick={() => {setSearchTerm(""); setFilters({level: ""})}}>Xóa tất cả bộ lọc</KLButton>
+                        <KLButton variant="outline" className="mt-6 rounded-xl" onClick={() => { setSearchTerm(""); setFilters({ level: "" }) }}>Xóa tất cả bộ lọc</KLButton>
                     </div>
                 ) : (
                     <>

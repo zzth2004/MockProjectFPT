@@ -18,7 +18,7 @@ const axiosClient = axios.create({
 
 axiosClient.interceptors.request.use(
   (config) => {
-    const token = sessionStorage.getItem("jwt");
+    const token = localStorage.getItem("jwt");
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -28,22 +28,6 @@ axiosClient.interceptors.request.use(
 );
 
 
-// axiosClient.interceptors.response.use(
-//   (response) => {
-//     return response.data;
-//   },
-//   (error) => {
-
-//     if (error.response && error.response.status === 401) {
-//       console.error("Unauthorized, logging out...");
-//       localStorage.removeItem("token");
-//       window.location.href = "/login"; 
-//     }
-
-//     return Promise.reject(error);
-//   }
-// );
-// axiosClient.js
 axiosClient.interceptors.response.use(
   (response) => response,
   (error) => {
@@ -54,7 +38,6 @@ axiosClient.interceptors.response.use(
       return new Promise(() => { });
     }
 
-    // Đối với các lỗi khác, vẫn reject để component xử lý
     return Promise.reject(error);
   }
 );

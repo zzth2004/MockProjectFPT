@@ -57,11 +57,25 @@ const AiService = {
 
   /**
    * PHẦN TALK WITH AI: Chấm điểm phát âm
-   * @param {Object} pronunciationDto - { userTranscript, targetSentence, userId, ... }
+   * @param {FormData} formData - Chứa file audio và referenceText
    */
-  evaluatePronunciation: async (pronunciationDto) => {
-    const response = await axiosClient.post('/ai/evaluate-pronunciation', pronunciationDto);
-    return response.data.data;
+  evaluatePronunciation: async (formData) => {
+    const response = await axiosClient.post('/ai/evaluate-pronunciation', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+    return response.data.data !== undefined ? response.data.data : response.data;
+  },
+
+  /**
+   * Sinh file âm thanh từ văn bản (TTS)
+   * @param {string} text 
+   * @returns Base64 string of the audio
+   */
+  generateTTS: async (text) => {
+    const response = await axiosClient.post('/ai/tts', { text });
+    return response.data;
   },
 
   /**

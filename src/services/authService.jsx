@@ -201,8 +201,8 @@ export async function authLogout() {
     if (auth) {
       await signOut(auth);
     }
-    // 3. Xóa sạch sessionStorage theo yêu cầu của bạn
-    sessionStorage.clear();
+    // 3. Xóa sạch localStorage theo yêu cầu của bạn
+    localStorage.clear();
 
     // 4. Đưa người dùng về trang Login và xóa lịch sử điều hướng
     window.location.replace("/login");

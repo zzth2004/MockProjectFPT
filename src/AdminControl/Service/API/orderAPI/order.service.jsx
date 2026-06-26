@@ -11,6 +11,11 @@ const orderService = {
     }).then(res => res.data.data);
   },
 
+  // Lấy lịch sử đơn hàng của tôi
+  getMyOrders: async () => {
+    return axiosClient.get("/orders/me").then(res => res.data);
+  },
+
   // Tạo đơn hàng mới (Checkout)
   createOrder: async (data) => {
     return axiosClient.post("/orders/checkout", data).then(res => res.data.data);

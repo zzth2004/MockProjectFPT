@@ -4,9 +4,9 @@ import {
   Square, Play, Sparkles, ChevronRight, Languages, Info, X, BotMessageSquare, ChevronDown
 } from "lucide-react";
 
-// Import Hooks
 import { useSpeechRecognition } from "../../../hooks/SpeechConvert/useSpeechConvert";
 import { useTextToSpeech } from "../../../hooks/SpeechConvert/useTextConvert";
+import { useAudioRecorder } from "../../../hooks/SpeechConvert/useAudioRecorder";
 import AiService from "../../../AdminControl/Service/API/aiAPI/ai.service";
 
 import { useAuth } from "../../../context/authContext";
@@ -15,18 +15,30 @@ import WritingEvaluationView from "./components/WritingEvaluationView";
 export default function AiSupportConsole() {
   const [activeMode, setActiveMode] = useState("CHAT_TUTOR");
   const [inputText, setInputText] = useState("");
-  const [sttLang, setSttLang] = useState("ko-KR"); // Ngôn ngữ nói vào
+  const [sttLang, setSttLang] = useState("ko-KR");
   const [ttsLang, setTtsLangState] = useState("ko-KR");
-  const [lastAiResponse, setLastAiResponse] = useState(""); // Lưu câu trả lời mới nhất để auto-TTS
+  const [lastAiResponse, setLastAiResponse] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
 
-  const [messages, setMessages] = useState([]); // Lưu danh sách tin nhắn
+  const [messages, setMessages] = useState([]);
   const messagesEndRef = useRef(null);
   const [lastUserText, setLastUserText] = useState("");
 
   const [currentSessionId, setCurrentSessionId] = useState(null);
-  const { user } = useAuth(); // Lấy user và jwt từ Context
-  const [requestType, setRequestType] = useState("pronunciation"); // hoặc "chat"
+  const { user } = useAuth();
+  const [requestType, setRequestType] = useState("pronunciation");
+
+  // Câu đích cho Pronunciation mode
+  const SAMPLE_SENTENCES = [
+    { text: "안녕하세요", romanization: "An-nyeong-ha-se-yo (Xin chào)" },
+    { text: "감사합니다", romanization: "Gam-sa-ham-ni-da (Cảm ơn)" },
+    { text: "저는 학생이에요", romanization: "Jeo-neun hak-saeng-i-e-yo (Tôi là học sinh)" },
+    { text: "오늘 날씨가 좋네요", romanization: "O-neul nal-ssi-ga jo-ne-yo (Hôm nay thời tiết đẹp nhỉ)" },
+    { text: "한국어를 배우고 싶어요", romanization: "Han-gug-eo-reul bae-u-go si-peo-yo (Tôi muốn học tiếng Hàn)" },
+  ];
+  const [sampleIdx, setSampleIdx] = useState(0);
+  const targetSentence = SAMPLE_SENTENCES[sampleIdx].text;
+  const targetRomanization = SAMPLE_SENTENCES[sampleIdx].romanization;
 
 
   const REQUEST_OPTIONS = [
@@ -36,7 +48,8 @@ export default function AiSupportConsole() {
   // Lấy userID (tùy thuộc vào cấu trúc object user của bạn)
   const userId = user?.id || user?.userID || user?._id;
 
-  let lessonsentence = "";
+  // lessonsentence: dùng targetSentence làm câu mẫu cần đọc
+  const lessonsentence = targetSentence;
 
   // 1. Cấu hình Hook STT (Nghe)
   const {
@@ -49,6 +62,16 @@ export default function AiSupportConsole() {
     stopListening,
     clearTranscript
   } = useSpeechRecognition("ko-KR");
+
+  // Hook ghi âm file audio thực tế cho Pronunciation
+  const {
+    isRecording,
+    audioBlob,
+    startRecording,
+    stopRecording,
+    toggleRecording,
+    clearAudio
+  } = useAudioRecorder();
 
   // 2. Cấu hình Hook TTS (Nói)
   const { isSpeaking, speak, stop: stopTTS,
@@ -211,8 +234,53 @@ export default function AiSupportConsole() {
   useEffect(() => {
     scrollToBottom();
   }, [messages, isLoading]);
-  // Xử lý gửi tin nhắn
+  useEffect(() => {
+    if (audioBlob && activeMode === "PRONUNCIATION") {
+      handleAudioSend(audioBlob);
+    }
+  }, [audioBlob, activeMode]);
+
+  const handleAudioSend = async (blob) => {
+    if (isLoading || !currentSessionId) return;
+    setIsLoading(true);
+    setLastUserText("Đang xử lý âm thanh...");
+    try {
+      const formData = new FormData();
+      formData.append("audio", blob, "audio.webm");
+      formData.append("referenceText", lessonsentence || "안녕하세요");
+      
+      const result = await AiService.evaluatePronunciation(formData);
+      
+      const formattedResult = {
+        ...result,
+        displayReply: result.intent === 'EVALUATION' ? result.feedback : (result.reply || result.message)
+      };
+      
+      console.log("Pronunciation Audio Result:", formattedResult);
+      
+      setLastUserText(result.transcribedText || "Audio...");
+      setLastAiResponse(formattedResult);
+      
+      // Auto Play TTS for feedback or next sentence
+      if (result.intent === 'EVALUATION' && result.feedback) {
+        handleSpeak(result.feedback);
+      } else if (result.intent === 'CHAT' && result.reply) {
+        handleSpeak(result.reply);
+      }
+      
+    } catch(err) {
+       console.error(err);
+       setLastUserText("Lỗi xử lý âm thanh.");
+    } finally {
+       setIsLoading(false);
+       clearAudio();
+    }
+  };
+
+  // Xử lý gửi tin nhắn (Dùng cho các mode khác ngoài PRONUNCIATION)
   const handleSend = async () => {
+    if (activeMode === "PRONUNCIATION") return; // Đã xử lý bằng handleAudioSend
+
     const content = (isListening ? (transcript || interim) : inputText).trim();
     if (!content || isLoading || !currentSessionId) return;
 
@@ -235,49 +303,7 @@ export default function AiSupportConsole() {
 
       // 2. Gọi API tùy theo Mode
       switch (activeMode) {
-        case "PRONUNCIATION":
 
-          console.log("Sending Pronunciation Request:", pronouceContent);
-          // Gọi Service với Prompt toàn năng đã thiết lập ở Backend
-          result = await AiService.evaluatePronunciation({
-            userTranscript: pronouceContent,
-            sessionId: currentSessionId,
-            userId,
-            targetSentence: lessonsentence // Mẫu câu cần đọc (nếu có)
-          });
-          const formattedResult = {
-            ...result,
-            displayReply: result.intent === 'EVALUATION' ? result.feedback : (result.reply || result.message)
-          };
-
-          console.log("Pronunciation Result:", formattedResult);
-
-          setLastAiResponse(formattedResult);
-
-          // LOGIC XỬ LÝ ĐA NĂNG (Dựa trên Intent từ AI)
-          if (result.intent === 'EVALUATION') {
-            // Trường hợp: Người dùng đang luyện đọc
-            aiReplyText = `🎯 [Đánh giá] Độ chính xác: ${result.score}% \n ${result.feedback}`;
-
-            // Cập nhật lastAiResponse để hiện bảng điểm chuyên sâu (nếu cần)
-            // setLastAiResponse(result);
-
-            // Chỉ cho AI đọc phần góp ý hoặc câu mẫu
-            speak(result.feedback);
-          }
-          else if (result.intent === 'CHAT') {
-            // Trường hợp: Người dùng đang muốn nói chuyện/hỏi đáp
-            aiReplyText = `${result.reply} \n (${result.vietnameseTranslation})`;
-
-            // Ưu tiên đọc tiếng Hàn (nếu reply là tiếng Hàn)
-            speak(result.reply);
-          }
-          else {
-            // Trường hợp: CLARIFICATION - AI chưa hiểu ý hoặc yêu cầu người dùng xác nhận
-            aiReplyText = result.reply || "Tôi chưa rõ bạn muốn luyện phát âm hay trò chuyện. Bạn có thể nói rõ hơn không?";
-            speak(aiReplyText);
-          }
-          break;
         case "CHAT_TUTOR":
           result = await AiService.chat(currentSessionId, userId, content);
           aiReplyText = result.reply || result.message;
@@ -333,8 +359,8 @@ export default function AiSupportConsole() {
     }
   };
 
-  // ✅ Thêm: Hàm speak wrapper để xử lý cả string và object
-  const handleSpeak = (content) => {
+  // ✅ Hàm speak wrapper để xử lý cả string và object
+  const handleSpeak = async (content) => {
     if (!content) return;
 
     let textToSpeak = "";
@@ -344,10 +370,28 @@ export default function AiSupportConsole() {
       textToSpeak = content.reply;
     } else if (content.correctedText) {
       textToSpeak = content.correctedText;
+    } else if (content.displayReply) {
+      textToSpeak = content.displayReply;
+    } else if (content.feedback) {
+      textToSpeak = content.feedback;
     }
 
     if (textToSpeak) {
-      speak(textToSpeak);
+      if (activeMode === "PRONUNCIATION") {
+        try {
+          const res = await AiService.generateTTS(textToSpeak);
+          if (res && res.audioBase64) {
+             const audioSrc = `data:audio/mp3;base64,${res.audioBase64}`;
+             const audio = new Audio(audioSrc);
+             audio.play();
+          }
+        } catch(e) {
+          console.error("Backend TTS error", e);
+          speak(textToSpeak); // fallback
+        }
+      } else {
+        speak(textToSpeak);
+      }
     }
   };
 
@@ -481,229 +525,180 @@ export default function AiSupportConsole() {
         </div>
 
         <div className="flex-1 overflow-y-auto relative custom-scrollbar">
-          {/* HIỂN THỊ CÂU TRẢ LỜI CỦA AI NẾU CÓ (Để người dùng nhấn loa nghe lại) */}
           {activeMode === "PRONUNCIATION" ? (
-            <div className="h-full flex flex-col items-center justify-between p-10 animate-in fade-in duration-500">
-              <div className="flex-1 w-full flex flex-col items-center justify-center space-y-8">
+            <div className="h-full flex flex-col gap-6 p-8 animate-in fade-in duration-500">
+              <style>{`
+                @keyframes score-fill { from { width: 0%; } to { width: var(--target-w); } }
+                .score-bar { animation: score-fill 1s cubic-bezier(0.34, 1.56, 0.64, 1) forwards; }
+                @keyframes score-pop { 0% { transform: scale(0.5); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
+                .score-pop { animation: score-pop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) 0.3s both; }
+              `}</style>
 
-                <div className="w-full max-w-2xl text-center min-h-[100px] flex flex-col justify-center px-4">
-                  <div className="w-full max-w-2xl text-center min-h-[150px] flex flex-col justify-center px-4">
-                    {isListening || transcript || interim ? (
-                      /* Đang nói */
-                      <div className="space-y-2">
-                        <p className="text-2xl font-black text-gray-800 leading-tight">{transcript || interim}</p>
-                        {interim && <div className="h-1 w-20 bg-[#377437] mx-auto animate-pulse rounded-full" />}
-                      </div>
-                    ) : lastUserText ? (
-                      /* Đã nói xong và có kết quả */
-                      <div className="animate-in fade-in slide-in-from-top-2 space-y-4">
-                        <div className="opacity-40">
-                          <p className="text-[10px] font-black uppercase tracking-widest mb-1">Bạn đã nói:</p>
-                          <p className="text-lg font-bold italic">"{lastUserText}"</p>
-                        </div>
-                      </div>
-                    ) : (
-                      /* Trạng thái chờ */
-                      <div className="space-y-4">
-                        {lessonsentence && (
-                          <div className="bg-green-50/50 p-6 rounded-2xl border border-green-200/50">
-                            <p className="text-[10px] uppercase font-black text-[#377437] mb-2 tracking-widest opacity-60">Mẫu câu cần đọc:</p>
-                            <p className="text-2xl font-black text-[#377437] leading-tight">{lessonsentence}</p>
-                          </div>
-                        )}
-                        <p className="text-gray-300 font-bold italic uppercase tracking-[0.2em] text-xs">
-                          {isSpeaking ? "AI đang trả lời..." : "Sẵn sàng lắng nghe..."}
-                        </p>
-                      </div>
-                    )}
+              {/* ===== PHẦN 1: CÂU ĐÍCH ===== */}
+              <div className="bg-gradient-to-br from-slate-900 to-slate-800 rounded-3xl p-8 flex flex-col gap-4 shadow-xl">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></div>
+                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Câu mẫu {sampleIdx + 1}/{SAMPLE_SENTENCES.length}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => { setSampleIdx(i => (i - 1 + SAMPLE_SENTENCES.length) % SAMPLE_SENTENCES.length); setLastAiResponse(null); setLastUserText(""); }}
+                      className="w-8 h-8 rounded-xl bg-slate-700 hover:bg-slate-600 text-slate-300 hover:text-white transition-all flex items-center justify-center text-lg font-black"
+                    >‹</button>
+                    <button
+                      onClick={() => { setSampleIdx(i => (i + 1) % SAMPLE_SENTENCES.length); setLastAiResponse(null); setLastUserText(""); }}
+                      className="w-8 h-8 rounded-xl bg-slate-700 hover:bg-slate-600 text-slate-300 hover:text-white transition-all flex items-center justify-center text-lg font-black"
+                    >›</button>
+                    <button
+                      onClick={() => handleSpeak(targetSentence)}
+                      className="flex items-center gap-2 px-4 py-2 rounded-xl bg-slate-700 hover:bg-slate-600 text-slate-300 hover:text-white transition-all text-[11px] font-black uppercase tracking-widest"
+                    >
+                      <Volume2 size={13} />
+                      Nghe mẫu
+                    </button>
                   </div>
                 </div>
-
-                <div className={`w-32 h-32 rounded-full flex items-center justify-center border-2 transition-all duration-500 
-                  ${isListening ? 'bg-red-50 border-red-200 text-red-500 scale-105' :
-                    isSpeaking ? 'bg-blue-50 border-blue-200 text-blue-600 scale-102' : 'bg-green-50 border-green-200 text-[#377437]'}`}>
-                  <Volume2 size={56} className={isListening || isSpeaking ? 'animate-pulse' : 'animate-bounce'} />
+                <div className="text-center py-4">
+                  <p className="text-4xl font-black text-white leading-tight tracking-wide">{targetSentence}</p>
+                  <p className="text-sm text-slate-400 font-medium mt-3 italic">{targetRomanization}</p>
                 </div>
+              </div>
 
-                <div className="flex items-end gap-2 h-16">
-                  {[...Array(20)].map((_, i) => (
+              {/* ===== PHẦN 2: KHU VỰC NÓI + SÓNG ÂM ===== */}
+              <div className={`rounded-3xl border-2 p-8 flex flex-col items-center gap-6 transition-all duration-500 ${isRecording ? 'border-red-400 bg-red-50/50' : 'border-dashed border-gray-200 bg-gray-50/30'}`}>
+                {/* Waveform */}
+                <div className="flex items-end gap-1.5 h-14 w-full max-w-xs">
+                  {[...Array(28)].map((_, i) => (
                     <div
                       key={i}
-                      className={`w-1.5 rounded-full transition-all duration-300 
-                        ${isListening ? 'bg-red-500 animate-wave' :
-                          isSpeaking ? 'bg-blue-500 animate-wave' : 'bg-gray-100 h-2'}`}
+                      className={`flex-1 rounded-full transition-all duration-150 ${isRecording ? 'bg-red-500' : isSpeaking ? 'bg-[#377437]' : 'bg-gray-200'}`}
                       style={{
-                        animationDelay: `${i * 0.08}s`,
-                        height: (isListening || isSpeaking) ? 'auto' : '8px'
+                        height: (isRecording || isSpeaking)
+                          ? `${20 + Math.sin(i * 0.7 + Date.now() * 0.005) * 15 + Math.random() * 30}px`
+                          : '6px',
+                        animationDelay: `${i * 0.06}s`,
+                        animation: (isRecording || isSpeaking) ? `subtle-wave ${0.5 + Math.random() * 0.5}s ease-in-out infinite alternate` : 'none'
                       }}
                     />
                   ))}
                 </div>
-                {lastAiResponse && (
-                  <div className="w-full max-w-2xl bg-green-50 p-6 rounded-2xl border border-green-100">
-                    {lastAiResponse && (
-                      <div className="bg-white p-6 rounded-2xl border border-gray-200 animate-in zoom-in duration-500">
-                        <div className="flex items-center justify-center gap-2 mb-3">
-                          <Sparkles size={16} className="text-[#377437]" />
-                          <span className="text-[10px] font-black text-[#377437] uppercase tracking-widest">AI Analysis</span>
-                        </div>
-                        <p className="text-xl font-black text-gray-900 leading-relaxed">
-                          {lastAiResponse.displayReply}
-                        </p>
-                        <p className="text-xl font-black text-gray-900 leading-relaxed">
-                          {
-                            `VN translate: ${lastAiResponse.vietnameseTranslation}`
 
-                          }
-                        </p>
+                {/* Khu vực chuyển văn bản */}
+                <div className="text-center min-h-[48px]">
+                  {isRecording ? (
+                    <p className="text-red-500 font-black text-lg animate-pulse uppercase tracking-widest">● Đang ghi âm...</p>
+                  ) : lastUserText && lastUserText !== "Đang xử lý âm thanh..." ? (
+                    <div className="space-y-1">
+                      <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Bạn đã nói</p>
+                      <p className="text-xl font-black text-gray-800">{lastUserText}</p>
+                    </div>
+                  ) : isLoading ? (
+                    <p className="text-[#377437] font-black text-sm uppercase tracking-widest animate-pulse">AI đang phân tích...</p>
+                  ) : (
+                    <p className="text-gray-300 font-bold italic text-sm">Nhấn nút mic và đọc câu mẫu bên trên</p>
+                  )}
+                </div>
 
-                        {/* Nếu là chấm điểm, hiện thêm điểm số nhỏ */}
-                        {lastAiResponse.score && (
-                          <div className="mt-4 flex justify-center gap-4">
-                            <div className="px-4 py-1 bg-green-50 rounded-full text-[10px] font-black text-[#377437]">ACCURACY: {lastAiResponse.accuracy}%</div>
-                            <div className="px-4 py-1 bg-blue-50 rounded-full text-[10px] font-black text-blue-600">FLUENCY: {lastAiResponse.fluency}%</div>
+                {/* Nút Mic */}
+                <div className="relative">
+                  {isRecording && (
+                    <div className="absolute inset-0 rounded-full bg-red-400 animate-ping opacity-30 scale-150"></div>
+                  )}
+                  <button
+                    onClick={toggleRecording}
+                    disabled={isLoading}
+                    className={`relative w-20 h-20 rounded-full flex items-center justify-center shadow-xl transition-all duration-300 active:scale-95 disabled:opacity-50 ${isRecording ? 'bg-red-500 scale-110' : 'bg-[#377437] hover:bg-[#2d5e2d]'}`}
+                  >
+                    {isRecording ? <Square size={28} fill="white" className="text-white" /> : <Mic size={28} className="text-white" />}
+                  </button>
+                </div>
+                <p className={`text-[10px] font-black uppercase tracking-[0.2em] ${isRecording ? 'text-red-500' : 'text-gray-400'}`}>
+                  {isRecording ? 'Nhấn để kết thúc' : 'Nhấn để bắt đầu'}
+                </p>
+              </div>
+
+              {/* ===== PHẦN 3: KẾT QUẢ CHẤM ĐIỂM ===== */}
+              {lastAiResponse && !isLoading && (
+                <div className="bg-white rounded-3xl border border-gray-200 p-8 space-y-6 animate-in slide-in-from-bottom-4 duration-500 shadow-sm">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Sparkles size={16} className="text-[#377437]" />
+                      <span className="text-[11px] font-black text-[#377437] uppercase tracking-widest">Kết quả phân tích</span>
+                    </div>
+                    <button
+                      onClick={() => handleSpeak(lastAiResponse)}
+                      className="flex items-center gap-2 px-4 py-2 rounded-xl bg-green-50 hover:bg-green-100 text-[#377437] transition-all text-[11px] font-black uppercase"
+                    >
+                      <Volume2 size={13} /> Nghe nhận xét
+                    </button>
+                  </div>
+
+                  {/* Điểm tổng */}
+                  {lastAiResponse.score != null && (
+                    <div className="flex items-center gap-6">
+                      <div className="score-pop flex-shrink-0 w-24 h-24 rounded-full flex flex-col items-center justify-center border-4 border-[#377437] bg-green-50">
+                        <span className="text-3xl font-black text-[#377437] leading-none">{lastAiResponse.score}</span>
+                        <span className="text-[9px] font-black text-[#377437] opacity-60 uppercase">/100</span>
+                      </div>
+                      <div className="flex-1 space-y-3">
+                        {/* Accuracy bar */}
+                        {lastAiResponse.accuracy != null && (
+                          <div className="space-y-1">
+                            <div className="flex justify-between text-[10px] font-black uppercase">
+                              <span className="text-gray-500">Độ chính xác</span>
+                              <span className="text-[#377437]">{lastAiResponse.accuracy}%</span>
+                            </div>
+                            <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
+                              <div className="h-full bg-[#377437] rounded-full score-bar" style={{ '--target-w': `${lastAiResponse.accuracy}%` }}></div>
+                            </div>
+                          </div>
+                        )}
+                        {/* Fluency bar */}
+                        {lastAiResponse.fluency != null && (
+                          <div className="space-y-1">
+                            <div className="flex justify-between text-[10px] font-black uppercase">
+                              <span className="text-gray-500">Độ lưu loát</span>
+                              <span className="text-blue-600">{lastAiResponse.fluency}%</span>
+                            </div>
+                            <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
+                              <div className="h-full bg-blue-500 rounded-full score-bar" style={{ '--target-w': `${lastAiResponse.fluency}%` }}></div>
+                            </div>
                           </div>
                         )}
                       </div>
-                    )}
-                    <button
-                      onClick={() => handleSpeak(lastAiResponse)}
-                      className="mt-3 flex items-center gap-2 text-xs font-black text-[#377437] uppercase hover:underline"
-                    >
-                      <Volume2 size={14} /> Nghe lại
-                    </button>
-                  </div>
-                )}
-              </div>
+                    </div>
+                  )}
 
-              {/* Container chính: Mở rộng max-w để thanh điều khiển thanh thoát hơn */}
-              <div className="flex flex-col items-center gap-4 mb-8 w-full max-w-2xl mx-auto animate-in fade-in slide-in-from-bottom-6 duration-700">
+                  {/* Feedback */}
+                  {lastAiResponse.feedback && (
+                    <div className="bg-amber-50 rounded-2xl p-4 border border-amber-100">
+                      <p className="text-[9px] font-black text-amber-600 uppercase tracking-widest mb-2">Nhận xét</p>
+                      <p className="text-sm font-semibold text-gray-700 leading-relaxed">{lastAiResponse.feedback}</p>
+                    </div>
+                  )}
 
-                {/* TẦNG 1: ENGINE STATUS & REQUEST TYPE */}
-                <div className="relative w-full">
-                  {/* Glow hiệu ứng nền mờ ảo cho tầng 1 */}
-                  <div className="absolute -inset-1 bg-gradient-to-r from-green-100/10 to-emerald-100/10 rounded-[2rem] blur-lg opacity-50"></div>
-
-                  <div className="relative flex flex-wrap items-center justify-between gap-4 bg-white/60 backdrop-blur-xl border border-gray-200 px-6 py-3 rounded-2xl">
-
-                    {/* Badge Trạng thái */}
-                    <div className="flex items-center gap-3 px-4 py-2 bg-white/90 rounded-2xl border border-gray-100 shadow-sm">
-                      <div className="relative flex">
-                        <div className="absolute inset-0 bg-green-400 rounded-full animate-ping opacity-20"></div>
-                        <div className="relative w-2.5 h-2.5 bg-green-500 rounded-full border-2 border-white shadow-sm"></div>
-                      </div>
-                      <div className="flex flex-col">
-                        <span className="text-[9px] font-black text-gray-400 uppercase tracking-widest leading-none mb-1">System</span>
-                        <span className="text-[11px] font-black text-[#377437] uppercase">Voice Active</span>
+                  {/* Từ đọc sai */}
+                  {lastAiResponse.issues && lastAiResponse.issues.length > 0 && (
+                    <div className="space-y-2">
+                      <p className="text-[9px] font-black text-red-500 uppercase tracking-widest">Cần cải thiện</p>
+                      <div className="flex flex-wrap gap-2">
+                        {lastAiResponse.issues.map((issue, i) => (
+                          <span key={i} className="px-3 py-1 bg-red-50 text-red-600 rounded-full text-xs font-black border border-red-100">{issue}</span>
+                        ))}
                       </div>
                     </div>
+                  )}
 
-                    {/* Chọn Request Type (Luyện đọc / Chat) */}
-                    <div className="flex items-center gap-1 bg-gray-100/50 p-1 rounded-2xl border border-gray-100 shadow-inner">
-                      {REQUEST_OPTIONS.map((option) => (
-                        <button
-                          key={option.id}
-                          onClick={() => setRequestType(option.id)}
-                          className={`flex items-center gap-2 px-6 py-2 rounded-xl text-[10px] font-black uppercase transition-all duration-500 ${requestType === option.id
-                            ? "bg-white text-[#377437] shadow-md scale-[1.02]"
-                            : "text-gray-400 hover:text-gray-600 hover:bg-gray-50/50"
-                            }`}
-                        >
-                          {option.icon}
-                          {option.label}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
+                  {/* Nút thử lại */}
+                  <button
+                    onClick={() => { setLastAiResponse(null); setLastUserText(""); }}
+                    className="w-full py-3 rounded-2xl border-2 border-dashed border-gray-200 text-gray-400 hover:border-[#377437] hover:text-[#377437] transition-all font-black text-xs uppercase tracking-widest"
+                  >
+                    ↺ Thử lại
+                  </button>
                 </div>
-
-                {/* TẦNG 2: LANGUAGE SELECTORS */}
-                <div className="relative w-full max-w-[90%]"> {/* Tầng 2 hơi hẹp hơn tầng 1 để tạo hình khối đẹp */}
-                  <div className="relative flex items-center justify-center gap-8 bg-white/40 backdrop-blur-2xl border border-gray-200 px-10 py-3 rounded-2xl">
-
-                    {/* Lựa chọn: Tôi nói */}
-                    <div className="flex items-center gap-4 group/item">
-                      <div className="w-9 h-9 flex items-center justify-center bg-red-50 text-red-500 rounded-2xl group-hover/item:bg-red-500 group-hover/item:text-white transition-all duration-500 shadow-sm">
-                        <Mic size={16} strokeWidth={2.5} />
-                      </div>
-                      <div className="flex flex-col">
-                        <label className="text-[9px] font-black text-gray-400 uppercase tracking-tighter leading-none mb-1.5">Ngôn ngữ tôi nói</label>
-                        <div className="relative flex items-center">
-                          <select
-                            value={sttLang}
-                            onChange={(e) => setSttLang(e.target.value)}
-                            className="bg-transparent border-none outline-none text-[13px] font-black uppercase text-gray-700 cursor-pointer hover:text-[#377437] transition-colors appearance-none pr-4 z-10"
-                          >
-                            {SUPPORTED_LANGS.map(l => <option key={l.code} value={l.code}>{l.label}</option>)}
-                          </select>
-                          <ChevronDown size={12} className="text-gray-400 absolute right-0 pointer-events-none" />
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Đường chia cách nghệ thuật */}
-                    <div className="w-[1px] h-8 bg-gradient-to-b from-transparent via-gray-200 to-transparent"></div>
-
-                    {/* Lựa chọn: AI trả lời */}
-                    <div className="flex items-center gap-4 group/item">
-                      <div className="w-9 h-9 flex items-center justify-center bg-blue-50 text-blue-500 rounded-2xl group-hover/item:bg-blue-500 group-hover/item:text-white transition-all duration-500 shadow-sm">
-                        <Volume2 size={16} strokeWidth={2.5} />
-                      </div>
-                      <div className="flex flex-col">
-                        <label className="text-[9px] font-black text-gray-400 uppercase tracking-tighter leading-none mb-1.5">AI trả lời bằng</label>
-                        <div className="relative flex items-center">
-                          <select
-                            value={ttsLang}
-                            onChange={(e) => setTtsLangState(e.target.value)}
-                            className="bg-transparent border-none outline-none text-[13px] font-black uppercase text-gray-700 cursor-pointer hover:text-[#377437] transition-colors appearance-none pr-4 z-10"
-                          >
-                            {SUPPORTED_LANGS.map(l => <option key={l.code} value={l.code}>{l.label}</option>)}
-                          </select>
-                          <ChevronDown size={12} className="text-gray-400 absolute right-0 pointer-events-none" />
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-
-                {/* NÚT MIC CHÍNH: Thiết kế dạng vật lý (Tactile UI) */}
-                <div className="flex flex-col items-center gap-4">
-                  <div className="relative group">
-                    {/* Vòng tròn sóng lan tỏa khi đang nghe */}
-                    {isListening && (
-                      <div className="absolute inset-0 bg-red-500 rounded-[2.5rem] animate-ping opacity-20 scale-125"></div>
-                    )}
-
-                    <button
-                      onClick={toggleListening}
-                      className={`relative z-10 w-28 h-28 rounded-2xl flex items-center justify-center transition-all duration-500 border-2 
-          ${isListening
-                          ? "bg-red-500 border-red-600 text-white scale-105"
-                          : "bg-white text-[#377437] hover:bg-gray-50 active:scale-95 border-gray-200"
-                        }`}
-                    >
-                      {isListening
-                        ? <Square size={36} fill="white" className="animate-in zoom-in duration-300" />
-                        : <Mic size={44} strokeWidth={2.5} className="animate-in zoom-in duration-300" />
-                      }
-                    </button>
-                  </div>
-
-                  <div className="text-center">
-                    <p className={`text-sm font-black uppercase tracking-[0.2em] transition-colors duration-300
-        ${isListening ? 'text-red-500 animate-pulse' : 'text-gray-400'}`}>
-                      {isListening ? "Đang lắng nghe..." : "Chạm để nói"}
-                    </p>
-                    {/* Hiển thị gợi ý nhỏ dưới nút */}
-                    {!isListening && (
-                      <span className="text-[9px] font-bold text-gray-300 uppercase tracking-widest mt-1 block">
-                        AI Tutor sẵn sàng hỗ trợ bạn
-                      </span>
-                    )}
-                  </div>
-                </div>
-              </div>
+              )}
             </div>
           ) : (
             <div className="max-w-4xl mx-auto w-full flex flex-col">

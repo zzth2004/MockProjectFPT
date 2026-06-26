@@ -3,7 +3,7 @@ import { Check, X, Star, Sparkles, ShieldCheck, Zap, Loader2 } from 'lucide-reac
 import axiosClient from '../../../api/axiosAPI';
 import orderService from '../../../AdminControl/Service/API/orderAPI/order.service';
 import { useAuth } from '../../../context/authContext';
-
+import { useNavigate } from 'react-router-dom';
 const COLORS = {
   primary: "#377437",
   secondary: "#E4FBE1",
@@ -17,11 +17,7 @@ export default function UpgradePage() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [orderInfo, setOrderInfo] = useState(null);
   const { user } = useAuth();
-
-  // Thông tin ngân hàng của bạn (Sửa lại cho đúng)
-  const BANK_ID = "MB"; // Mã ngân hàng (Vietcombank, MB, Techcombank...)
-  const ACCOUNT_NO = "0123456789"; // Số tài khoản của bạn
-  const ACCOUNT_NAME = "NGUYEN VAN A"; // Tên chủ tài khoản
+  const navigate = useNavigate();
 
   useEffect(() => {
     fetchPlans();
@@ -31,16 +27,13 @@ export default function UpgradePage() {
     try {
       setLoading(true);
       const res = await axiosClient.get("/subscriptions/plans");
-      // res.data thường là array các gói cước từ DB
       if (res.data) {
-        // Map màu sắc ngẫu nhiên hoặc theo index cho các gói thật
         const colors = [
           "from-emerald-400 to-cyan-500",
           "from-orange-400 to-yellow-500",
           "from-cyan-400 to-blue-500"
         ];
         
-        // Backend trả về mảng trực tiếp hoặc nằm trong res.data.data
         const plansData = Array.isArray(res.data) ? res.data : (res.data.data || []);
         
         if (plansData.length > 0) {
@@ -48,17 +41,16 @@ export default function UpgradePage() {
             id: plan.id,
             name: plan.name,
             price: plan.price,
-            oldPrice: plan.price * 1.5, // Giả lập giá cũ nếu backend không có
+            oldPrice: plan.price * 1.5,
             durationDays: plan.durationDays,
             voucher: `Save ${(plan.price * 0.1 / 1000).toFixed(0)}k`,
             color: colors[idx % colors.length],
-            popular: idx === 1, // Giả lập gói giữa là popular
+            popular: idx === 1,
             description: plan.description || "Gói học cao cấp",
             features: typeof plan.features === 'string' ? JSON.parse(plan.features) : (plan.features || [])
           }));
           setPlans(mappedPlans);
         } else {
-          // Fallback to mock data if DB is empty
           setMockPlans();
         }
       } else {
@@ -92,35 +84,8 @@ export default function UpgradePage() {
     ]);
   };
 
-  const handleCheckout = async (plan) => {
-    if (isProcessing) return;
-    setSelectedPlan(plan);
-    try {
-      setIsProcessing(true);
-      const order = await orderService.createOrder({
-        items: [{
-          itemType: "subscription",
-          itemId: Number(plan.id),
-          itemTitle: plan.name,
-          price: plan.price
-        }],
-        paymentMethod: "bank_transfer",
-        couponCode: ""
-      });
-
-      if (order && order.paymentUrl) {
-        window.location.href = order.paymentUrl;
-        return;
-      }
-      
-      setOrderInfo(order);
-      setShowPaymentModal(true);
-    } catch (error) {
-      console.error("Lỗi tạo đơn hàng:", error);
-      alert("Đã xảy ra lỗi khi tạo đơn hàng. Vui lòng thử lại!");
-    } finally {
-      setIsProcessing(false);
-    }
+  const handleCheckout = (plan) => {
+    navigate(`/user/payment/subscription/${plan.id}`);
   };
 
 

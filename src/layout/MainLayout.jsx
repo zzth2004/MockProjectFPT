@@ -12,7 +12,7 @@ import LogoutPopup from "../components/PopupComponent/LogoutPopup";
 
 export default function MainLayout() {
   const location = useLocation();
-  
+
   // --- 1. STATES ---
   const [loading, setLoading] = useState(true);
   const [isLogoutOpen, setIsLogoutOpen] = useState(false);
@@ -25,34 +25,30 @@ export default function MainLayout() {
       setLoading(false);
     }, 1200); // 1.2s để tạo cảm giác mượt mà
     return () => clearTimeout(timer);
-  }, [location.pathname]); // Chạy lại khi đổi URL
+  }, [location.pathname]);
 
   return (
     <div className="flex flex-col min-h-screen bg-white font-sans text-gray-900 selection:bg-[#2d5a2d]/10 selection:text-[#2d5a2d]">
-      
+
       {/* 1. LOADING OVERLAY */}
       <LoadingComponent
         isVisible={loading}
         onComplete={() => console.log("KoreanLab - Content Ready")}
       />
 
-      {/* 2. HEADER SECTION */}
-      {/* Sử dụng sticky để header luôn ở trên cùng khi cuộn */}
+
       <header className="sticky top-0 z-40 bg-white/80 backdrop-blur-md border-b border-gray-100">
         <Header onLogoutClick={() => setIsLogoutOpen(true)} />
       </header>
-
-      {/* 3. MAIN CONTENT AREA */}
-      {/* pointer-events-none giúp tránh user click nhầm khi đang loading */}
       <main className={`
         flex-1 flex flex-col transition-all duration-500
         ${loading ? "opacity-0 scale-[0.98] pointer-events-none" : "opacity-100 scale-100"}
       `}>
         {/* Container cho nội dung chính */}
-        <div className="flex-1 w-full max-w-[1440px] mx-auto">
+        <div className="flex-1 w-full max-w-[1440px]">
           {/* Hiệu ứng animate-in khi nội dung xuất hiện */}
           <div className="animate-in fade-in slide-in-from-bottom-3 duration-700 ease-out">
-            <Outlet /> 
+            <Outlet />
           </div>
         </div>
       </main>
@@ -66,9 +62,9 @@ export default function MainLayout() {
       <ScrollToTopButton />
 
       {/* 6. SYSTEM POPUPS */}
-      <LogoutPopup 
-        isOpen={isLogoutOpen} 
-        onClose={() => setIsLogoutOpen(false)} 
+      <LogoutPopup
+        isOpen={isLogoutOpen}
+        onClose={() => setIsLogoutOpen(false)}
       />
 
     </div>

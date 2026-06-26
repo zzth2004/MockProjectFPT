@@ -72,7 +72,8 @@ const exerciseService = {
    */
   submitExercise: async ( data) => {
     console.log(`🚀 [ExerciseService] Submitting exercise ID: ${data.exerciseId}`);
-    return axiosClient.post("/materials/exercise/submit", data)
+    const endpoint = data.metadata?.studentEmail ? "/materials/exercise/exam-submit" : "/materials/exercise/submit";
+    return axiosClient.post(endpoint, data)
       .then(res => res.data.data);
   },
 
@@ -133,7 +134,21 @@ const exerciseService = {
       .then(res => res.data.data);
   },
 
-  verifyExamCode: async (exerciseId, studentName, studentEmail, code) => {
+  verifyExamCode: async (arg1, arg2, arg3, arg4) => {
+    let exerciseId, studentName, studentEmail, code;
+    if (arg4 === undefined) {
+      // Called with 3 args (ExamLandingPage): studentName, studentEmail, code
+      exerciseId = null;
+      studentName = arg1;
+      studentEmail = arg2;
+      code = arg3;
+    } else {
+      // Called with 4 args (ExamTakePage): exerciseId, studentName, studentEmail, code
+      exerciseId = arg1;
+      studentName = arg2;
+      studentEmail = arg3;
+      code = arg4;
+    }
     return axiosClient.post("/materials/exercise/exam-code/verify", {
       exerciseId,
       studentName,

@@ -259,7 +259,7 @@ export default function Sidebar({ isMobile, onClose, onLogoutClick }) {
       </div>
 
       <div className="p-4 border-t border-gray-100 bg-gray-50/50">
-        <div className="flex items-center gap-3 p-3 rounded-2xl bg-white shadow-md border border-gray-100">
+        <Link to={`${basePath}/profile`} className="flex items-center gap-3 p-3 rounded-2xl bg-white shadow-md border border-gray-100 hover:shadow-lg transition-all cursor-pointer">
           <img 
             src={user?.avatar || `https://ui-avatars.com/api/?name=${user?.fullName || 'User'}&background=2d5a2d&color=fff&bold=true`} 
             className="w-10 h-10 rounded-xl object-cover" 
@@ -273,7 +273,7 @@ export default function Sidebar({ isMobile, onClose, onLogoutClick }) {
                 {role} portal
             </span>
           </div>
-        </div>
+        </Link>
       </div>
     </aside>
   );

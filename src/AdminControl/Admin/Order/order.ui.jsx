@@ -1,6 +1,6 @@
 import React, { useEffect, useCallback, useState, useMemo } from "react";
-import { 
-    Users, Plus, Crown, Calendar, CreditCard, 
+import {
+    Users, Plus, Crown, Calendar, CreditCard,
     ShieldCheck, Clock, CheckCircle2, AlertCircle,
     Edit3, Trash2, Loader2, X, Search, Filter, ShoppingBag, Eye, DollarSign
 } from "lucide-react";
@@ -152,7 +152,7 @@ export default function OrderList() {
                         <KLBadge type={type}>
                             <span className="text-[9px] font-black uppercase tracking-wider">{label}</span>
                         </KLBadge>
-                        
+
                         {val === "pending" && (
                             <button
                                 onClick={() => handleCompleteOrder(row)}
@@ -181,7 +181,7 @@ export default function OrderList() {
     const stats = useMemo(() => {
         let totalRevenue = 0;
         let pendingCount = 0;
-        
+
         dataset.forEach(ord => {
             if (ord.status === 'paid') {
                 totalRevenue += Number(ord.finalAmount) || 0;
@@ -233,21 +233,20 @@ export default function OrderList() {
             </div>
 
             {/* SEARCH PANEL */}
-            <KLCard className="bg-white border-none shadow-sm py-4 px-6 flex items-center">
-                <div className="relative flex-1">
-                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-300" size={18} />
-                    <input
-                        type="text"
-                        placeholder="Tìm kiếm đơn hàng theo mã hoặc tên khách hàng..."
-                        className="w-full pl-12 pr-4 py-3.5 bg-gray-50 rounded-2xl border-none font-bold text-sm focus:ring-2 focus:ring-[#2d5a2d]/10 transition-all outline-none"
-                        value={searchTerm}
-                        onChange={(e) => {
-                            setSearchTerm(e.target.value);
-                            setCurrentPage(1);
-                        }}
-                    />
-                </div>
-            </KLCard>
+            <div className="relative w-full">
+                <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+                <input
+                    type="text"
+                    placeholder="Tìm kiếm đơn hàng theo mã hoặc tên khách hàng..."
+                    // w-full giúp input giãn hết mức có thể trong div cha
+                    className="w-full pl-12 pr-4 py-3.5 bg-gray-50 rounded-full border border-green-200 font-bold text-sm focus:ring-2 focus:ring-[#2d5a2d]/10 transition-all outline-none"
+                    value={searchTerm}
+                    onChange={(e) => {
+                        setSearchTerm(e.target.value);
+                        setCurrentPage(1);
+                    }}
+                />
+            </div>
 
             {/* TABLE SECTION */}
             <KLCard className="p-0 overflow-hidden shadow-xl border-none">
@@ -255,9 +254,9 @@ export default function OrderList() {
                     <div className="py-24 text-center font-black text-gray-200 uppercase tracking-widest animate-pulse">Đang tải lịch sử đơn hàng...</div>
                 ) : (
                     <>
-                        <KLTable 
-                            columns={columns} 
-                            data={dataset} 
+                        <KLTable
+                            columns={columns}
+                            data={dataset}
                             showAction={true}
                             onAction={handleAction}
                             hiddenActions={['reset', 'lock', 'delete', 'edit']}
@@ -272,14 +271,14 @@ export default function OrderList() {
 
                             {meta.totalPages > 1 && (
                                 <div className="flex items-center gap-1.5">
-                                    <button 
+                                    <button
                                         onClick={() => setCurrentPage(p => Math.max(p - 1, 1))}
                                         disabled={currentPage === 1}
                                         className="px-4 py-2 bg-gray-50 text-gray-400 font-bold text-xs rounded-xl disabled:opacity-30 hover:bg-gray-100"
                                     >
                                         Trước
                                     </button>
-                                    <button 
+                                    <button
                                         onClick={() => setCurrentPage(p => Math.min(p + 1, meta.totalPages))}
                                         disabled={currentPage === meta.totalPages}
                                         className="px-4 py-2 bg-gray-50 text-gray-400 font-bold text-xs rounded-xl disabled:opacity-30 hover:bg-gray-100"
@@ -297,7 +296,7 @@ export default function OrderList() {
             {isDetailOpen && selectedOrder && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
                     <div className="bg-white rounded-[2.5rem] w-full max-w-lg overflow-hidden shadow-2xl border border-gray-100 flex flex-col animate-in zoom-in-95 duration-200 text-left">
-                        
+
                         {/* Modal Header */}
                         <div className="px-8 py-6 bg-gradient-to-r from-green-50 to-emerald-50/30 border-b border-gray-100 flex justify-between items-center">
                             <div>
@@ -308,7 +307,7 @@ export default function OrderList() {
                                     Mã đơn: {selectedOrder.orderCode}
                                 </p>
                             </div>
-                            <button 
+                            <button
                                 type="button"
                                 onClick={() => setIsDetailOpen(false)}
                                 className="p-2 rounded-2xl bg-gray-50 text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-all active:scale-95"
@@ -319,7 +318,7 @@ export default function OrderList() {
 
                         {/* Modal Body */}
                         <div className="p-8 space-y-6">
-                            
+
                             {/* Member info */}
                             <div className="grid grid-cols-2 gap-4 bg-gray-50 p-5 rounded-2xl border border-gray-100 text-xs">
                                 <div>

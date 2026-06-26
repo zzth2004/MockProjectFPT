@@ -47,6 +47,7 @@ import StudyFlashcard from "../page/mainpage/Flashcard/StudyFlashcard.jsx";
 import ActiveCourses from "../page/mainpage/ActiveCourse/ActiveCourses.jsx";
 import CourseDetail from "../page/mainpage/ActiveCourse/CourseDetail.jsx";
 import PaymentPage from "../page/mainpage/Payment/Payment.jsx";
+import PaymentSuccess from "../page/mainpage/Payment/PaymentSuccess.jsx";
 import AiSupportConsole from "../page/mainpage/AISupport/AiSupportConsole.jsx";
 import SupportPage from "../page/mainpage/Settings/Support.jsx";
 import UpgradePage from "../page/mainpage/Upgrade/Upgrade.jsx";
@@ -54,9 +55,10 @@ import GamesPage from "../page/mainpage/Games/GamesPage.jsx";
 import TopikPrepPage from "../page/mainpage/TopikPrep/TopikPrepPage.jsx";
 import LeaderboardPage from "../page/mainpage/Leaderboard/Leaderboard.jsx";
 import QuizRoomPage from "../page/mainpage/QuizRoom/QuizRoomPage.jsx";
+import ProfilePage from "../page/mainpage/Profile/Profile.jsx";
 
 // --- ADMIN & TEACHER PAGES ---
-import AdminLayout from "../layout/adminLayout.jsx"; 
+import AdminLayout from "../layout/adminLayout.jsx";
 import DashboardHome from "../AdminControl/Admin/dashboardHome.jsx";
 import TeacherDashboardHome from "../TeacherControl/teacherDashboard.ui.jsx";
 import ScheduleTeacher from "../AdminControl/Admin/Schedule/Schedule.jsx";
@@ -124,7 +126,7 @@ function AnimatedRoutes() {
   return (
     <AnimatePresence mode="wait">
       <Routes location={location} key={location.pathname}>
-        
+
         {/* --- 1. ROOT & PUBLIC ROUTES --- */}
         <Route path="/" element={<RootRedirect />} />
         <Route path="/dashboard" element={<RootRedirect />} />
@@ -138,7 +140,7 @@ function AnimatedRoutes() {
           <Route path="/homeindex/courses" element={<PageWrapper><Course /></PageWrapper>} />
           <Route path="/homeindex/community" element={<PageWrapper><Community /></PageWrapper>} />
           <Route path="/homeindex/community/:id" element={<PageWrapper><BlogPost /></PageWrapper>} />
-          
+
           <Route path="/login" element={<PageWrapper><Login /></PageWrapper>} />
           <Route path="/register" element={<PageWrapper><Register /></PageWrapper>} />
           <Route path="/reset-pass" element={<PageWrapper><ResetPassword /></PageWrapper>} />
@@ -148,9 +150,9 @@ function AnimatedRoutes() {
         {/* --- 2. USER ROUTES (Layout MainLayout2) --- */}
         <Route element={<MainLayout2 />}>
           <Route path="/user/dashboard" element={<PageWrapper><Dashboard /></PageWrapper>} />
-          
+
           <Route path="/courses" element={<PageWrapper><Courses /></PageWrapper>} />
-          <Route path="/courses/general-course" element={<PageWrapper><CourseListGrid /></PageWrapper>} /> 
+          <Route path="/courses/general-course" element={<PageWrapper><CourseListGrid /></PageWrapper>} />
           <Route path="/courses/:slug" element={<PageWrapper><GeneralLearning /></PageWrapper>} />
           <Route path="/courses/learning/:lessonId" element={<PageWrapper><StudyPage /></PageWrapper>} />
           <Route path="/courses/mycourses" element={<PageWrapper><MyCourse /></PageWrapper>} />
@@ -175,9 +177,11 @@ function AnimatedRoutes() {
           <Route path="/user/active-courses/detail/:courseId" element={<PageWrapper><CourseDetail /></PageWrapper>} />
           <Route path="/user/active-courses/payment/:courseId" element={<PageWrapper><PaymentPage /></PageWrapper>} />
           <Route path="/user/payment/:itemType/:itemId" element={<PageWrapper><PaymentPage /></PageWrapper>} />
+          <Route path="/user/payment-success/:orderId" element={<PageWrapper><PaymentSuccess /></PageWrapper>} />
 
           <Route path="/user/ai-support" element={<PageWrapper><AiSupportConsole /></PageWrapper>} />
           <Route path="/user/message" element={<PageWrapper><ChatUI /></PageWrapper>} />
+          <Route path="/user/profile" element={<PageWrapper><ProfilePage /></PageWrapper>} />
           <Route path="/user/schedule" element={<PageWrapper><Schedule /></PageWrapper>} />
           <Route path="/user/schedule/:id" element={<PageWrapper><ScheduleDetail /></PageWrapper>} />
           <Route path="/user/settings" element={<PageWrapper><Settings /></PageWrapper>} />
@@ -189,13 +193,12 @@ function AnimatedRoutes() {
           <Route path="/user/games" element={<PageWrapper><GamesPage /></PageWrapper>} />
           <Route path="/user/leaderboard" element={<PageWrapper><LeaderboardPage /></PageWrapper>} />
           <Route path="/user/quiz" element={<Navigate to="/user/game-room/play" replace />} />
-          <Route path="/user/exams" element={<PageWrapper><ExamLandingPage /></PageWrapper>} />
           <Route path="/topik-learn" element={<PageWrapper><TopikPrepPage /></PageWrapper>} />
         </Route>
 
         {/* --- 3. ADMIN ROUTES (URL: /admin/...) --- */}
-        <Route 
-          path="/admin" 
+        <Route
+          path="/admin"
           element={
             <ProtectedRoute allowedRoles={['admin']}>
               <AdminLayout currentRole="admin" />
@@ -203,8 +206,9 @@ function AnimatedRoutes() {
           }
         >
           <Route index element={<DashboardHome />} />
-          
+
           {/* Quản lý User (Chỉ Admin) */}
+          <Route path="profile" element={<PageWrapper><ProfilePage /></PageWrapper>} />
           <Route path="users" element={<PageWrapper><UserList /></PageWrapper>} />
           <Route path="users/:id" element={<PageWrapper><UserDetail /></PageWrapper>} />
 
@@ -226,7 +230,7 @@ function AnimatedRoutes() {
           <Route path="classes/create" element={<PageWrapper><CreateClass /></PageWrapper>} />
           <Route path="classes/:id" element={<PageWrapper><ClassDetail /></PageWrapper>} />
           <Route path="classes/edit/:id" element={<PageWrapper><EditClass /></PageWrapper>} />
-          
+
           {/* Quản lý Ghi danh & Doanh thu */}
           <Route path="enrollments" element={<PageWrapper><UserEnrollmentList /></PageWrapper>} />
           <Route path="plans" element={<PageWrapper><SubscriptionPlanList /></PageWrapper>} />
@@ -255,8 +259,8 @@ function AnimatedRoutes() {
         </Route>
 
         {/* --- 4. TEACHER ROUTES (URL: /teacher/...) --- */}
-        <Route 
-          path="/teacher" 
+        <Route
+          path="/teacher"
           element={
             <ProtectedRoute allowedRoles={['teacher']}>
               <AdminLayout currentRole="teacher" />
@@ -267,7 +271,8 @@ function AnimatedRoutes() {
 
           <Route index element={<Navigate to="dashboard" replace />} />
           <Route path="dashboard" element={<TeacherDashboardHome />} />
-           <Route path="users" element={<PageWrapper><UserList /></PageWrapper>} />
+          <Route path="profile" element={<PageWrapper><ProfilePage /></PageWrapper>} />
+          <Route path="users" element={<PageWrapper><UserList /></PageWrapper>} />
 
 
           {/* Teacher quản lý khóa học (Dùng chung component nhưng URL khác) */}
@@ -290,7 +295,7 @@ function AnimatedRoutes() {
           <Route path="lessons" element={<PageWrapper><LessonList /></PageWrapper>} />
           <Route path="lessons/create" element={<PageWrapper><CreateLesson /></PageWrapper>} />
           <Route path="lessons/edit/:lessonId" element={<PageWrapper><EditLesson /></PageWrapper>} />
-          
+
           <Route path="grammar" element={<PageWrapper><GrammarList /></PageWrapper>} />
           <Route path="vocabulary" element={<PageWrapper><VocabList /></PageWrapper>} />
           <Route path="exercises" element={<PageWrapper><ExerciseList /></PageWrapper>} />
@@ -304,12 +309,22 @@ function AnimatedRoutes() {
         </Route>
 
         {/* --- STANDALONE: Game Room Host (Full-page, no sidebar) --- */}
-        <Route path="/admin/game-room/host"   element={<GameRoomHost />} />
+        <Route path="/admin/game-room/host" element={<GameRoomHost />} />
         <Route path="/teacher/game-room/host" element={<GameRoomHost />} />
 
         {/* --- STANDALONE: Game Room Player (Full-page immersive game UI) --- */}
         <Route path="/user/game-room/play" element={<GameRoomPlayer />} />
-        <Route path="/game-room/play"      element={<GameRoomPlayer />} />
+        <Route path="/game-room/play" element={<GameRoomPlayer />} />
+
+
+        {/* --- NEW:standalone Exam taking page (No Sidebar - Clean Screen) --- */}
+        <Route
+          path="/user/exams"
+          element={<ExamLandingPage />}
+
+        />
+
+
 
         {/* --- STANDALONE: Proctored Exam taking screen (no sidebar, full-screen) --- */}
         <Route path="/user/exams/take/:exerciseId" element={<ExamTakePage />} />

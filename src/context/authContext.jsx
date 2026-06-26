@@ -4,10 +4,10 @@ import { createContext, useContext, useState, useEffect } from "react";
 const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
-  // --- Lấy user từ sessionStorage ---
+  // --- Lấy user từ localStorage ---
   const [user, setUser] = useState(() => {
     try {
-      const saved = sessionStorage.getItem("user");
+      const saved = localStorage.getItem("user");
       return saved ? JSON.parse(saved) : null;
     } catch (err) {
       console.error("❌ Lỗi parse user:", err);
@@ -15,19 +15,19 @@ export const AuthProvider = ({ children }) => {
     }
   });
 
-  // --- Lấy JWT từ sessionStorage ---
-  const [jwt, setJwt] = useState(() => sessionStorage.getItem("jwt") || null);
+  // --- Lấy JWT từ localStorage ---
+  const [jwt, setJwt] = useState(() => localStorage.getItem("jwt") || null);
 
-  // --- Lưu user vào sessionStorage khi thay đổi ---
+  // --- Lưu user vào localStorage khi thay đổi ---
   useEffect(() => {
-    if (user) sessionStorage.setItem("user", JSON.stringify(user));
-    else sessionStorage.removeItem("user");
+    if (user) localStorage.setItem("user", JSON.stringify(user));
+    else localStorage.removeItem("user");
   }, [user]);
 
-  // --- Lưu jwt vào sessionStorage khi thay đổi ---
+  // --- Lưu jwt vào localStorage khi thay đổi ---
   useEffect(() => {
-    if (jwt) sessionStorage.setItem("jwt", jwt);
-    else sessionStorage.removeItem("jwt");
+    if (jwt) localStorage.setItem("jwt", jwt);
+    else localStorage.removeItem("jwt");
   }, [jwt]);
 
   // --- LOGIN: set user + jwt ---
@@ -38,8 +38,8 @@ export const AuthProvider = ({ children }) => {
 
   // --- LOGOUT: xóa hết session ---
   const logout = () => {
-    sessionStorage.removeItem("user");
-    sessionStorage.removeItem("jwt");
+    localStorage.removeItem("user");
+    localStorage.removeItem("jwt");
     setUser(null);
     setJwt(null);
   };

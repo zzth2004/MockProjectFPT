@@ -80,14 +80,6 @@ export default function MainLayout2() {
           className={`flex-1 relative custom-scrollbar ${isAiPage ? "overflow-hidden flex flex-col" : "overflow-x-hidden overflow-y-auto"}`}
           style={{ background: "var(--surface-app)" }}
         >
-          {/* Page transition loader */}
-          <AnimatePresence>
-            {loading && (
-              <div className="absolute inset-0 z-20">
-                <LoadingComponent isVisible={loading} />
-              </div>
-            )}
-          </AnimatePresence>
 
           {/* Content */}
           <motion.div
@@ -97,7 +89,7 @@ export default function MainLayout2() {
             className={isAiPage ? "h-full flex flex-col" : "mx-auto max-w-7xl  min-h-full"}
           >
             <Outlet />
-            {!isAiPage && <Footer />}
+
           </motion.div>
         </main>
       </div>

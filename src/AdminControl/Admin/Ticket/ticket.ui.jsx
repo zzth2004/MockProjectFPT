@@ -4,6 +4,8 @@ import {
     CheckCircle2, AlertCircle, X, ShieldAlert, BadgeInfo, Clock,
     HelpCircle, Mail, MessageCircle, Image, Paperclip
 } from "lucide-react";
+import { database } from "../../../firebase/firebase";
+import { ref, onValue, off } from "firebase/database";
 
 // Components
 import { KLCard } from "../../Component/Card";
@@ -59,6 +61,37 @@ export default function TicketManagement() {
         }
     }, [selectedTicketId, loadTicketDetail]);
 
+    // Lắng nghe Firebase Realtime DB cho ticket hiện tại (Admin view)
+    useEffect(() => {
+        if (!selectedTicketId) return;
+
+        const messagesRef = ref(database, `support_tickets/${selectedTicketId}/messages`);
+
+        const unsubscribe = onValue(messagesRef, (snapshot) => {
+            const data = snapshot.val();
+            if (data) {
+                const fbMessages = Object.values(data).sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+
+                setTicketDetail(prev => {
+                    if (!prev) return prev;
+                    const merged = [...(prev.messages || [])];
+                    fbMessages.forEach(fbMsg => {
+                        const existingIdx = merged.findIndex(m => m.id === fbMsg.id);
+                        if (existingIdx !== -1) {
+                            merged[existingIdx] = fbMsg;
+                        } else {
+                            merged.push(fbMsg);
+                        }
+                    });
+                    merged.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+                    return { ...prev, messages: merged };
+                });
+            }
+        });
+
+        return () => off(messagesRef);
+    }, [selectedTicketId]);
+
     // Auto-scroll chat to bottom
     useEffect(() => {
         if (chatEndRef.current) {
@@ -94,8 +127,7 @@ export default function TicketManagement() {
             await ticketService.reply(selectedTicketId, replyText.trim(), attachmentUrl);
             setReplyText("");
             setAttachmentUrl(""); // Reset attachment after sending
-            // Refresh detail to show new message and updated status
-            await loadTicketDetail(selectedTicketId);
+            // refreshList(); // Firebase listener sẽ tự cập nhật UI tin nhắn, nhưng cần update list để thấy latest status
             refreshList();
         } catch (err) {
             console.error("Lỗi khi gửi phản hồi:", err);
@@ -302,16 +334,16 @@ export default function TicketManagement() {
                                         </span>
                                         <div
                                             className={`p-4 rounded-2xl text-sm leading-relaxed shadow-sm font-medium ${isSenderAdmin
-                                                    ? 'bg-[#2d5a2d] text-white rounded-tr-none'
-                                                    : 'bg-white text-gray-800 border rounded-tl-none'
+                                                ? 'bg-[#2d5a2d] text-white rounded-tr-none'
+                                                : 'bg-white text-gray-800 border rounded-tl-none'
                                                 }`}
                                         >
                                             <div>{msg.messageText}</div>
                                             {msg.attachment && (
                                                 <div className="mt-2 rounded-lg overflow-hidden max-w-xs border shadow-sm bg-gray-50">
-                                                    <img 
-                                                        src={msg.attachment} 
-                                                        alt="Đính kèm" 
+                                                    <img
+                                                        src={msg.attachment}
+                                                        alt="Đính kèm"
                                                         className="w-full h-auto object-cover max-h-48 cursor-pointer hover:opacity-90 transition-opacity"
                                                         onClick={() => window.open(msg.attachment, '_blank')}
                                                     />
@@ -330,7 +362,7 @@ export default function TicketManagement() {
                         <div className="px-6 py-2 bg-gray-50 flex items-center gap-3 border-t">
                             <div className="relative w-16 h-16 rounded-xl overflow-hidden border shadow-sm flex-shrink-0">
                                 <img src={attachmentUrl} alt="Preview" className="w-full h-full object-cover" />
-                                <button 
+                                <button
                                     type="button"
                                     onClick={() => setAttachmentUrl("")}
                                     className="absolute top-1 right-1 p-0.5 bg-black/60 hover:bg-black rounded-full text-white transition-colors"
@@ -344,8 +376,8 @@ export default function TicketManagement() {
 
                     {/* Reply Input Form */}
                     <form onSubmit={handleSendReply} className="p-4 border-t bg-white flex items-center gap-3">
-                        <label 
-                            htmlFor="ticket-file-upload" 
+                        <label
+                            htmlFor="ticket-file-upload"
                             className={`p-3.5 rounded-2xl border bg-gray-50 text-gray-400 hover:bg-gray-100 hover:text-gray-700 cursor-pointer transition-all flex-shrink-0 ${uploadingFile ? "animate-pulse" : ""}`}
                         >
                             {uploadingFile ? (

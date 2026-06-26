@@ -42,10 +42,10 @@ export default function Sidebar({ isMobile, onClose }) {
     { icon: Trophy, label: "Leaderboard", to: "/user/leaderboard" },
     { icon: Gamepad2, label: "Games", to: "/user/games" },
 
-    { icon: FileText, label: "Bài Thi", to: "/user/exams/verify", badge: "Mới", badgeColor: "#0ea5e9" },
+    { icon: FileText, label: "Exams", to: `/user/exams?name=${encodeURIComponent(user?.fullName || "")}&email=${encodeURIComponent(user?.email || "")}`, badge: "New", badgeColor: "#0ea5e9", blank: true },
     { icon: ClipboardList, label: "Quiz Room", to: `/user/game-room/play?name=${encodeURIComponent(user?.fullName || "")}&uid=${user?.id || ""}`, blank: true },
     { icon: CalendarDays, label: "Schedule", to: "/user/schedule" },
-    { icon: GraduationCap, label: "My Courses", to: "/user/active-courses" },
+    { icon: GraduationCap, label: "Active Courses", to: "/user/active-courses" },
   ];
 
 
