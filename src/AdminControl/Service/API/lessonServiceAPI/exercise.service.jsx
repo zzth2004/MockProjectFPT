@@ -37,9 +37,14 @@ const exerciseService = {
   },
 
   
-  // 2. Lấy chi tiết bài tập (Kèm Questions & Options)
+  // 2. Lấy chi tiết bài tập (Kèm Questions & Options - Admin/Teacher có đáp án)
   getDetail: async (id) => {
     return axiosClient.get(`/materials/exercise/${id}/detail`).then(res => res.data.data);
+  },
+
+  // 2.5 Lấy chi tiết bài tập cho học viên thi (Ẩn đáp án đúng, không yêu cầu JWT Teacher/Admin)
+  getTakeDetail: async (id) => {
+    return axiosClient.get(`/materials/exercise/${id}/take-detail`).then(res => res.data.data);
   },
 
   // 3. Tạo bài tập mới

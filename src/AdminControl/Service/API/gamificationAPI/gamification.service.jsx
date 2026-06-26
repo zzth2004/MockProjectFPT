@@ -13,6 +13,12 @@ const gamificationService = {
       .then(res => res.data.data || res.data);
   },
 
+  // 🕒 Lấy lịch sử biến động điểm
+  getMyHistory: async (page = 1) => {
+    return axiosClient.get("/gamification/transactions/me", { params: { page } })
+      .then(res => res.data.data || res.data);
+  },
+
   // 🏅 Xem tất cả huy hiệu trong hệ thống
   getAllBadges: async () => {
     return axiosClient.get("/gamification/badges/all")

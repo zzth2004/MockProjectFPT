@@ -34,25 +34,26 @@ export default function Sidebar({ isMobile, onClose }) {
   const isVip = user?.subscriptionPlan === "vip" || user?.isVip;
 
   const navItems = [
-    { icon: LayoutDashboard, label: "Dashboard",    to: "/user/dashboard" },
-    { icon: BookOpen,        label: "Courses",       to: "/courses" },
-    { icon: BookMarked,      label: "TOPIK Prep",    to: "/topik-learn",         badge: "Hot",  badgeColor: "#ef4444" },
-    { icon: Layers,          label: "Flashcards",    to: "/user/flashcards",     badge: "New",  badgeColor: "#f97316" },
-    { icon: Bot,             label: "AI Support",    to: "/user/ai-support",     badge: "Beta", badgeColor: "#6366f1" },
-    { icon: Trophy,          label: "Leaderboard",   to: "/user/leaderboard" },
-    { icon: Gamepad2,        label: "Games",         to: "/user/games" },
-    { icon: ClipboardList,   label: "Quiz Room",     to: `/user/game-room/play?name=${encodeURIComponent(user?.fullName || "")}&uid=${user?.id || ""}`, blank: true },
-    { icon: FileText,        label: "Bài Thi",       to: "/user/exams",          badge: "Mới",  badgeColor: "#0ea5e9" },
-    { icon: CalendarDays,    label: "Schedule",      to: "/user/schedule" },
-    { icon: GraduationCap,   label: "My Courses",    to: "/user/active-courses" },
+    { icon: LayoutDashboard, label: "Dashboard", to: "/user/dashboard" },
+    { icon: BookOpen, label: "Courses", to: "/courses" },
+    { icon: BookMarked, label: "TOPIK Prep", to: "/topik-learn", badge: "Hot", badgeColor: "#ef4444" },
+    { icon: Layers, label: "Flashcards", to: "/user/flashcards", badge: "New", badgeColor: "#f97316" },
+    { icon: Bot, label: "AI Support", to: "/user/ai-support", badge: "Beta", badgeColor: "#6366f1" },
+    { icon: Trophy, label: "Leaderboard", to: "/user/leaderboard" },
+    { icon: Gamepad2, label: "Games", to: "/user/games" },
+
+    { icon: FileText, label: "Bài Thi", to: "/user/exams/verify", badge: "Mới", badgeColor: "#0ea5e9" },
+    { icon: ClipboardList, label: "Quiz Room", to: `/user/game-room/play?name=${encodeURIComponent(user?.fullName || "")}&uid=${user?.id || ""}`, blank: true },
+    { icon: CalendarDays, label: "Schedule", to: "/user/schedule" },
+    { icon: GraduationCap, label: "My Courses", to: "/user/active-courses" },
   ];
 
 
   const bottomItems = [
-    { icon: User,       label: "Profile",   to: "/user/profile" },
-    { icon: Settings,   label: "Settings",  to: "/user/settings" },
-    { icon: HelpCircle, label: "Support",   to: "/user/support" },
-    { icon: LogOut,     label: "Logout",    to: "/user/logout", danger: true },
+    { icon: User, label: "Profile", to: "/user/profile" },
+    { icon: Settings, label: "Settings", to: "/user/settings" },
+    { icon: HelpCircle, label: "Support", to: "/user/support" },
+    { icon: LogOut, label: "Logout", to: "/user/logout", danger: true },
   ];
 
   const NavItem = ({ item }) => {
@@ -63,18 +64,6 @@ export default function Sidebar({ isMobile, onClose }) {
 
     const innerContent = (
       <>
-        {/* Active left indicator */}
-        {/* {isActive && (
-          <div
-            className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 rounded-r-full"
-            style={{
-              background: `linear-gradient(180deg, ${PRIMARY}, #22c55e)`,
-              height: "20px",
-            }}
-          />
-        )} */}
-
-        {/* Icon */}
         <div
           className="flex-shrink-0 w-8 h-8 flex items-center justify-center rounded-lg transition-all duration-200"
           style={{

@@ -68,7 +68,7 @@ export default function ExamTakePage() {
         const fetchExamDetail = async () => {
             try {
                 setLoadingExam(true);
-                const data = await exerciseService.getDetail(parseInt(exerciseId));
+                const data = await exerciseService.getTakeDetail(parseInt(exerciseId));
                 if (data) {
                     setExamData(data);
                 } else {
