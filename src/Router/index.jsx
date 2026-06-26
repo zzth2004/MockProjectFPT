@@ -35,6 +35,7 @@ import ScheduleDetail from "../page/mainpage/Schedule/ScheduleDetail.jsx";
 import StudyPage from "../page/mainpage/Courses/MyCourse/StudyPage.jsx";
 import StudyVocab from "../page/mainpage/Courses/MyCourse/StudyVocab.jsx";
 import QuizzPlaypage from "../page/mainpage/Quizzes/QuizzPlayPage.jsx";
+import ExamTakePage from "../page/mainpage/Quizzes/ExamTakePage.jsx";
 import GeneralLearning from "../page/mainpage/Courses/general-learning/general-learning.jsx";
 import LessonDetail from "../page/mainpage/Courses/MyCourse/LessonDetail.jsx";
 import HomeworkSubmission from "../page/mainpage/Courses/MyCourse/HomeworkSubmission.jsx";
@@ -81,6 +82,7 @@ import LessonProgressList from "../AdminControl/Admin/Course/Lesson/lesson-progr
 import GrammarList from "../AdminControl/Admin/Course/Lesson/Material/grammar.ui.jsx";
 import VocabList from "../AdminControl/Admin/Course/Lesson/Material/vocab.ui.jsx";
 import ExerciseList from "../AdminControl/Admin/Course/Lesson/Material/exercise.ui.jsx";
+import ExamList from "../AdminControl/Admin/Course/Lesson/Material/exam.ui.jsx";
 import AttemptList from "../AdminControl/Admin/Course/Lesson/Material/exercise-attemp.ui.jsx";
 import FlashcardDeckList from "../AdminControl/Admin/Flashcard/flashcard.ui.jsx";
 import FlashcardDeckEdit from "../AdminControl/Admin/Flashcard/flashcard-edit.ui.jsx";
@@ -233,6 +235,7 @@ function AnimatedRoutes() {
           <Route path="grammar" element={<PageWrapper><GrammarList /></PageWrapper>} />
           <Route path="vocabulary" element={<PageWrapper><VocabList /></PageWrapper>} />
           <Route path="exercises" element={<PageWrapper><ExerciseList /></PageWrapper>} />
+          <Route path="exams" element={<PageWrapper><ExamList /></PageWrapper>} />
           <Route path="exercise-attempts" element={<PageWrapper><AttemptList /></PageWrapper>} />
           <Route path="flashcards" element={<PageWrapper><FlashcardDeckList /></PageWrapper>} />
           <Route path="flashcards/:deckId/edit" element={<PageWrapper><FlashcardDeckEdit /></PageWrapper>} />
@@ -289,6 +292,7 @@ function AnimatedRoutes() {
           <Route path="grammar" element={<PageWrapper><GrammarList /></PageWrapper>} />
           <Route path="vocabulary" element={<PageWrapper><VocabList /></PageWrapper>} />
           <Route path="exercises" element={<PageWrapper><ExerciseList /></PageWrapper>} />
+          <Route path="exams" element={<PageWrapper><ExamList /></PageWrapper>} />
           <Route path="exercise-attempts" element={<PageWrapper><AttemptList /></PageWrapper>} />
           <Route path="flashcards" element={<PageWrapper><FlashcardDeckList /></PageWrapper>} />
           <Route path="flashcards/:deckId/edit" element={<PageWrapper><FlashcardDeckEdit /></PageWrapper>} />
@@ -304,6 +308,10 @@ function AnimatedRoutes() {
         {/* --- STANDALONE: Game Room Player (Full-page immersive game UI) --- */}
         <Route path="/user/game-room/play" element={<GameRoomPlayer />} />
         <Route path="/game-room/play"      element={<GameRoomPlayer />} />
+
+        {/* --- STANDALONE: Proctored Exam taking screen (no sidebar, full-screen) --- */}
+        <Route path="/user/exams/take/:exerciseId" element={<ExamTakePage />} />
+
 
         {/* 404 Route */}
         <Route path="*" element={<PageWrapper><CatchAll404 /></PageWrapper>} />

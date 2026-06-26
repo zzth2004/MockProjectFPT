@@ -2,7 +2,6 @@ import React, { useState } from "react";
 import { Outlet } from "react-router-dom";
 import Sidebar from "../components/PageComponent/MainSideBarComp";
 import MainHeader from "../components/PageComponent/MainHeader";
-import Footer from "../components/PageComponent/Footer";
 
 // Import Popup của bạn
 import LogoutPopup from "../components/PopupComponent/LogoutPopup"; 
@@ -49,7 +48,9 @@ export default function AdminLayout() {
               <Outlet /> 
             </div>
           </div>
-          <Footer />
+          <footer className="py-5 text-center text-xs text-gray-400 border-t border-gray-100 bg-white font-medium">
+            Copyright © {new Date().getFullYear()} KoreanLab.
+          </footer>
         </main>
       </div>
 

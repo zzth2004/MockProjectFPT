@@ -79,6 +79,7 @@ export default function Sidebar({ isMobile, onClose, onLogoutClick }) {
           icon: ListChecks, label: "Bài tập & Đánh giá",
           children: [
             { label: "Ngân hàng câu hỏi", to: `${basePath}/exercises` },
+            { label: "Quản lý bài thi", to: `${basePath}/exams` },
             { label: "Kết quả làm bài", to: `${basePath}/exercise-attempts` },
             { label: "Phòng Live Quiz", to: `${basePath}/game-room/host`, openNewTab: true },
           ]

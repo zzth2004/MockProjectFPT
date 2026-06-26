@@ -113,6 +113,28 @@ const exerciseService = {
   getGlobalStats: async () => {
     return axiosClient.get("/materials/admin/global-stats")
       .then(res => res.data.data);
+  },
+
+  generateExamCode: async (exerciseId, studentName, studentEmail) => {
+    return axiosClient.post("/materials/exercise/exam-code/generate", {
+      exerciseId,
+      studentName,
+      studentEmail
+    }).then(res => res.data.data);
+  },
+
+  listExamCodes: async (exerciseId) => {
+    return axiosClient.get(`/materials/exercise/exam-code/list/${exerciseId}`)
+      .then(res => res.data.data);
+  },
+
+  verifyExamCode: async (exerciseId, studentName, studentEmail, code) => {
+    return axiosClient.post("/materials/exercise/exam-code/verify", {
+      exerciseId,
+      studentName,
+      studentEmail,
+      code
+    }).then(res => res.data.data);
   }
 };
 

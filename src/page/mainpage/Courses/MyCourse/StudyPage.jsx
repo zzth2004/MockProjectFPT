@@ -47,13 +47,21 @@ const StudyPage = () => {
         type: 'grammar',
         typeName: 'Ngữ pháp'
       })),
-      exercise: (response.exercises || []).map((e) => ({
-        ...e,
-        text: e.title,
-        subText: e.description,
-        type: 'exercise',
-        typeName: 'Bài tập'
-      })),
+      exercise: (response.exercises || []).map((e) => {
+        const typeLabels = {
+          practice: "Luyện tập",
+          midterm: "Thi giữa kỳ",
+          final: "Thi cuối kỳ",
+          topik_test: "Thi TOPIK"
+        };
+        return {
+          ...e,
+          text: e.title,
+          subText: e.description,
+          type: 'exercise',
+          typeName: typeLabels[e.type] || 'Bài tập'
+        };
+      }),
       title: response.title || "Chi tiết bài học"
     };
   }, [response]);

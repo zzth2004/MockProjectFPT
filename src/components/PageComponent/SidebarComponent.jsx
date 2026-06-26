@@ -20,6 +20,7 @@ import {
   User,
   BookMarked,
   Crown,
+  FileText,
 } from "lucide-react";
 import { useAuth } from "../../context/authContext";
 
@@ -41,9 +42,11 @@ export default function Sidebar({ isMobile, onClose }) {
     { icon: Trophy,          label: "Leaderboard",   to: "/user/leaderboard" },
     { icon: Gamepad2,        label: "Games",         to: "/user/games" },
     { icon: ClipboardList,   label: "Quiz Room",     to: "/user/quiz" },
+    { icon: FileText,        label: "Bài Thi",       to: "/user/exams",          badge: "Mới",  badgeColor: "#0ea5e9" },
     { icon: CalendarDays,    label: "Schedule",      to: "/user/schedule" },
     { icon: GraduationCap,   label: "My Courses",    to: "/user/active-courses" },
   ];
+
 
   const bottomItems = [
     { icon: User,       label: "Profile",   to: "/user/profile" },

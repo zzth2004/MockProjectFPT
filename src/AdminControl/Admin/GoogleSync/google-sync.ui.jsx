@@ -1,7 +1,7 @@
 import React, { useEffect, useCallback, useState, useMemo } from "react";
-import { 
-    ShieldCheck, Video, School, RefreshCw, Search, CheckCircle2, XCircle, 
-    Users, Calendar, Link as LinkIcon, AlertCircle, Check, ExternalLink, 
+import {
+    ShieldCheck, Video, School, RefreshCw, Search, CheckCircle2, XCircle,
+    Users, Calendar, Link as LinkIcon, AlertCircle, Check, ExternalLink,
     ArrowRight, Sparkles, BookOpen
 } from "lucide-react";
 
@@ -31,15 +31,12 @@ export default function GoogleSyncManagement() {
     const [syncResult, setSyncResult] = useState(null); // Result data for details modal
     const [isSyncModalOpen, setIsSyncModalOpen] = useState(false);
 
-    // --- 1. GOOGLE CONNECTION STATUS ---
+
     const checkGoogleStatus = async () => {
         try {
             setCheckingStatus(true);
             const status = await googleService.checkStatus();
             setGoogleConnected(!!status.connected);
-            // Since checkStatus in controller returns { connected }, 
-            // if connected is true, we could optionally check analytics to get email if possible,
-            // or just display a generic "Hệ thống đã liên kết Google Master Account".
         } catch (error) {
             console.error("Lỗi kiểm tra Google status:", error);
             setGoogleConnected(false);
@@ -91,7 +88,7 @@ export default function GoogleSyncManagement() {
 
     const classesList = useMemo(() => {
         let raw = Array.isArray(response) ? response : (response?.data || []);
-        
+
         // If we are a teacher and have search query, filter client-side since my-classes is a flat array
         if (isTeacher && searchTerm) {
             raw = raw.filter(c => c.name?.toLowerCase().includes(searchTerm.toLowerCase()));
@@ -197,10 +194,10 @@ export default function GoogleSyncManagement() {
                                     <School size={10} /> ĐÃ ĐỒNG BỘ
                                 </span>
                             </KLBadge>
-                            <a 
-                                href={val} 
-                                target="_blank" 
-                                rel="noreferrer" 
+                            <a
+                                href={val}
+                                target="_blank"
+                                rel="noreferrer"
                                 className="text-[11px] text-[#2d5a2d] hover:underline font-black flex items-center gap-1 mt-1 uppercase"
                             >
                                 Đi đến GG Class <ExternalLink size={10} />
@@ -227,10 +224,10 @@ export default function GoogleSyncManagement() {
                                     <Video size={10} /> ĐÃ TẠO LỊCH
                                 </span>
                             </KLBadge>
-                            <a 
-                                href={val} 
-                                target="_blank" 
-                                rel="noreferrer" 
+                            <a
+                                href={val}
+                                target="_blank"
+                                rel="noreferrer"
                                 className="text-[11px] text-blue-600 hover:underline font-bold flex items-center gap-1 mt-1"
                             >
                                 Link phòng Meet <ExternalLink size={10} />
@@ -266,49 +263,52 @@ export default function GoogleSyncManagement() {
                 const syncLoading = actionLoading[`${row.id}_sync`];
 
                 return (
-                    <div className="flex items-center justify-end gap-2 py-1">
+                    <div className="flex items-center justify-end gap-3 py-1 font-bold">
                         {!row.googleClassroomId ? (
-                            <KLButton 
-                                size="sm" 
-                                className="bg-[#2d5a2d] hover:bg-[#204020] text-white" 
+                            <button
                                 onClick={() => handleCreateClassroom(row.id)}
                                 disabled={classroomLoading}
+                                className="text-[12px] font-black text-[#2d5a2d] hover:text-[#204020] hover:underline inline-flex items-center gap-1 uppercase tracking-wider cursor-pointer bg-transparent border-none p-0 disabled:opacity-50 transition-colors"
                             >
                                 {classroomLoading ? "Đang tạo..." : "Tạo Classroom"}
-                            </KLButton>
+                            </button>
                         ) : (
-                            <div className="flex items-center gap-2">
-                                <KLButton 
-                                    size="sm" 
-                                    variant="outline"
-                                    className="border-[#2d5a2d] text-[#2d5a2d] hover:bg-green-50"
+                            <div className="flex items-center gap-3">
+                                <button
                                     onClick={() => handleSyncRoster(row.id, row.name)}
                                     disabled={syncLoading}
+                                    className="text-[12px] font-black text-[#2d5a2d] hover:text-[#204020] hover:underline inline-flex items-center gap-1 uppercase tracking-wider cursor-pointer bg-transparent border-none p-0 disabled:opacity-50 transition-colors"
                                 >
                                     {syncLoading ? <RefreshCw size={12} className="animate-spin mr-1" /> : <RefreshCw size={12} className="mr-1" />}
-                                    Đồng bộ Roster
-                                </KLButton>
+                                    Đồng bộ
+                                </button>
                                 {row.googleClassroomLink && (
-                                    <KLButton
-                                        size="sm"
-                                        className="bg-[#2d5a2d] hover:bg-[#204020] text-white font-black"
-                                        onClick={() => window.open(row.googleClassroomLink, '_blank')}
-                                    >
-                                        Đi đến GG Class
-                                    </KLButton>
+                                    <>
+                                        <span className="text-gray-300 font-normal">|</span>
+                                        <a
+                                            href={row.googleClassroomLink}
+                                            target="_blank"
+                                            rel="noreferrer"
+                                            className="text-[12px] font-black text-[#2d5a2d] hover:text-[#204020] hover:underline inline-flex items-center gap-1 uppercase tracking-wider"
+                                        >
+                                            Đi đến GG Class <ExternalLink size={12} />
+                                        </a>
+                                    </>
                                 )}
                             </div>
                         )}
 
                         {!row.googleMeetLink && (
-                            <KLButton 
-                                size="sm" 
-                                className="bg-blue-600 hover:bg-blue-700 text-white" 
-                                onClick={() => handleCreateMeet(row.id)}
-                                disabled={meetLoading}
-                            >
-                                {meetLoading ? "Đang tạo..." : "Tạo Lịch/Meet"}
-                            </KLButton>
+                            <>
+                                <span className="text-gray-300 font-normal">|</span>
+                                <button
+                                    onClick={() => handleCreateMeet(row.id)}
+                                    disabled={meetLoading}
+                                    className="text-[12px] font-black text-blue-600 hover:text-blue-800 hover:underline inline-flex items-center gap-1 uppercase tracking-wider cursor-pointer bg-transparent border-none p-0 disabled:opacity-50 transition-colors"
+                                >
+                                    {meetLoading ? "Đang tạo..." : "Tạo Lịch/Meet"}
+                                </button>
+                            </>
                         )}
                     </div>
                 );
@@ -341,48 +341,7 @@ export default function GoogleSyncManagement() {
                 </div>
             </div>
 
-            {/* CONNECTION STATUS & GOOGLE CONFIG */}
-            <KLCard className="bg-white p-6 border-none shadow-sm rounded-3xl overflow-hidden relative">
-                <div className="absolute -top-12 -right-12 w-48 h-48 bg-[#E4FBE1]/30 rounded-full blur-3xl"></div>
-                <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 relative z-10">
-                    <div className="flex items-center gap-4 text-left">
-                        <div className={`p-4 rounded-2xl flex items-center justify-center text-white ${googleConnected ? "bg-green-600 shadow-lg shadow-green-100" : "bg-orange-500 shadow-lg shadow-orange-100"}`}>
-                            <ShieldCheck size={28} />
-                        </div>
-                        <div>
-                            <h3 className="text-lg font-black text-gray-900 leading-tight">
-                                {isTeacher ? "Tài khoản Google Giáo viên" : "Google Classroom Master Token"}
-                            </h3>
-                            {checkingStatus ? (
-                                <p className="text-xs text-gray-400 font-bold mt-1 animate-pulse">ĐANG KIỂM TRA PHÂN QUYỀN...</p>
-                            ) : googleConnected ? (
-                                <div className="flex items-center gap-2 mt-1">
-                                    <span className="w-2.5 h-2.5 bg-green-500 rounded-full animate-ping"></span>
-                                    <p className="text-xs text-green-700 font-extrabold uppercase">
-                                        {isTeacher ? "ĐÃ LIÊN KẾT TÀI KHOẢN GIÁO VIÊN" : "ĐÃ LIÊN KẾT MASTER ACCOUNT"}
-                                    </p>
-                                </div>
-                            ) : (
-                                <div className="flex items-center gap-2 mt-1">
-                                    <span className="w-2.5 h-2.5 bg-orange-500 rounded-full animate-pulse"></span>
-                                    <p className="text-xs text-orange-700 font-extrabold uppercase">CHƯA CÓ KẾT NỐI HỆ THỐNG</p>
-                                </div>
-                            )}
-                        </div>
-                    </div>
-                    
-                    <div className="w-full md:w-auto flex flex-col sm:flex-row gap-3">
-                        <KLButton 
-                            onClick={handleConnectGoogle}
-                            className={`${googleConnected ? "bg-gray-100 text-gray-800 hover:bg-gray-200" : "bg-black text-white hover:bg-gray-900"} shadow-xl shadow-gray-200 w-full sm:w-auto font-black uppercase text-xs tracking-wider`}
-                            disabled={checkingStatus}
-                        >
-                            {googleConnected ? (isTeacher ? "Liên kết lại tài khoản" : "Liên kết lại tài khoản Master") : (isTeacher ? "Liên kết tài khoản Google" : "Liên kết Google Admin")}
-                            <ArrowRight size={14} className="ml-2 inline-block" />
-                        </KLButton>
-                    </div>
-                </div>
-            </KLCard>
+
 
             {/* QUICK STATS */}
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
@@ -429,7 +388,7 @@ export default function GoogleSyncManagement() {
                             onChange={(e) => setSearchTerm(e.target.value)}
                         />
                     </div>
-                    
+
                     <div className="flex gap-2">
                         {["ALL", "SYNCED", "NOT_SYNCED"].map((filter) => (
                             <button
@@ -448,9 +407,9 @@ export default function GoogleSyncManagement() {
                         Đang tải danh sách lớp học...
                     </div>
                 ) : (
-                    <KLTable 
-                        columns={columns} 
-                        data={classesList} 
+                    <KLTable
+                        columns={columns}
+                        data={classesList}
                         showAction={false} // Disable default detail/edit/delete actions
                     />
                 )}
@@ -464,14 +423,14 @@ export default function GoogleSyncManagement() {
                             <h3 className="text-xl font-black text-gray-950 uppercase tracking-tight italic flex items-center gap-2">
                                 <Sparkles className="text-[#2d5a2d]" /> {syncResult.isCreation ? "Tạo lớp thành công" : "Kết quả đồng bộ"}
                             </h3>
-                            <button 
-                                onClick={() => setIsSyncModalOpen(false)} 
+                            <button
+                                onClick={() => setIsSyncModalOpen(false)}
                                 className="p-2 hover:bg-gray-100 rounded-full text-gray-400 transition-colors"
                             >
                                 <XCircle size={20} />
                             </button>
                         </div>
-                        
+
                         <div className="p-6 space-y-4 max-h-[70vh] overflow-y-auto custom-scrollbar">
                             <div className="bg-green-50 text-green-800 p-4 rounded-2xl flex items-start gap-3">
                                 <CheckCircle2 className="text-green-600 mt-0.5 flex-shrink-0" size={20} />
@@ -548,9 +507,9 @@ export default function GoogleSyncManagement() {
 
                         <div className="p-6 border-t bg-gray-50/50 flex justify-between items-center">
                             {syncResult.googleClassroomLink ? (
-                                <a 
-                                    href={syncResult.googleClassroomLink} 
-                                    target="_blank" 
+                                <a
+                                    href={syncResult.googleClassroomLink}
+                                    target="_blank"
                                     rel="noreferrer"
                                     className="px-5 py-2.5 bg-[#2d5a2d] hover:bg-[#204020] text-white rounded-xl text-xs font-black uppercase tracking-wider transition-all duration-200 flex items-center gap-2"
                                 >

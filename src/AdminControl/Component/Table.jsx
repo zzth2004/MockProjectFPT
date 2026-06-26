@@ -14,6 +14,7 @@ export const KLTable = ({
   showAction = true, 
   onAction, // Truyền (type, row) ví dụ: onAction('edit', row)
   hiddenActions = [], // Danh sách các key muốn ẩn: ['delete', 'reset']
+  actionVariant = "button", // "button" hoặc "link"
 }) => {
   const safeData = Array.isArray(data) ? data : [];
 
@@ -23,35 +24,35 @@ export const KLTable = ({
       key: 'view',
       label: 'Chi tiết',
       icon: Eye,
-      color: 'text-gray-600',
+      color: 'text-gray-600 hover:text-gray-800',
       hover: 'hover:bg-gray-100'
     },
     {
       key: 'edit',
       label: 'Sửa',
       icon: Edit3,
-      color: 'text-[#2d5a2d]',
+      color: 'text-[#2d5a2d] hover:text-[#1c381c]',
       hover: 'hover:bg-[#E4FBE1]'
     },
     {
       key: 'reset',
       label: 'Mật khẩu',
       icon: KeyRound,
-      color: 'text-blue-600',
+      color: 'text-blue-600 hover:text-blue-850',
       hover: 'hover:bg-blue-50'
     },
     {
       key: 'lock',
       label: 'Khóa',
       icon: Lock,
-      color: 'text-orange-600',
+      color: 'text-orange-600 hover:text-orange-850',
       hover: 'hover:bg-orange-50'
     },
     {
       key: 'delete',
       label: 'Xóa',
       icon: Trash2,
-      color: 'text-red-600',
+      color: 'text-red-600 hover:text-red-800',
       hover: 'hover:bg-red-50'
     }
   ];
@@ -65,12 +66,16 @@ export const KLTable = ({
         <thead>
           <tr>
             {columns.map((col) => (
-              <th key={col.key} className="px-6 py-4 text-[11px] font-black uppercase tracking-[0.2em] text-gray-400 text-left">
+              <th 
+                key={col.key} 
+                className={`px-6 py-4 text-[11px] font-black uppercase tracking-[0.2em] text-gray-400 text-left ${col.className || ""}`}
+                style={col.width ? { width: col.width } : undefined}
+              >
                 {col.title}
               </th>
             ))}
             {showAction && (
-              <th className="px-6 py-4 text-[11px] font-black uppercase tracking-[0.2em] text-gray-400 text-right">
+              <th className="px-6 py-4 text-[11px] font-black uppercase tracking-[0.2em] text-gray-400 text-right whitespace-nowrap">
                 Thao tác
               </th>
             )}
@@ -88,7 +93,9 @@ export const KLTable = ({
                     first:border-l-2 first:rounded-l-3xl 
                     text-[15px] font-black text-gray-800 group-hover:bg-gray-50/80 transition-colors
                     ${!showAction && colIdx === columns.length - 1 ? "border-r-2 rounded-r-3xl" : ""}
+                    ${col.className || ""}
                   `}
+                  style={col.width ? { width: col.width } : undefined}
                 >
                   {col.render ? col.render(row[col.key], row) : (row[col.key] || "---")}
                 </td>
@@ -96,7 +103,7 @@ export const KLTable = ({
               
               {showAction && (
                 <td className="px-6 py-5 bg-white border-y-2 border-r-2 border-gray-50 rounded-r-3xl text-right group-hover:bg-gray-50/80 transition-colors">
-                  <div className="flex items-center justify-end gap-1">
+                  <div className="flex items-center justify-end gap-2 whitespace-nowrap">
                     {visibleActions.map((action) => {
                       const Icon = action.icon;
                       // Logic đặc biệt: Nếu nút là 'lock' nhưng user đang bị khóa -> đổi sang icon Unlock
@@ -105,9 +112,13 @@ export const KLTable = ({
                           <button
                             key="unlock"
                             onClick={() => onAction && onAction('unlock', row)}
-                            className="p-2.5 rounded-xl transition-all active:scale-90 flex items-center gap-2 font-black text-[10px] uppercase tracking-tighter text-green-600 hover:bg-green-50"
+                            className={
+                              actionVariant === "link"
+                                ? "px-2 py-1 transition-all active:scale-95 flex items-center gap-1 font-bold text-xs uppercase text-green-600 hover:underline"
+                                : "p-2.5 rounded-xl transition-all active:scale-90 flex items-center gap-2 font-black text-[10px] uppercase tracking-tighter text-green-600 hover:bg-green-50"
+                            }
                           >
-                            <Unlock size={16} strokeWidth={3} />
+                            <Unlock size={actionVariant === "link" ? 14 : 16} strokeWidth={3} />
                             <span>Mở khóa</span>
                           </button>
                         );
@@ -117,10 +128,14 @@ export const KLTable = ({
                         <button
                           key={action.key}
                           onClick={() => onAction && onAction(action.key, row)}
-                          className={`p-2.5 rounded-xl transition-all active:scale-90 flex items-center gap-2 font-black text-[10px] uppercase tracking-tighter ${action.color} ${action.hover}`}
+                          className={
+                            actionVariant === "link"
+                              ? `px-2 py-1.5 transition-all active:scale-95 flex items-center gap-1 font-bold text-xs uppercase hover:underline ${action.color}`
+                              : `p-2.5 rounded-xl transition-all active:scale-90 flex items-center gap-2 font-black text-[10px] uppercase tracking-tighter ${action.color} ${action.hover}`
+                          }
                         >
-                          <Icon size={16} strokeWidth={3} />
-                          <span className="hidden xl:inline">{action.label}</span>
+                          <Icon size={actionVariant === "link" ? 14 : 16} strokeWidth={3} />
+                          <span className={actionVariant === "link" ? "" : "hidden xl:inline"}>{action.label}</span>
                         </button>
                       );
                     })}

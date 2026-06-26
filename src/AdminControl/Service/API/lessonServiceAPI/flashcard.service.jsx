@@ -48,6 +48,10 @@ const flashcardService = {
         return axiosClient.post("/flashcards/card/new", data).then(res => res.data.data);
     },
 
+    addCardsBulk: async (deckId, cards) => {
+        return axiosClient.post("/flashcards/card/new-bulk", { deckId, cards }).then(res => res.data.data);
+    },
+
     updateCard: async (id, data) => {
         return axiosClient.patch(`/flashcards/card/${id}/update`, data).then(res => res.data.data);
     },

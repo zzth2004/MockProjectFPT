@@ -96,10 +96,11 @@ const AiService = {
     return response.data.data;
   },
 
-  // generateExercise: async (exerciseId, config) => {
-  //   const response = await axiosClient.post(`/ai/generate-exercise/${exerciseId}`, config);
-  //   return response.data.data;
-  // },
+  generateContent: async (config) => {
+    const response = await axiosClient.post('/ai/generate-content', config);
+    const res = response.data;
+    return res.data !== undefined ? res.data : res;
+  },
 
   generateFlashcards: async (deckId, config) => {
     const response = await axiosClient.post(`/ai/generate-flashcards/${deckId}`, config);

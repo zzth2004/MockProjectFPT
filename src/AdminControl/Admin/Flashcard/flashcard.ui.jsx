@@ -47,6 +47,63 @@ export default function FlashcardDeckList() {
         status: "ACTIVE"
     });
 
+    // --- Create Deck Import States ---
+    const [createMode, setCreateMode] = useState("manual"); // "manual" or "import"
+    const [importSubMode, setImportSubMode] = useState("text"); // "text" or "json"
+    const [importText, setImportText] = useState("");
+    const [jsonText, setJsonText] = useState("");
+
+    const currentDeckJson = useMemo(() => {
+        const lines = importText.split("\n");
+        const flashcards = [];
+        for (let line of lines) {
+            line = line.trim();
+            if (!line) continue;
+            const parts = line.split(/\s*[-–—]\s*/);
+            if (parts.length >= 2) {
+                const frontText = parts[0].trim();
+                const backText = parts.slice(1).join(" - ").trim();
+                if (frontText && backText) {
+                    flashcards.push({
+                        frontText,
+                        backText,
+                        frontAudio: null,
+                        backImage: null
+                    });
+                }
+            }
+        }
+
+        return {
+            title: formData.title || "Tiếng Hàn Chuyên ngành IT",
+            description: formData.description || "Từ vựng tiếng Hàn dùng trong công việc lập trình, phát triển phần mềm và kỹ thuật.",
+            createdBy: selectedDeck?.createdBy || 1,
+            isPublic: formData.isPublic !== undefined ? formData.isPublic : false,
+            status: formData.status || "ACTIVE",
+            flashcards
+        };
+    }, [importText, formData, selectedDeck]);
+
+    const handleCopyJson = () => {
+        const jsonString = JSON.stringify(currentDeckJson, null, 2);
+        navigator.clipboard.writeText(jsonString);
+        alert("📋 Đã sao chép cấu hình JSON vào bộ nhớ tạm!");
+    };
+
+    const handleDownloadJson = () => {
+        const jsonStr = JSON.stringify(currentDeckJson, null, 2);
+        const blob = new Blob([jsonStr], { type: "application/json" });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = `${formData.title || "deck"}_config.json`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+        alert("📥 Đã tải xuống file cấu hình JSON!");
+    };
+
     // --- 2. FETCH DATA ---
     const fetchDecksFn = useCallback(() => flashcardService.getAllDecks(1, 100), []);
     const { data: decksResponse, loading, call: refreshDecks } = useCallApiHandler(fetchDecksFn);
@@ -177,6 +234,10 @@ export default function FlashcardDeckList() {
             isPublic: true,
             status: "ACTIVE"
         });
+        setCreateMode("manual");
+        setImportSubMode("text");
+        setImportText("");
+        setJsonText("");
         setIsModalOpen(true);
     };
 
@@ -208,6 +269,48 @@ export default function FlashcardDeckList() {
             return;
         }
 
+        let cardsToImport = [];
+        if (createMode === "import") {
+            if (importSubMode === "text") {
+                cardsToImport = currentDeckJson.flashcards;
+                if (cardsToImport.length === 0) {
+                    alert("❌ Không tìm thấy thẻ hợp lệ theo định dạng 'Mặt trước - Mặt sau'. Vui lòng nhập mỗi dòng dạng 'Mặt trước - Mặt sau'.");
+                    return;
+                }
+            } else {
+                const inputText = jsonText.trim();
+                if (!inputText) {
+                    alert("❌ Vui lòng nhập nội dung JSON");
+                    return;
+                }
+                try {
+                    const parsed = JSON.parse(inputText);
+                    if (Array.isArray(parsed)) {
+                        cardsToImport = parsed;
+                    } else if (parsed && typeof parsed === 'object') {
+                        if (Array.isArray(parsed.flashcards)) {
+                            cardsToImport = parsed.flashcards;
+                        } else {
+                            alert("❌ Đối tượng JSON phải chứa mảng 'flashcards' làm danh sách các thẻ.");
+                            return;
+                        }
+                    }
+                } catch (err) {
+                    alert("❌ Lỗi cú pháp JSON. Vui lòng kiểm tra lại cấu trúc JSON của bạn.");
+                    return;
+                }
+            }
+
+            // Validate that all cards contain frontText and backText
+            const isAllValid = cardsToImport.every(
+                (c) => c && typeof c.frontText === "string" && typeof c.backText === "string"
+            );
+            if (!isAllValid) {
+                alert("❌ Dữ liệu thẻ không hợp lệ. Mỗi thẻ bắt buộc phải có thuộc tính 'frontText' và 'backText'.");
+                return;
+            }
+        }
+
         setIsSaving(true);
         try {
             const payload = {
@@ -221,8 +324,13 @@ export default function FlashcardDeckList() {
                 await flashcardService.updateDeck(selectedDeck.id, payload);
                 alert("✅ Cập nhật bộ thẻ thành công!");
             } else {
-                await flashcardService.createDeck(payload);
-                alert("✅ Tạo bộ thẻ mới thành công!");
+                const newDeck = await flashcardService.createDeck(payload);
+                if (createMode === "import" && cardsToImport.length > 0) {
+                    await flashcardService.addCardsBulk(newDeck.id, cardsToImport);
+                    alert(`✅ Tạo bộ thẻ và import thành công ${cardsToImport.length} thẻ!`);
+                } else {
+                    alert("✅ Tạo bộ thẻ mới thành công!");
+                }
             }
             setIsModalOpen(false);
             refreshDecks();
@@ -383,7 +491,7 @@ export default function FlashcardDeckList() {
             {/* CREATE / EDIT DECK MODAL */}
             {isModalOpen && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
-                    <div className="bg-white rounded-[2.5rem] w-full max-w-lg overflow-hidden shadow-2xl border border-gray-100 flex flex-col animate-in zoom-in-95 duration-200 text-left">
+                    <div className={`bg-white rounded-[2.5rem] w-full transition-all duration-300 overflow-hidden shadow-2xl border border-gray-100 flex flex-col animate-in zoom-in-95 duration-200 text-left ${createMode === 'import' ? 'max-w-4xl' : 'max-w-lg'}`}>
                         
                         {/* Modal Header */}
                         <div className="px-8 py-6 bg-gradient-to-r from-green-50 to-emerald-50/30 border-b border-gray-100 flex justify-between items-center">
@@ -407,61 +515,189 @@ export default function FlashcardDeckList() {
                         {/* Modal Form */}
                         <form onSubmit={handleSubmit} className="p-8 space-y-6">
                             
-                            {/* Title */}
-                            <div className="space-y-2">
-                                <label className="text-[10px] font-black uppercase text-gray-400 px-1">Tên bộ thẻ *</label>
-                                <input
-                                    type="text"
-                                    required
-                                    placeholder="Ví dụ: Từ vựng Động từ Sơ cấp 1"
-                                    className="w-full px-4 py-3.5 bg-gray-50 rounded-2xl border-none font-bold text-sm focus:ring-2 focus:ring-green-600/20 focus:bg-white transition-all outline-none"
-                                    value={formData.title}
-                                    onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                                />
-                            </div>
-
-                            {/* Description */}
-                            <div className="space-y-2">
-                                <label className="text-[10px] font-black uppercase text-gray-400 px-1">Mô tả bộ thẻ</label>
-                                <textarea
-                                    rows={3}
-                                    placeholder="Ví dụ: Tổng hợp các động từ bất quy tắc thường gặp..."
-                                    className="w-full px-4 py-3.5 bg-gray-50 rounded-2xl border-none font-bold text-sm focus:ring-2 focus:ring-green-600/20 focus:bg-white transition-all outline-none resize-none"
-                                    value={formData.description}
-                                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                                />
-                            </div>
-
-                            {/* Options Grid */}
-                            <div className="grid grid-cols-2 gap-6">
-                                {/* Privacy Status */}
-                                <div className="space-y-2">
-                                    <label className="text-[10px] font-black uppercase text-gray-400 px-1">Trạng thái hoạt động</label>
-                                    <select
-                                        className="w-full px-4 py-3.5 bg-gray-50 rounded-2xl border-none font-black text-sm focus:ring-2 focus:ring-green-600/20 focus:bg-white transition-all outline-none cursor-pointer"
-                                        value={formData.status}
-                                        onChange={(e) => setFormData({ ...formData, status: e.target.value })}
+                            {/* Mode selector at the very top of form */}
+                            {!selectedDeck && (
+                                <div className="flex gap-2 bg-gray-50 p-1 rounded-xl w-fit">
+                                    <button
+                                        type="button"
+                                        onClick={() => setCreateMode("manual")}
+                                        className={`px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-wider transition-all duration-200 ${
+                                            createMode === "manual"
+                                                ? "bg-white text-gray-900 shadow-sm"
+                                                : "text-gray-400 hover:text-gray-900"
+                                        }`}
                                     >
-                                        <option value="ACTIVE">Hoạt động (Active)</option>
-                                        <option value="INACTIVE">Tạm khóa (Inactive)</option>
-                                    </select>
+                                        Tạo thủ công
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => setCreateMode("import")}
+                                        className={`px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-wider transition-all duration-200 ${
+                                            createMode === "import"
+                                                ? "bg-white text-gray-900 shadow-sm"
+                                                : "text-gray-400 hover:text-gray-900"
+                                        }`}
+                                    >
+                                        Tạo & Nhập nhanh từ JSON / Text
+                                    </button>
+                                </div>
+                            )}
+
+                            <div className={createMode === "import" && !selectedDeck ? "grid grid-cols-1 lg:grid-cols-2 gap-8" : "space-y-6"}>
+                                
+                                {/* COLUMN 1: DECK INFO */}
+                                <div className="space-y-6">
+                                    {/* Title */}
+                                    <div className="space-y-2">
+                                        <label className="text-[10px] font-black uppercase text-gray-400 px-1">Tên bộ thẻ *</label>
+                                        <input
+                                            type="text"
+                                            required
+                                            placeholder="Ví dụ: Từ vựng Động từ Sơ cấp 1"
+                                            className="w-full px-4 py-3.5 bg-gray-50 rounded-2xl border-none font-bold text-sm focus:ring-2 focus:ring-green-600/20 focus:bg-white transition-all outline-none"
+                                            value={formData.title}
+                                            onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                                        />
+                                    </div>
+
+                                    {/* Description */}
+                                    <div className="space-y-2">
+                                        <label className="text-[10px] font-black uppercase text-gray-400 px-1">Mô tả bộ thẻ</label>
+                                        <textarea
+                                            rows={3}
+                                            placeholder="Ví dụ: Tổng hợp các động từ bất quy tắc thường gặp..."
+                                            className="w-full px-4 py-3.5 bg-gray-50 rounded-2xl border-none font-bold text-sm focus:ring-2 focus:ring-green-600/20 focus:bg-white transition-all outline-none resize-none"
+                                            value={formData.description}
+                                            onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                                        />
+                                    </div>
+
+                                    {/* Options Grid */}
+                                    <div className="grid grid-cols-2 gap-6">
+                                        {/* Privacy Status */}
+                                        <div className="space-y-2">
+                                            <label className="text-[10px] font-black uppercase text-gray-400 px-1">Trạng thái hoạt động</label>
+                                            <select
+                                                className="w-full px-4 py-3.5 bg-gray-50 rounded-2xl border-none font-black text-sm focus:ring-2 focus:ring-green-600/20 focus:bg-white transition-all outline-none cursor-pointer"
+                                                value={formData.status}
+                                                onChange={(e) => setFormData({ ...formData, status: e.target.value })}
+                                            >
+                                                <option value="ACTIVE">Hoạt động (Active)</option>
+                                                <option value="INACTIVE">Tạm khóa (Inactive)</option>
+                                            </select>
+                                        </div>
+
+                                        {/* Public Access */}
+                                        <div className="space-y-2 flex flex-col justify-end">
+                                            <label className="flex items-center gap-3 bg-gray-50 p-4 rounded-2xl border border-gray-100 cursor-pointer select-none hover:bg-gray-100/50 transition-all">
+                                                <input
+                                                    type="checkbox"
+                                                    className="rounded border-gray-300 text-[#2d5a2d] focus:ring-[#2d5a2d]/20 w-4 h-4 cursor-pointer"
+                                                    checked={formData.isPublic}
+                                                    onChange={(e) => setFormData({ ...formData, isPublic: e.target.checked })}
+                                                />
+                                                <div className="flex flex-col text-left">
+                                                    <span className="text-[11px] font-black uppercase text-gray-700">Công khai</span>
+                                                    <span className="text-[8px] font-bold text-gray-400 uppercase tracking-tighter mt-0.5">Mọi người đều xem được</span>
+                                                </div>
+                                            </label>
+                                        </div>
+                                    </div>
                                 </div>
 
-                                {/* Public Access */}
-                                <div className="space-y-2 flex flex-col justify-end">
-                                    <label className="flex items-center gap-3 bg-gray-50 p-4 rounded-2xl border border-gray-100 cursor-pointer select-none hover:bg-gray-100/50 transition-all">
-                                        <input
-                                            type="checkbox"
-                                            className="rounded border-gray-300 text-[#2d5a2d] focus:ring-[#2d5a2d]/20 w-4 h-4 cursor-pointer"
-                                            checked={formData.isPublic}
-                                            onChange={(e) => setFormData({ ...formData, isPublic: e.target.checked })}
-                                        />
-                                        <div className="flex flex-col text-left">
-                                            <span className="text-[11px] font-black uppercase text-gray-700">Công khai</span>
-                                            <span className="text-[8px] font-bold text-gray-400 uppercase tracking-tighter mt-0.5">Mọi người đều xem được</span>
+                                {/* COLUMN 2: CARDS IMPORT */}
+                                {createMode === "import" && !selectedDeck && (
+                                    <div className="space-y-4 border-t lg:border-t-0 lg:border-l border-gray-100 pt-6 lg:pt-0 lg:pl-8 flex flex-col justify-between">
+                                        <div className="space-y-4">
+                                            {/* Sub-mode selector */}
+                                            <div className="flex gap-2 bg-gray-50 p-1.5 rounded-2xl w-fit">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setImportSubMode("text")}
+                                                    className={`px-3 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-wider transition-all duration-200 ${
+                                                        importSubMode === "text"
+                                                            ? "bg-white text-gray-900 shadow-sm"
+                                                            : "text-gray-400 hover:text-gray-700"
+                                                    }`}
+                                                >
+                                                    Nhập Dạng Text (Front - Back)
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setImportSubMode("json")}
+                                                    className={`px-3 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-wider transition-all duration-200 ${
+                                                        importSubMode === "json"
+                                                            ? "bg-white text-gray-900 shadow-sm"
+                                                            : "text-gray-400 hover:text-gray-700"
+                                                    }`}
+                                                >
+                                                    Cấu hình JSON trực tiếp
+                                                </button>
+                                            </div>
+
+                                            {importSubMode === "text" ? (
+                                                <div className="space-y-4">
+                                                    <div className="space-y-1.5">
+                                                        <label className="text-[10px] font-black uppercase text-gray-400 px-1">
+                                                            Mặt trước - Mặt sau (Mỗi thẻ 1 dòng) *
+                                                        </label>
+                                                        <textarea
+                                                            rows={4}
+                                                            required
+                                                            placeholder={`Ví dụ:\n개발자 (Gaebalja) - Lập trình viên / Developer.\n프로그래밍 (Peurogeuraeming) - Lập trình / Programming.`}
+                                                            className="w-full px-4 py-3 bg-gray-50 rounded-2xl border-none font-bold text-sm focus:ring-2 focus:ring-green-600/20 focus:bg-white transition-all outline-none resize-y"
+                                                            value={importText}
+                                                            onChange={(e) => setImportText(e.target.value)}
+                                                        />
+                                                    </div>
+
+                                                    {/* Live JSON Preview */}
+                                                    <div className="space-y-2 bg-gray-50 p-4 rounded-2xl border border-gray-100">
+                                                        <div className="flex items-center justify-between">
+                                                            <span className="text-[9px] font-black uppercase text-gray-400">File JSON cấu hình tự động</span>
+                                                            <div className="flex gap-2">
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={handleCopyJson}
+                                                                    className="px-2.5 py-1 text-[8px] font-black uppercase bg-white border border-gray-200 text-gray-700 rounded-lg hover:bg-gray-50 active:scale-95 transition-all"
+                                                                >
+                                                                    Sao chép
+                                                                </button>
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={handleDownloadJson}
+                                                                    className="px-2.5 py-1 text-[8px] font-black uppercase bg-white border border-gray-200 text-gray-700 rounded-lg hover:bg-gray-50 active:scale-95 transition-all"
+                                                                >
+                                                                    Tải file
+                                                                </button>
+                                                            </div>
+                                                        </div>
+                                                        <textarea
+                                                            rows={5}
+                                                            readOnly
+                                                            className="w-full p-3 bg-gray-900 text-green-400 font-mono text-[10px] rounded-xl border-none outline-none resize-none"
+                                                            value={JSON.stringify(currentDeckJson, null, 2)}
+                                                        />
+                                                    </div>
+                                                </div>
+                                            ) : (
+                                                <div className="space-y-1.5">
+                                                    <label className="text-[10px] font-black uppercase text-gray-400 px-1">
+                                                        Nội dung JSON cấu hình *
+                                                    </label>
+                                                    <textarea
+                                                        rows={9}
+                                                        required
+                                                        placeholder={`Ví dụ:\n[\n  { "frontText": "학교", "backText": "Trường học" }\n]`}
+                                                        className="w-full px-4 py-3 bg-gray-50 rounded-2xl border-none font-mono text-xs focus:ring-2 focus:ring-green-600/20 focus:bg-white transition-all outline-none resize-y"
+                                                        value={jsonText}
+                                                        onChange={(e) => setJsonText(e.target.value)}
+                                                    />
+                                                </div>
+                                            )}
                                         </div>
-                                    </label>
-                                </div>
+                                    </div>
+                                )}
                             </div>
 
                             {/* Form Actions */}
@@ -495,74 +731,101 @@ export default function FlashcardDeckList() {
 
             {/* VIEW DECK DETAILS MODAL */}
             {isViewModalOpen && viewDeckDetails && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
-                    <div className="bg-white rounded-[2.5rem] w-full max-w-2xl overflow-hidden shadow-2xl border border-gray-100 flex flex-col max-h-[85vh] animate-in zoom-in-95 duration-200 text-left">
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-md animate-in fade-in duration-200">
+                    <div className="bg-white rounded-[2rem] w-full max-w-2xl overflow-hidden shadow-[0_20px_50px_rgba(0,0,0,0.15)] border border-slate-100 flex flex-col max-h-[85vh] animate-in zoom-in-95 duration-200 text-left font-sans">
                         
                         {/* Modal Header */}
-                        <div className="px-8 py-6 bg-gradient-to-r from-green-50 to-emerald-50/30 border-b border-gray-100 flex justify-between items-center shrink-0">
-                            <div>
-                                <h3 className="text-xl font-black text-gray-900 uppercase tracking-tight line-clamp-1 max-w-[450px]">
-                                    {viewDeckDetails.title}
-                                </h3>
-                                <div className="flex items-center gap-2 mt-1">
-                                    <KLBadge type={viewDeckDetails.isPublic ? "primary" : "default"}>
-                                        <span className="text-[9px] font-black uppercase tracking-tight">{viewDeckDetails.isPublic ? "Công khai" : "Riêng tư"}</span>
-                                    </KLBadge>
-                                    <KLBadge type={viewDeckDetails.status === "ACTIVE" ? "success" : "danger"}>
-                                        <span className="text-[9px] font-black uppercase tracking-tight">{viewDeckDetails.status}</span>
-                                    </KLBadge>
+                        <div className="px-8 py-5 bg-white border-b border-slate-100 flex justify-between items-center shrink-0">
+                            <div className="flex items-center gap-3">
+                                <div className="w-12 h-12 rounded-2xl bg-[#2d5a2d]/10 flex items-center justify-center border border-[#2d5a2d]/25 text-[#2d5a2d] shrink-0 shadow-sm">
+                                    <Layers size={22} />
+                                </div>
+                                <div>
+                                    <h3 className="text-lg font-extrabold text-slate-800 leading-tight tracking-tight line-clamp-1 max-w-[420px]">
+                                        {viewDeckDetails.title}
+                                    </h3>
+                                    <div className="flex items-center gap-2 mt-1.5">
+                                        <span className={`inline-flex items-center gap-1.5 text-[10px] font-extrabold px-2.5 py-0.5 rounded-full ${viewDeckDetails.isPublic ? "bg-blue-50 text-blue-600 border border-blue-100" : "bg-slate-50 text-slate-500 border border-slate-200/60"}`}>
+                                            {viewDeckDetails.isPublic ? <Globe size={11} /> : <Lock size={11} />}
+                                            {viewDeckDetails.isPublic ? "Công khai" : "Riêng tư"}
+                                        </span>
+                                        <span className={`inline-flex items-center gap-1.5 text-[10px] font-extrabold px-2.5 py-0.5 rounded-full ${viewDeckDetails.status === "ACTIVE" ? "bg-emerald-50 text-emerald-600 border border-emerald-100" : "bg-rose-50 text-rose-600 border border-rose-100"}`}>
+                                            <span className={`w-1.5 h-1.5 rounded-full ${viewDeckDetails.status === "ACTIVE" ? "bg-emerald-500" : "bg-rose-500"} animate-pulse`} />
+                                            {viewDeckDetails.status}
+                                        </span>
+                                    </div>
                                 </div>
                             </div>
                             <button 
                                 type="button"
                                 onClick={() => setIsViewModalOpen(false)}
-                                className="p-2 rounded-2xl bg-gray-50 text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-all active:scale-95 shrink-0"
+                                className="w-10 h-10 rounded-xl bg-slate-50 text-slate-400 hover:text-slate-650 hover:bg-slate-100 flex items-center justify-center transition-all active:scale-95 shrink-0 border border-slate-100"
                             >
-                                <X size={20} strokeWidth={2.5} />
+                                <X size={18} strokeWidth={2.5} />
                             </button>
                         </div>
 
                         {/* Modal Body */}
-                        <div className="flex-1 overflow-y-auto p-8 space-y-6">
+                        <div className="flex-1 overflow-y-auto p-8 space-y-6 scrollbar-thin scrollbar-thumb-slate-200 scrollbar-track-transparent">
                             
                             {/* Description */}
-                            <div className="bg-gray-50/60 rounded-3xl p-5 border border-gray-100">
-                                <span className="text-[10px] font-black uppercase text-gray-400 block mb-1">Mô tả học phần</span>
-                                <p className="text-sm font-medium text-gray-600 leading-relaxed">
+                            <div className="bg-slate-50/50 rounded-2xl p-5 border border-slate-100">
+                                <span className="text-[10px] font-extrabold uppercase text-slate-400 tracking-wider block mb-1">Mô tả học phần</span>
+                                <p className="text-sm font-medium text-slate-600 leading-relaxed">
                                     {viewDeckDetails.description || "Không có mô tả nào cho bộ thẻ này."}
                                 </p>
                             </div>
 
                             {/* Cards list */}
                             <div className="space-y-4">
-                                <span className="text-[10px] font-black uppercase text-gray-400 tracking-wider">Danh sách thẻ học ({viewDeckDetails.flashcards?.length || 0} thẻ)</span>
+                                <span className="text-xs font-bold text-slate-550 uppercase tracking-wider block">
+                                    Danh sách thẻ học ({viewDeckDetails.flashcards?.length || 0} thẻ)
+                                </span>
                                 
                                 {loadingDetail ? (
                                     <div className="py-12 text-center flex flex-col items-center justify-center gap-2">
                                         <Loader2 className="animate-spin text-[#2d5a2d]" size={24} />
-                                        <span className="text-xs font-bold text-gray-400 uppercase tracking-widest animate-pulse">Đang tải thẻ học...</span>
+                                        <span className="text-xs font-bold text-slate-400 uppercase tracking-widest animate-pulse">Đang tải thẻ học...</span>
                                     </div>
                                 ) : (
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                         {(viewDeckDetails.flashcards || []).map((card, cIdx) => (
                                             <div 
                                                 key={card.id || cIdx} 
-                                                className="bg-white rounded-2xl border border-gray-200/80 p-4 shadow-sm hover:shadow-md hover:border-green-300 transition-all flex flex-col justify-between min-h-[100px]"
+                                                className="col-span-1 bg-white rounded-3xl border border-slate-100 hover:border-emerald-300 hover:shadow-md transition-all duration-300 overflow-hidden flex flex-col group"
                                             >
-                                                {/* Card Index */}
-                                                <div className="text-[9px] font-black text-gray-300 uppercase tracking-widest mb-2">Thẻ #{cIdx + 1}</div>
-                                                
-                                                {/* Text Content */}
-                                                <div className="space-y-1">
-                                                    <div className="text-sm font-black text-[#2d5a2d]">{card.frontText}</div>
-                                                    <div className="text-xs font-bold text-gray-500 border-t border-gray-50 pt-1.5 mt-1.5">{card.backText}</div>
+                                                {/* Card Header */}
+                                                <div className="px-4 py-2.5 bg-slate-50/50 border-b border-slate-100 flex justify-between items-center shrink-0">
+                                                    <span className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Thẻ #{cIdx + 1}</span>
+                                                    <span className="text-[8px] font-black text-[#2d5a2d] bg-emerald-50 px-2 py-0.5 rounded-lg border border-emerald-100/50 uppercase tracking-wider">
+                                                        Flashcard
+                                                    </span>
+                                                </div>
+
+                                                {/* Content Faces Grid */}
+                                                <div className="grid grid-cols-2 flex-1 min-h-[110px]">
+                                                    {/* Front Face */}
+                                                    <div className="p-4 bg-emerald-50/10 flex flex-col justify-center items-center text-center border-r border-dashed border-slate-100">
+                                                        <span className="text-[8px] font-black text-emerald-600 uppercase tracking-widest mb-1 opacity-70">Mặt trước</span>
+                                                        <p className="text-sm font-black text-[#2d5a2d] leading-normal break-words w-full">
+                                                            {card.frontText}
+                                                        </p>
+                                                    </div>
+
+                                                    {/* Back Face */}
+                                                    <div className="p-4 bg-slate-50/10 flex flex-col justify-center items-center text-center">
+                                                        <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1 opacity-70">Mặt sau</span>
+                                                        <p className="text-xs font-bold text-slate-700 leading-normal break-words w-full">
+                                                            {card.backText}
+                                                        </p>
+                                                    </div>
                                                 </div>
                                             </div>
                                         ))}
                                         {(viewDeckDetails.flashcards || []).length === 0 && (
-                                            <div className="col-span-2 text-center py-12 bg-gray-50/50 rounded-3xl border border-dashed border-gray-200">
-                                                <Layers size={36} className="text-gray-300 mx-auto mb-2" />
-                                                <p className="text-gray-400 text-xs font-bold uppercase tracking-wider">Chưa có thẻ nào trong học phần này</p>
+                                            <div className="col-span-1 md:col-span-2 text-center py-12 bg-slate-50/50 rounded-2xl border border-dashed border-slate-200 flex flex-col items-center justify-center">
+                                                <Layers size={36} className="text-slate-300 mb-2" />
+                                                <p className="text-slate-400 text-xs font-bold uppercase tracking-wider">Chưa có thẻ nào trong học phần này</p>
                                             </div>
                                         )}
                                     </div>
@@ -571,11 +834,12 @@ export default function FlashcardDeckList() {
                         </div>
 
                         {/* Modal Footer */}
-                        <div className="px-8 py-6 bg-gray-50 border-t border-gray-100 flex justify-end shrink-0">
+                        <div className="px-8 py-5 bg-slate-50/50 border-t border-slate-100 flex justify-between items-center shrink-0">
+                            <span className="text-[11px] font-semibold text-slate-400 tracking-wide hidden sm:inline-block">DATT LMS Smart Flashcards</span>
                             <button
                                 type="button"
                                 onClick={() => setIsViewModalOpen(false)}
-                                className="px-8 py-3 rounded-2xl bg-gray-800 text-white font-bold hover:bg-black transition-all active:scale-95 text-sm uppercase tracking-wider"
+                                className="px-6 py-2.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 font-bold shadow-sm transition-all active:scale-95 text-xs uppercase tracking-wider"
                             >
                                 Đóng lại
                             </button>
@@ -583,6 +847,7 @@ export default function FlashcardDeckList() {
                     </div>
                 </div>
             )}
+
         </div>
     );
 }
