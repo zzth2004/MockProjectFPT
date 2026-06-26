@@ -41,7 +41,6 @@ const PaymentPage = () => {
         } else if (itemType === "subscription") {
           // Temporarily fetch all plans and find the one. Ideally we should have a getPlanDetails endpoint.
           // In user.service/support.service, there isn't a direct one imported here, so we use axiosClient
-          const res = await courseService.getCourseDetails(itemId); // Fake it to see if it fails? No.
           // Wait, we need to import axiosClient!
           const { default: axiosClient } = await import("../../../api/axiosAPI");
           const plansRes = await axiosClient.get("/subscriptions/plans");
