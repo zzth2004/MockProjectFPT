@@ -4,7 +4,13 @@ const gamificationService = {
   // 🏆 Lấy Bảng Xếp Hạng (Top Users)
   getLeaderboard: async (limit = 10) => {
     return axiosClient.get("/gamification/leaderboard", { params: { limit } })
-      .then(res => res.data.data);
+      .then(res => res.data.data || res.data);
+  },
+
+  // 📈 Lấy thống kê của tôi (tổng điểm, streak, level)
+  getMyStats: async () => {
+    return axiosClient.get("/gamification/stats/me")
+      .then(res => res.data.data || res.data);
   },
 
   // 🏅 Xem tất cả huy hiệu trong hệ thống

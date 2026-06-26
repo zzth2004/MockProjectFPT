@@ -1,6 +1,6 @@
 import React, { useState, useCallback, useMemo, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { ChevronLeft, ChevronRight, Star, RotateCw, BookOpen, BrainCircuit, Loader2, Volume2 } from "lucide-react";
+import { ArrowLeft, ChevronRight, Star, RotateCw, BookOpen, BrainCircuit, Loader2, Volume2 } from "lucide-react";
 import useCallApiHandler from "../../../../hooks/HookHander/useCallApiHandler";
 import vocabService from "../../../../AdminControl/Service/API/lessonServiceAPI/vocab.service";
 import AiService from "../../../../AdminControl/Service/API/aiAPI/ai.service";
@@ -221,11 +221,11 @@ const StudyVocab = () => {
     return (
       <div className="w-full min-h-screen bg-[#F5F7FA] font-sans p-6 animate-in fade-in duration-500">
         <button onClick={() => setIsFinished(false)} className="flex items-center gap-2 text-gray-600 font-bold hover:text-gray-900 mb-6">
-          <ChevronLeft size={24} /> Trở về bài học
+          <ArrowLeft size={20} /> Trở về bài học
         </button>
         <div className="flex flex-col items-center">
           <h1 className="text-2xl font-bold text-gray-800 mb-8 w-full max-w-3xl text-center">Hoàn thành bài học!</h1>
-          <div className="relative w-full max-w-3xl bg-white rounded-[2rem] shadow-sm border border-gray-100 p-10 min-h-[400px] flex flex-col justify-center overflow-hidden">
+          <div className="relative w-full max-w-3xl bg-white rounded-2xl border border-gray-200 p-10 min-h-[400px] flex flex-col justify-center overflow-hidden">
             <div className="flex flex-col items-start gap-6 relative z-10">
               <h2 className="text-3xl font-black text-[#518f53]">CHÚC MỪNG! 🔥</h2>
               <p className="text-gray-600 font-medium -mt-2">Bạn đã học xong {totalCards} từ vựng mới.</p>
@@ -239,7 +239,7 @@ const StudyVocab = () => {
                     <>
                       <button
                         onClick={() => handleStartAiQuiz(1)}
-                        className="flex-1 bg-[#2D5A3C] text-white font-bold px-6 rounded-2xl shadow-lg flex items-center justify-center gap-2 hover:bg-[#234730] transition-all active:scale-95"
+                        className="flex-1 bg-[#2D5A3C] text-white font-bold px-6 py-4 rounded-xl flex items-center justify-center gap-2 hover:bg-[#234730] transition-all active:scale-95"
                       >
                         <BookOpen size={20} />
                         <span className="whitespace-nowrap">Học lại bộ cũ</span>
@@ -248,7 +248,7 @@ const StudyVocab = () => {
                       <button
                         onClick={() => handleStartAiQuiz(2)}
                         disabled={isAiLoading}
-                        className="flex-1 bg-white border-2 border-[#66A869] text-[#2D5A3C] font-bold py-4 px-6 rounded-2xl shadow-sm flex items-center justify-center gap-2 disabled:opacity-50 hover:bg-green-50 transition-all active:scale-95"
+                        className="flex-1 bg-white border-2 border-[#66A869] text-[#2D5A3C] font-bold py-4 px-6 rounded-xl flex items-center justify-center gap-2 disabled:opacity-50 hover:bg-green-50/50 transition-all active:scale-95"
                       >
                         {isAiLoading ? (
                           <Loader2 size={20} className="animate-spin" />
@@ -262,7 +262,7 @@ const StudyVocab = () => {
                     <button
                       onClick={() => handleStartAiQuiz(2)}
                       disabled={isAiLoading}
-                      className="w-full bg-[#377437] text-white font-bold py-4 px-8 rounded-2xl shadow-lg flex items-center justify-center gap-3 disabled:bg-gray-400 hover:bg-[#2D5A3C] transition-all"
+                      className="w-full bg-[#377437] text-white font-bold py-4 px-8 rounded-xl flex items-center justify-center gap-3 disabled:bg-gray-400 hover:bg-[#2D5A3C] transition-all"
                     >
                       {isAiLoading ? (
                         <><Loader2 className="animate-spin" size={24} /> Đang thiết kế đề...</>
@@ -298,7 +298,13 @@ const StudyVocab = () => {
       `}</style>
 
       <header className="flex items-center gap-3 mb-6">
-        <button onClick={() => navigate(`/courses/general-learning/${unitId}`)} className="p-2 rounded-full bg-white border border-gray-200"><ChevronLeft size={24} /></button>
+        <button
+          onClick={() => navigate(`/courses/learning/${lessonId}`)}
+          className="flex items-center justify-center w-9 h-9 rounded-xl bg-white border border-gray-200 text-gray-500 hover:text-gray-900 hover:border-gray-300 hover:shadow-sm active:scale-95 transition-all duration-150"
+          aria-label="Quay lại"
+        >
+          <ArrowLeft size={17} />
+        </button>
         <h1 className="text-xl font-bold text-gray-800">Flashcards</h1>
         <div className="ml-auto flex items-center gap-2 bg-gray-200/50 px-3 py-1 rounded-full text-[10px] font-bold text-gray-500">
           ⌨️ SPACE: FLIP • ARROWS: MOVE • V: LISTEN
@@ -319,7 +325,7 @@ const StudyVocab = () => {
         >
           <div key={currentIndex} className={`relative w-full h-full ${direction === 'next' ? 'animate-slide-next' : 'animate-slide-prev'}`}>
             <div
-              className="relative w-full h-full transition-all duration-700 shadow-2xl rounded-[2.5rem]"
+              className="relative w-full h-full transition-all duration-700 border border-gray-200 rounded-2xl bg-white"
               style={{ transformStyle: "preserve-3d", transform: isFlipped ? "rotateY(180deg)" : "rotateY(0deg)" }}
             >
               {/* Nút Star */}
@@ -337,13 +343,13 @@ const StudyVocab = () => {
               )}
 
               {/* MẶT TRƯỚC: TIẾNG HÀN */}
-              <div className="absolute inset-0 w-full h-full bg-[#f0f9f1] rounded-[2.5rem] border-2 border-[#66A869] flex flex-col items-center justify-center p-8" style={{ backfaceVisibility: "hidden" }}>
+              <div className="absolute inset-0 w-full h-full bg-[#f0f9f1] rounded-2xl border-2 border-[#66A869] flex flex-col items-center justify-center p-8" style={{ backfaceVisibility: "hidden" }}>
                 <h2 className="text-6xl font-black text-[#2D5A3C] text-center uppercase tracking-tight">{currentCard?.kr}</h2>
                 <p className="text-[10px] text-[#66A869] absolute bottom-8 font-black uppercase tracking-[0.2em] flex items-center gap-2">Nhấn hoặc Space để xem nghĩa <RotateCw size={12} /></p>
               </div>
 
               {/* MẶT SAU: TIẾNG VIỆT */}
-              <div className="absolute inset-0 w-full h-full bg-white rounded-[2.5rem] border border-gray-100 flex flex-col items-center justify-center p-8" style={{ backfaceVisibility: "hidden", transform: "rotateY(180deg)" }}>
+              <div className="absolute inset-0 w-full h-full bg-white rounded-2xl border border-gray-200/80 flex flex-col items-center justify-center p-8" style={{ backfaceVisibility: "hidden", transform: "rotateY(180deg)" }}>
                 <div className="text-[80px] mb-2">{currentCard?.image}</div>
                 <h2 className="text-4xl font-black text-gray-800 text-center uppercase tracking-tight">{currentCard?.vn}</h2>
               </div>

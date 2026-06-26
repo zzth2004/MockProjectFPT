@@ -15,15 +15,15 @@ const flashcardService = {
     },
 
     // Lấy tất cả bộ thẻ có quyền truy cập (Công khai hoặc của chính mình)
-    getAllAccessibleDecks: async (page = 1, limit = 10, keyword = "") => {
-        return axiosClient.get("/flashcards/search", {
-            params: { page, limit, keyword }
+    getAllAccessibleDecks: async (page = 1, limit = 10, search = "") => {
+        return axiosClient.get("/flashcards/deck/search", {
+            params: { page, limit, search }
         }).then(res => res.data.data);
     },
 
     // Lấy bộ thẻ của tôi
     getMyDecks: async () => {
-        return axiosClient.get("/flashcards/my-decks").then(res => res.data.data);
+        return axiosClient.get("/flashcards/deck/list/my").then(res => res.data.data);
     },
 
     getDeckDetail: async (id) => {
@@ -62,12 +62,25 @@ const flashcardService = {
 
     // Lấy danh sách thẻ đến hạn cần học hôm nay
     getDueCards: async (deckId) => {
-        return axiosClient.get(`/flashcards/deck/${deckId}/due`).then(res => res.data.data);
+        return axiosClient.get(`/flashcards/learning/deck/${deckId}/due`).then(res => res.data.data);
     },
 
     // Gửi kết quả đánh giá (Thuật toán Spaced Repetition)
     submitReview: async (cardId, qualityRating) => {
-        return axiosClient.post("/flashcards/review", { cardId, qualityRating }).then(res => res.data.data);
+        return axiosClient.post("/flashcards/learning/review/submit", {
+            cardId,
+            qualityRating
+        }).then(res => res.data.data);
+    },
+
+    // --- FAVORITE (STAR) MANAGEMENT ---
+    
+    toggleStar: async (cardId) => {
+        return axiosClient.post(`/flashcards/learning/card/${cardId}/star`).then(res => res.data.data);
+    },
+
+    getStarredFlashcards: async (deckId) => {
+        return axiosClient.get(`/flashcards/learning/deck/${deckId}/stars`).then(res => res.data.data);
     }
 };
 

@@ -6,94 +6,8 @@ import {
   Shuffle, X,
 } from "lucide-react";
 
-// ─── Mock Flashcard Decks (cùng data với FlashcardLibrary) ─────────────────────
-const MOCK_DECKS = [
-  {
-    id: 101,
-    title: "Từ vựng Bài 1: Chào hỏi",
-    folder: "Tiếng Hàn Sơ Cấp 1",
-    color: "linear-gradient(135deg, #3b82f6, #6366f1)",
-    colorLight: "rgba(59,130,246,0.08)",
-    terms: [
-      { id: 1, front: "안녕하세요", back: "Xin chào" },
-      { id: 2, front: "감사합니다", back: "Cảm ơn" },
-      { id: 3, front: "죄송합니다", back: "Xin lỗi" },
-      { id: 4, front: "사랑해요", back: "Tôi yêu bạn" },
-      { id: 5, front: "만나서 반갑습니다", back: "Rất vui được gặp bạn" },
-      { id: 6, front: "잘 지내세요?", back: "Bạn có khỏe không?" },
-      { id: 7, front: "이름이 뭐예요?", back: "Bạn tên là gì?" },
-      { id: 8, front: "어디서 왔어요?", back: "Bạn đến từ đâu?" },
-    ],
-  },
-  {
-    id: 102,
-    title: "Động từ bất quy tắc",
-    folder: "Tiếng Hàn Sơ Cấp 1",
-    color: "linear-gradient(135deg, #f97316, #ef4444)",
-    colorLight: "rgba(249,115,22,0.08)",
-    terms: [
-      { id: 1, front: "먹다", back: "Ăn" },
-      { id: 2, front: "마시다", back: "Uống" },
-      { id: 3, front: "가다", back: "Đi" },
-      { id: 4, front: "오다", back: "Đến" },
-      { id: 5, front: "보다", back: "Nhìn / Xem" },
-      { id: 6, front: "듣다", back: "Nghe" },
-      { id: 7, front: "읽다", back: "Đọc" },
-      { id: 8, front: "쓰다", back: "Viết" },
-    ],
-  },
-  {
-    id: 103,
-    title: "Tính từ chỉ cảm xúc",
-    folder: "Luyện thi Topik I",
-    color: "linear-gradient(135deg, #8b5cf6, #a78bfa)",
-    colorLight: "rgba(139,92,246,0.08)",
-    terms: [
-      { id: 1, front: "기쁘다", back: "Vui mừng" },
-      { id: 2, front: "슬프다", back: "Buồn" },
-      { id: 3, front: "화나다", back: "Tức giận" },
-      { id: 4, front: "무섭다", back: "Sợ hãi" },
-      { id: 5, front: "행복하다", back: "Hạnh phúc" },
-      { id: 6, front: "피곤하다", back: "Mệt mỏi" },
-      { id: 7, front: "배고프다", back: "Đói bụng" },
-      { id: 8, front: "졸리다", back: "Buồn ngủ" },
-    ],
-  },
-  {
-    id: 104,
-    title: "Số đếm & Thời gian",
-    folder: "Tiếng Hàn Sơ Cấp 1",
-    color: "linear-gradient(135deg, #10b981, #0d9488)",
-    colorLight: "rgba(16,185,129,0.08)",
-    terms: [
-      { id: 1, front: "하나", back: "Một (thuần Hàn)" },
-      { id: 2, front: "둘", back: "Hai (thuần Hàn)" },
-      { id: 3, front: "시간", back: "Giờ / Thời gian" },
-      { id: 4, front: "오늘", back: "Hôm nay" },
-      { id: 5, front: "내일", back: "Ngày mai" },
-      { id: 6, front: "어제", back: "Hôm qua" },
-      { id: 7, front: "지금", back: "Bây giờ" },
-      { id: 8, front: "아침", back: "Buổi sáng" },
-    ],
-  },
-  {
-    id: 105,
-    title: "Từ vựng TOPIK II",
-    folder: "Luyện thi Topik II",
-    color: "linear-gradient(135deg, #ec4899, #f43f5e)",
-    colorLight: "rgba(236,72,153,0.08)",
-    terms: [
-      { id: 1, front: "경제", back: "Kinh tế" },
-      { id: 2, front: "사회", back: "Xã hội" },
-      { id: 3, front: "문화", back: "Văn hóa" },
-      { id: 4, front: "환경", back: "Môi trường" },
-      { id: 5, front: "기술", back: "Kỹ thuật / Công nghệ" },
-      { id: 6, front: "교육", back: "Giáo dục" },
-      { id: 7, front: "의사소통", back: "Giao tiếp" },
-      { id: 8, front: "발전하다", back: "Phát triển" },
-    ],
-  },
-];
+import flashcardService from "../../../AdminControl/Service/API/lessonServiceAPI/flashcard.service";
+import { Loader2 } from "lucide-react";
 
 function shuffle(arr) {
   return [...arr].sort(() => Math.random() - 0.5);
@@ -104,9 +18,64 @@ function shuffle(arr) {
 // ══════════════════════════════════════════════════════════════════
 function DeckSelector({ game, onSelect, onBack }) {
   const [selected, setSelected] = useState(null);
+  const [decks, setDecks] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchDecks = async () => {
+      try {
+        setLoading(true);
+        // Lấy tất cả Flashcard Decks từ API
+        const searchRes = await flashcardService.getAllAccessibleDecks();
+        let basicDecks = searchRes?.items || searchRes || [];
+        if (!Array.isArray(basicDecks)) basicDecks = [];
+        
+        // Cần fetch detail từng deck để lấy mảng flashcards
+        const decksWithCards = await Promise.all(
+          basicDecks.slice(0, 10).map(async (deck) => {
+             try {
+               const detail = await flashcardService.getDeckDetail(deck.id);
+               return detail;
+             } catch (e) { return deck; }
+          })
+        );
+
+        // Map data từ Backend về format UI (MOCK_DECKS)
+        const mappedDecks = decksWithCards.map((deck) => ({
+          id: deck.id,
+          title: deck.title,
+          folder: deck.category || "Tất cả", // Sử dụng category làm folder nếu có
+          color: "linear-gradient(135deg, #3b82f6, #6366f1)", // Mặc định
+          colorLight: "rgba(59,130,246,0.08)",
+          // Lấy mảng Flashcards, mặc định terms cần front/back
+          terms: (deck.flashcards || []).map((card) => ({
+            id: card.id,
+            front: card.frontText,
+            back: card.backText,
+          })),
+        }));
+        
+        setDecks(mappedDecks.filter(d => d.terms.length > 0)); // Chỉ lấy bộ có thẻ
+      } catch (error) {
+        console.error("Lỗi lấy danh sách Flashcard Decks:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchDecks();
+  }, []);
 
   // Group decks by folder
-  const folders = [...new Set(MOCK_DECKS.map(d => d.folder))];
+  const folders = [...new Set(decks.map(d => d.folder))];
+
+  if (loading) {
+    return (
+      <div className="w-full py-20 flex flex-col items-center justify-center font-sans">
+        <Loader2 className="w-10 h-10 text-gray-400 animate-spin mb-4" />
+        <p className="text-gray-500 font-medium">Đang tải bộ từ vựng...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="w-full pb-8 font-sans">
@@ -138,7 +107,7 @@ function DeckSelector({ game, onSelect, onBack }) {
       {/* Deck list grouped by folder */}
       <div className="space-y-6">
         {folders.map(folder => {
-          const decksInFolder = MOCK_DECKS.filter(d => d.folder === folder);
+          const decksInFolder = decks.filter(d => d.folder === folder);
           return (
             <div key={folder}>
               <div className="flex items-center gap-2 mb-3 px-1">
@@ -152,13 +121,11 @@ function DeckSelector({ game, onSelect, onBack }) {
                     <button
                       key={deck.id}
                       onClick={() => setSelected(deck)}
-                      className="text-left rounded-2xl p-4 transition-all duration-200 flex items-center gap-4"
-                      style={{
-                        background: isSelected ? deck.colorLight : "white",
-                        border: isSelected ? `2px solid rgba(26,122,60,0.4)` : "1.5px solid rgba(0,0,0,0.07)",
-                        boxShadow: isSelected ? "0 4px 20px rgba(26,122,60,0.12)" : "0 2px 8px rgba(0,0,0,0.04)",
-                        transform: isSelected ? "scale(1.01)" : "scale(1)",
-                      }}
+                      className={`text-left rounded-2xl p-4 transition-all duration-200 flex items-center gap-4 border-2 ${
+                        isSelected 
+                          ? "bg-green-50/50 border-[#1a7a3c]" 
+                          : "bg-white border-gray-200 hover:border-gray-300"
+                      }`}
                     >
                       {/* Color strip */}
                       <div className="w-10 h-10 rounded-xl flex-shrink-0 flex items-center justify-center" style={{ background: deck.color }}>
@@ -188,13 +155,11 @@ function DeckSelector({ game, onSelect, onBack }) {
         <button
           onClick={() => selected && onSelect(selected)}
           disabled={!selected}
-          className="flex items-center gap-2 px-8 py-4 rounded-2xl font-bold text-white text-sm transition-all duration-200"
-          style={{
-            background: selected ? game.gradient : "#e5e7eb",
-            color: selected ? "white" : "#9ca3af",
-            boxShadow: selected ? `0 8px 24px ${game.glow}` : "none",
-            cursor: selected ? "pointer" : "not-allowed",
-          }}
+          className={`flex items-center gap-2 px-8 py-4 rounded-xl font-bold text-sm transition-all duration-200 ${
+            selected 
+              ? "bg-[#1a7a3c] text-white hover:bg-[#156230]" 
+              : "bg-gray-100 text-gray-400 cursor-not-allowed"
+          }`}
         >
           <Play size={16} fill="white" />
           Bắt đầu chơi với &ldquo;{selected?.title ?? "..."}&rdquo;
@@ -205,10 +170,10 @@ function DeckSelector({ game, onSelect, onBack }) {
 }
 
 // ══════════════════════════════════════════════════════════════════
-// GAME 1: FAST MATCH
+// GAME 1: FAST MATCH (Converted from Dart)
 // ══════════════════════════════════════════════════════════════════
 function FastMatchGame({ vocab, onComplete }) {
-  const vocabList = shuffle(vocab).slice(0, Math.min(9, vocab.length));
+  const [vocabList] = useState(() => shuffle(vocab).slice(0, Math.min(9, vocab.length)));
   const [currentIdx, setCurrentIdx] = useState(0);
   const [gridWords, setGridWords] = useState([]);
   const [selectedWrong, setSelectedWrong] = useState([]);
@@ -217,7 +182,9 @@ function FastMatchGame({ vocab, onComplete }) {
   const [score, setScore] = useState(0);
   const [mistakes, setMistakes] = useState(0);
   const [timeLeft, setTimeLeft] = useState(5);
+  const [potentialScore, setPotentialScore] = useState(10);
   const [isFinished, setIsFinished] = useState(false);
+  const [isTimeOut, setIsTimeOut] = useState(false);
   const timerRef = useRef(null);
 
   const current = vocabList[currentIdx];
@@ -235,25 +202,27 @@ function FastMatchGame({ vocab, onComplete }) {
     setShowCorrect(false);
     setIsAnswered(false);
     setTimeLeft(5);
-  }, [currentIdx]);
+    setPotentialScore(10);
+  }, [currentIdx, buildGrid]);
 
   useEffect(() => {
     if (isAnswered || isFinished || !current) return;
     timerRef.current = setInterval(() => {
       setTimeLeft(t => {
-        if (t <= 1) {
+        if (t <= 0.1) {
           clearInterval(timerRef.current);
-          setShowCorrect(true);
-          setIsAnswered(true);
-          setMistakes(m => m + 1);
-          setTimeout(() => goNext(), 1200);
+          // Hết giờ -> Bỏ qua câu này, tính 1 lỗi
+          setTimeout(() => {
+            setMistakes(m => m + 1);
+            goNext();
+          }, 0);
           return 0;
         }
-        return t - 1;
+        return t - 0.1; // Chạy mượt hơn (100ms) để giống AnimationController
       });
-    }, 1000);
+    }, 100);
     return () => clearInterval(timerRef.current);
-  }, [currentIdx, isAnswered, isFinished]);
+  }, [currentIdx, isAnswered, isFinished, current]);
 
   const goNext = () => {
     if (currentIdx < vocabList.length - 1) setCurrentIdx(i => i + 1);
@@ -262,63 +231,95 @@ function FastMatchGame({ vocab, onComplete }) {
 
   const handleSelect = (word) => {
     if (isAnswered) return;
-    clearInterval(timerRef.current);
     if (word === current.back) {
-      setScore(s => s + 10);
+      clearInterval(timerRef.current);
+      setScore(s => s + potentialScore);
       setShowCorrect(true);
       setIsAnswered(true);
       setTimeout(() => goNext(), 800);
     } else {
-      setSelectedWrong(prev => [...prev, word]);
-      setMistakes(m => m + 1);
+      if (!selectedWrong.includes(word)) {
+        setSelectedWrong(prev => [...prev, word]);
+        setMistakes(m => m + 1);
+        setPotentialScore(s => Math.max(0, s - 5));
+      }
     }
   };
 
   if (isFinished) {
-    return <ResultScreen score={score} correct={vocabList.length - mistakes} total={vocabList.length} onExit={onComplete} />;
+    // Không còn Sudden Death, tính số câu đúng = tổng số câu - số lỗi (mistakes)
+    // Nhưng wait, 1 câu có thể bấm sai nhiều lần -> mistakes có thể > vocabList.length
+    // Tính số câu đúng dựa trên điểm số (mỗi câu đúng = 10 điểm)
+    const correctCount = score / 10;
+    return <ResultScreen score={score} correct={correctCount} total={vocabList.length} isTimeOut={false} onExit={onComplete} />;
   }
 
-  const timerColor = timeLeft <= 2 ? "#ef4444" : timeLeft <= 3 ? "#f97316" : "#22c55e";
+  // Dart: _getCellColor
+  const getCellColor = (word) => {
+    if (showCorrect && word === current?.back) return "#4ade80"; // Colors.green.shade400
+    if (selectedWrong.includes(word)) return "#ef4444"; // Colors.red.shade500
+    return "#eff6ff"; // Colors.blue.shade50
+  };
+
+  const getTextColor = (word) => {
+    if ((showCorrect && word === current?.back) || selectedWrong.includes(word)) return "white";
+    return "#1f2937"; // black87
+  };
 
   return (
-    <div className="flex flex-col h-full gap-4">
-      <div className="flex items-center justify-between flex-shrink-0">
-        <span className="text-sm font-bold text-gray-500">{currentIdx + 1}/{vocabList.length}</span>
-        <div className="flex items-center gap-2 px-4 py-2 rounded-2xl font-black text-lg"
-          style={{ background: `${timerColor}15`, color: timerColor, border: `2px solid ${timerColor}30` }}>
-          <Clock size={16} /> {timeLeft}s
+    <div className="flex flex-col h-full bg-white relative">
+      {/* LinearProgressIndicator */}
+      <div className="w-full h-2.5 bg-gray-200 rounded-t-xl overflow-hidden flex-shrink-0 absolute top-0 left-0">
+        <div 
+          className="h-full transition-all duration-100 linear"
+          style={{ 
+            width: `${(timeLeft / 5) * 100}%`,
+            background: isAnswered ? "#9ca3af" : "#69f0ae", // Colors.grey : Colors.greenAccent
+          }} 
+        />
+      </div>
+
+      {/* Header Info: Question Counter */}
+      <div className="flex justify-between items-center px-4 pt-6 pb-2 mt-2 border-b border-gray-50 flex-shrink-0">
+        <span className="text-sm font-bold text-gray-500">
+          Câu hỏi {currentIdx + 1} / {vocabList.length}
+        </span>
+        <span className="text-sm font-bold text-blue-500">
+          Điểm: {score}
+        </span>
+      </div>
+
+      {/* Question Text */}
+      <div className="flex-shrink-0 py-8 px-4 flex items-center justify-center">
+        <h2 className="text-3xl font-bold text-center" style={{ color: "#448aff" /* Colors.blueAccent */ }}>
+          {current?.front}
+        </h2>
+      </div>
+
+      {/* GridView */}
+      <div className="flex-1 px-5 pb-5">
+        <div className="grid grid-cols-3 gap-3 h-full">
+          {gridWords.map((word, i) => {
+            const isWrong = selectedWrong.includes(word);
+            return (
+              <button 
+                key={i} 
+                onClick={() => handleSelect(word)} 
+                disabled={isAnswered || showCorrect || isWrong}
+                className="rounded-2xl transition-all duration-300 flex items-center justify-center p-3 text-center"
+                style={{
+                  background: getCellColor(word),
+                  color: getTextColor(word),
+                  boxShadow: "0 2px 4px rgba(0,0,0,0.05)",
+                  fontWeight: "bold",
+                  fontSize: word.length > 6 ? "14px" : "16px",
+                  lineHeight: "1.2"
+                }}>
+                {word}
+              </button>
+            );
+          })}
         </div>
-        <div className="flex items-center gap-1 px-3 py-1 rounded-full text-xs font-black"
-          style={{ background: "rgba(34,197,94,0.1)", color: "#16a34a" }}>
-          <Star size={12} fill="#16a34a" /> {score}
-        </div>
-      </div>
-      <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden flex-shrink-0">
-        <div className="h-full rounded-full transition-all duration-500"
-          style={{ width: `${((currentIdx) / vocabList.length) * 100}%`, background: "linear-gradient(90deg,#1a7a3c,#4ade80)" }} />
-      </div>
-      <div className="flex-shrink-0 py-5 text-center bg-white rounded-2xl border border-gray-100 shadow-sm">
-        <p className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-2">Nghĩa của từ này là?</p>
-        <p className="text-4xl font-extrabold text-blue-600">{current?.front}</p>
-      </div>
-      <div className="flex-1 grid grid-cols-3 gap-3" style={{ minHeight: 0 }}>
-        {gridWords.map((word, i) => {
-          const isWrong = selectedWrong.includes(word);
-          const isCorrectShow = showCorrect && word === current?.back;
-          return (
-            <button key={i} onClick={() => handleSelect(word)} disabled={isAnswered || isWrong}
-              className="rounded-2xl font-bold text-sm transition-all duration-300 flex items-center justify-center p-3 text-center"
-              style={{
-                background: isCorrectShow ? "linear-gradient(135deg,#22c55e,#16a34a)" : isWrong ? "linear-gradient(135deg,#ef4444,#dc2626)" : "white",
-                color: isCorrectShow || isWrong ? "white" : "#374151",
-                border: isCorrectShow ? "2px solid #86efac" : isWrong ? "2px solid #fca5a5" : "2px solid #e5e7eb",
-                boxShadow: isCorrectShow ? "0 8px 24px rgba(34,197,94,0.4)" : isWrong ? "0 4px 12px rgba(239,68,68,0.2)" : "0 2px 8px rgba(0,0,0,0.04)",
-                transform: isCorrectShow ? "scale(1.04)" : "scale(1)",
-              }}>
-              {word}
-            </button>
-          );
-        })}
       </div>
     </div>
   );
@@ -504,8 +505,12 @@ const GRID_SIZE = 8;
 const KR_LETTERS = "가나다라마바사아자차카타파하겨녀더러머버서어저처커터퍼허".split("");
 
 function generateGrid(words) {
+  // Lấy các chữ cái thực tế từ từ vựng để làm nền cho grid hợp lí hơn
+  const charsInWords = words.join("").split("");
+  const fallbackLetters = charsInWords.length > 0 ? [...new Set(charsInWords)] : KR_LETTERS;
+  
   const grid = Array.from({ length: GRID_SIZE }, () =>
-    Array.from({ length: GRID_SIZE }, () => KR_LETTERS[Math.floor(Math.random() * KR_LETTERS.length)])
+    Array.from({ length: GRID_SIZE }, () => fallbackLetters[Math.floor(Math.random() * fallbackLetters.length)])
   );
   const placements = [];
   const directions = [[0, 1], [1, 0]];
@@ -626,23 +631,26 @@ function WordSearchGame({ vocab, onComplete }) {
 // ══════════════════════════════════════════════════════════════════
 // RESULT SCREEN
 // ══════════════════════════════════════════════════════════════════
-function ResultScreen({ score, correct, total, onExit }) {
+function ResultScreen({ score, correct, total, isTimeOut, onExit }) {
   const pct = Math.round((correct / total) * 100);
-  const emoji = pct === 100 ? "🏆" : pct >= 70 ? "🎉" : pct >= 40 ? "💪" : "😅";
+  const emoji = isTimeOut ? "⏰" : pct === 100 ? "🏆" : pct >= 70 ? "🎉" : pct >= 40 ? "💪" : "😅";
   return (
     <div className="h-full flex flex-col items-center justify-center text-center gap-5 py-6">
-      <div className="w-20 h-20 rounded-3xl flex items-center justify-center"
-        style={{ background: "linear-gradient(135deg,#1a7a3c,#22c55e)", boxShadow: "0 16px 48px rgba(26,122,60,0.35)" }}>
-        <Trophy size={40} className="text-white" />
+      <div className={`w-20 h-20 rounded-2xl flex items-center justify-center border-2 ${
+        isTimeOut ? "bg-red-50 border-red-200 text-red-600" : "bg-green-50 border-green-200 text-green-700"
+      }`}>
+        <Trophy size={40} />
       </div>
       <div>
-        <h2 className="text-2xl font-extrabold text-gray-900 mb-1">Hoàn thành! {emoji}</h2>
+        <h2 className="text-2xl font-extrabold text-gray-900 mb-1">
+          {isTimeOut ? "Hết giờ!" : "Hoàn thành!"} {emoji}
+        </h2>
         <p className="text-gray-500 font-medium">{correct}/{total} câu đúng — {pct}%</p>
       </div>
-      <div className="text-4xl font-extrabold" style={{ color: "#1a7a3c" }}>{score} điểm</div>
+      <div className="text-4xl font-extrabold text-[#1a7a3c]">{score} điểm</div>
       <button onClick={onExit}
-        className="flex items-center gap-2 px-8 py-3 rounded-2xl font-bold text-white text-sm transition-all"
-        style={{ background: "linear-gradient(135deg,#1a7a3c,#22c55e)", boxShadow: "0 8px 24px rgba(26,122,60,0.3)" }}>
+        className="flex items-center gap-2 px-8 py-3 rounded-xl font-bold text-white text-sm transition-all bg-[#1a7a3c] hover:bg-[#156230]"
+      >
         <ArrowLeft size={16} /> Chơi game khác
       </button>
     </div>
@@ -711,7 +719,7 @@ export default function GamesPage() {
           </span>
         </div>
         {/* Game canvas */}
-        <div className="flex-1 bg-white rounded-3xl p-5 shadow-sm border border-gray-100 overflow-hidden" style={{ minHeight: 0 }}>
+        <div className="flex-1 bg-white rounded-2xl p-5 border border-gray-200 overflow-hidden" style={{ minHeight: 0 }}>
           <GameComponent key={gameKey} vocab={vocabForGame} onComplete={handleExitGame} />
         </div>
       </div>
@@ -743,15 +751,13 @@ export default function GamesPage() {
           const Icon = game.icon;
           return (
             <div key={game.id} onClick={() => handlePickGame(game)}
-              className="group relative rounded-3xl overflow-hidden cursor-pointer transition-all duration-300"
-              style={{ background: "white", border: "1px solid rgba(0,0,0,0.07)", boxShadow: "0 4px 20px rgba(0,0,0,0.05)" }}
-              onMouseEnter={(e) => { e.currentTarget.style.transform = "translateY(-4px)"; e.currentTarget.style.boxShadow = `0 20px 48px ${game.glow}, 0 4px 12px rgba(0,0,0,0.07)`; }}
-              onMouseLeave={(e) => { e.currentTarget.style.transform = ""; e.currentTarget.style.boxShadow = "0 4px 20px rgba(0,0,0,0.05)"; }}>
-              <div className="h-1 w-full" style={{ background: game.gradient }} />
+              className="group relative rounded-2xl overflow-hidden cursor-pointer transition-all duration-300 bg-white border border-gray-200 hover:border-[#1a7a3c]/40 hover:bg-green-50/5"
+            >
+              <div className="h-1.5 w-full bg-[#1a7a3c]/80" />
               <div className="p-6">
                 <div className="flex items-start justify-between mb-4">
-                  <div className="w-14 h-14 rounded-2xl flex items-center justify-center" style={{ background: game.bg }}>
-                    <Icon size={28} style={{ color: game.color }} />
+                  <div className="w-14 h-14 rounded-xl flex items-center justify-center bg-gray-50 border border-gray-100">
+                    <Icon size={28} className="text-gray-700" />
                   </div>
                   <span className="text-[10px] font-black px-2.5 py-1 rounded-full"
                     style={{ background: game.diffColor + "15", color: game.diffColor, border: `1px solid ${game.diffColor}25` }}>
@@ -763,10 +769,9 @@ export default function GamesPage() {
                 {/* Deck count hint */}
                 <div className="flex items-center gap-2 mb-4 text-xs font-medium text-gray-400">
                   <Layers size={13} />
-                  <span>{MOCK_DECKS.length} bộ từ vựng có thể chọn</span>
+                  <span>Sử dụng các bộ flashcard của bạn</span>
                 </div>
-                <button className="w-full py-3 rounded-2xl text-sm font-bold text-white flex items-center justify-center gap-2 transition-all"
-                  style={{ background: game.gradient, boxShadow: `0 4px 16px ${game.glow}` }}>
+                <button className="w-full py-3 rounded-xl text-sm font-bold text-white flex items-center justify-center gap-2 transition-all bg-[#1a7a3c] hover:bg-[#156230]">
                   <Play size={16} fill="white" /> Chọn bộ từ & chơi
                 </button>
               </div>

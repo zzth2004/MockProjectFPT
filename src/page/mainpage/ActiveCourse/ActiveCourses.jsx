@@ -181,12 +181,13 @@ export default function ActiveCourses() {
         return Array.isArray(res) ? res : [];
     }, [coursesResponse]);
 
-    // Logic lọc (Search & Filter Level)
+    // Logic lọc (Search & Filter Level & Paid Courses Only)
     const filteredData = useMemo(() => {
         return rawData.filter(c => {
             const matchSearch = !searchTerm || c.title?.toLowerCase().includes(searchTerm.toLowerCase());
             const matchLevel = !filters.level || c.level === filters.level;
-            return matchSearch && matchLevel;
+            const isFree = !c.price || Number(c.price) === 0 || Number(c.salePrice) === 0;
+            return matchSearch && matchLevel && !isFree;
         });
     }, [rawData, searchTerm, filters]);
 

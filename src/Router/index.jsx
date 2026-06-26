@@ -36,6 +36,7 @@ import StudyPage from "../page/mainpage/Courses/MyCourse/StudyPage.jsx";
 import StudyVocab from "../page/mainpage/Courses/MyCourse/StudyVocab.jsx";
 import QuizzPlaypage from "../page/mainpage/Quizzes/QuizzPlayPage.jsx";
 import ExamTakePage from "../page/mainpage/Quizzes/ExamTakePage.jsx";
+import ExamLandingPage from "../page/mainpage/Quizzes/ExamLandingPage.jsx";
 import GeneralLearning from "../page/mainpage/Courses/general-learning/general-learning.jsx";
 import LessonDetail from "../page/mainpage/Courses/MyCourse/LessonDetail.jsx";
 import HomeworkSubmission from "../page/mainpage/Courses/MyCourse/HomeworkSubmission.jsx";
@@ -187,7 +188,8 @@ function AnimatedRoutes() {
           <Route path="/user/chats/:id" element={<PageWrapper><ChatPage /></PageWrapper>} />
           <Route path="/user/games" element={<PageWrapper><GamesPage /></PageWrapper>} />
           <Route path="/user/leaderboard" element={<PageWrapper><LeaderboardPage /></PageWrapper>} />
-          <Route path="/user/quiz" element={<PageWrapper><QuizRoomPage /></PageWrapper>} />
+          <Route path="/user/quiz" element={<Navigate to="/user/game-room/play" replace />} />
+          <Route path="/user/exams" element={<PageWrapper><ExamLandingPage /></PageWrapper>} />
           <Route path="/topik-learn" element={<PageWrapper><TopikPrepPage /></PageWrapper>} />
         </Route>
 

@@ -28,7 +28,7 @@ export default function MainLayout2() {
   return (
     <div
       className="flex h-screen w-full overflow-hidden font-sans"
-      style={{ background: "var(--surface-app)" }}
+      style={{ background: "var(--surface-app)", fontFamily: "'Plus Jakarta Sans', 'DM Sans', ui-sans-serif, system-ui, sans-serif" }}
     >
       {/* ── DESKTOP SIDEBAR ── */}
       <div className="hidden lg:flex h-full flex-shrink-0" style={{ zIndex: 30 }}>
@@ -94,7 +94,7 @@ export default function MainLayout2() {
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: loading ? 0 : 1, y: loading ? 8 : 0 }}
             transition={{ duration: 0.3 }}
-            className={isAiPage ? "h-full flex flex-col" : "mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8 min-h-full"}
+            className={isAiPage ? "h-full flex flex-col" : "mx-auto max-w-7xl  min-h-full"}
           >
             <Outlet />
             {!isAiPage && <Footer />}

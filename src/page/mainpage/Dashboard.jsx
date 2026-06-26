@@ -6,6 +6,7 @@ import {
 } from "lucide-react";
 import { Line } from "react-chartjs-2";
 import clientAxios from "../../api/axiosAPI";
+import gamificationService from "../../AdminControl/Service/API/gamificationAPI/gamification.service";
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -41,10 +42,26 @@ const Dashboard = () => {
 
   const [skillStats, setSkillStats] = useState([]); // Khởi tạo là mảng []
   const [streak, setStreak] = useState(0);
+  const [dbStreak, setDbStreak] = useState(0); // Lấy từ BE
   // Dữ liệu thô đã lọc từ Google
   const [studyEvents, setStudyEvents] = useState([]);
   const [maxStreak, setMaxStreak] = useState(0);
   const [isOnFire, setIsOnFire] = useState(false);
+
+  // Fetch Gamification Stats
+  useEffect(() => {
+    const fetchGamification = async () => {
+      try {
+        const stats = await gamificationService.getMyStats();
+        if (stats) {
+           setDbStreak(stats.currentStreak || 0);
+        }
+      } catch (err) {
+        console.error("Lỗi lấy Gamification Stats:", err);
+      }
+    };
+    fetchGamification();
+  }, []);
 
 
   // --- TÍNH PHÂN BỔ KỸ NĂNG ---
@@ -340,22 +357,18 @@ const Dashboard = () => {
     <div className="w-full min-h-screen font-sans flex flex-col gap-8 pb-10">
 
       {/* --- PHẦN 1: LỊCH HỌC GOOGLE (THAY THẾ PHẦN TRÊN BIỂU ĐỒ) --- */}
-      <div className="relative group overflow-hidden">
-        {/* Glow background hiệu ứng */}
-        <div className="absolute -inset-1 bg-gradient-to-r from-blue-100 to-green-100 rounded-[2.5rem] blur-2xl opacity-30"></div>
-
-        <div className="relative bg-white/40 backdrop-blur-2xl border border-white/60 shadow-[0_8px_32px_0_rgba(31,38,135,0.05)] p-8 rounded-[2.5rem]">
-          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+      <div className="relative bg-white rounded-2xl border border-gray-200/80 p-6 md:p-8">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
 
             {/* Cột trái: Thông tin kết nối */}
             <div className="flex flex-col gap-2">
               <div className="flex items-center gap-3">
                 <div className={`w-3 h-3 rounded-full ${isConnected ? 'bg-green-500 animate-pulse' : 'bg-red-400'}`}></div>
-                <h2 className="text-xl font-black text-gray-800 uppercase tracking-widest flex items-center gap-2">
-                  <CalendarIcon size={20} /> Lịch học thông minh
+                <h2 className="text-lg font-black text-gray-800 uppercase tracking-widest flex items-center gap-2">
+                  <CalendarIcon size={18} /> Lịch học thông minh
                 </h2>
               </div>
-              <p className="text-sm text-gray-500 font-medium">
+              <p className="text-xs text-gray-400 font-bold uppercase tracking-wider">
                 {isConnected ? "Tự động đồng bộ với Google Calendar của bạn" : "Kết nối để AI tự động sắp xếp lịch và tạo link Meet"}
               </p>
             </div>
@@ -364,19 +377,19 @@ const Dashboard = () => {
             {!isConnected ? (
               <button
                 onClick={handleConnectGoogle}
-                className="flex items-center gap-3 px-8 py-4 bg-white border border-gray-100 rounded-2xl font-black uppercase text-[11px] tracking-widest shadow-xl hover:bg-gray-50 transition-all active:scale-95"
+                className="flex items-center gap-2.5 px-6 py-3 bg-white border border-gray-200 rounded-xl font-bold uppercase text-[10px] tracking-widest hover:bg-gray-50 transition-all active:scale-95"
               >
-                <img src="https://www.gstatic.com/images/branding/product/1x/calendar_2020q4_48dp.png" className="w-5 h-5" alt="gg" />
+                <img src="https://www.gstatic.com/images/branding/product/1x/calendar_2020q4_48dp.png" className="w-4 h-4" alt="gg" />
                 Kết nối Google ngay
               </button>
             ) : (
-              <div className="flex items-center gap-4">
+              <div className="flex items-center gap-3">
                 <div className="text-right hidden sm:block">
                   <p className="text-[10px] font-black text-gray-400 uppercase leading-none mb-1">Trạng thái</p>
-                  <p className="text-xs font-black text-[#377437] uppercase">Đã đồng bộ</p>
+                  <p className="text-xs font-black text-[#1a7a3c] uppercase">Đã đồng bộ</p>
                 </div>
-                <div className="w-12 h-12 bg-green-50 rounded-2xl flex items-center justify-center text-[#377437]">
-                  <Sparkles size={20} />
+                <div className="w-10 h-10 bg-green-50 rounded-xl flex items-center justify-center text-[#1a7a3c] border border-green-200/50">
+                  <Sparkles size={16} />
                 </div>
               </div>
             )}
@@ -384,64 +397,62 @@ const Dashboard = () => {
 
           {/* Danh sách sự kiện (Dạng Row ngang) */}
           {isConnected && (
-            <div className="mt-8 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 animate-in fade-in slide-in-from-top-4 duration-700">
+            <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 animate-in fade-in slide-in-from-top-4 duration-700">
               {events.length > 0 ? events.slice(0, 4).map(event => (
-                <div key={event.id} className="bg-white/60 p-5 rounded-3xl border border-white shadow-sm hover:shadow-md transition-all group">
+                <div key={event.id} className="bg-gray-50 p-5 rounded-2xl border border-gray-200/60 transition-all hover:bg-gray-100/40 group">
                   <div className="flex justify-between items-start mb-3">
-                    <div className="p-2 bg-blue-50 text-blue-500 rounded-xl group-hover:bg-blue-500 group-hover:text-white transition-colors">
-                      <Clock size={16} />
+                    <div className="p-2 bg-blue-50 text-blue-500 rounded-lg group-hover:bg-blue-500 group-hover:text-white transition-colors">
+                      <Clock size={14} />
                     </div>
-                    <span className="text-[10px] font-black text-gray-300 uppercase italic">Upcoming</span>
+                    <span className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Sắp diễn ra</span>
                   </div>
                   <h4 className="text-sm font-black text-gray-800 line-clamp-1 mb-1">{event.summary}</h4>
-                  <p className="text-[11px] font-bold text-gray-400 uppercase mb-4">
+                  <p className="text-[10px] font-bold text-gray-400 uppercase mb-4">
                     {new Date(event.start).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} • {new Date(event.start).toLocaleDateString('vi-VN')}
                   </p>
                   {event.meetLink && (
-                    <a href={event.meetLink} target="_blank" rel="noreferrer" className="flex items-center justify-center gap-2 py-2.5 bg-[#377437] text-white rounded-xl text-[10px] font-black uppercase tracking-widest shadow-lg shadow-green-100">
+                    <a href={event.meetLink} target="_blank" rel="noreferrer" className="flex items-center justify-center gap-1.5 py-2 bg-[#1a7a3c] text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:opacity-95 transition-all">
                       <Video size={12} /> Vào lớp
                     </a>
                   )}
                 </div>
               )) : (
                 <div className="col-span-full py-10 flex flex-col items-center opacity-30">
-                  <AlertCircle size={40} />
+                  <AlertCircle size={36} />
                   <p className="text-xs font-black uppercase tracking-widest mt-2">Không có lịch học sắp tới</p>
                 </div>
               )}
             </div>
           )}
-        </div>
       </div>
 
       {/* --- PHẦN 2: BIỂU ĐỒ THỐNG KÊ --- */}
-      {/* CONTAINER TỔNG - Lưới 12 cột */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 w-full items-stretch">
 
-        {/* BÊN TRÁI: BIỂU ĐỒ LINE (CHIẾM 8 CỘT) */}
-        <div className="lg:col-span-8 bg-white p-8 rounded-[3rem] shadow-sm border border-gray-50 relative overflow-hidden flex flex-col transition-all duration-300 hover:shadow-md">
+        {/* BÊN TRÁI: BIỂU ĐỒ LINE */}
+        <div className="lg:col-span-8 bg-white p-6 md:p-8 rounded-2xl border border-gray-200/80 relative overflow-hidden flex flex-col transition-all">
           {loadingStats && (
             <div className="absolute inset-0 bg-white/50 backdrop-blur-[2px] z-10 flex items-center justify-center">
-              <Loader2 className="animate-spin text-[#377437]" size={32} />
+              <Loader2 className="animate-spin text-[#1a7a3c]" size={28} />
             </div>
           )}
 
-          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-10">
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-8">
             <div>
-              <h2 className="text-2xl font-black text-gray-800 tracking-tight uppercase flex items-center gap-2">
-                Thống kê học tập <div className="w-2 h-2 rounded-full bg-[#377437]" />
+              <h2 className="text-lg font-black text-gray-800 tracking-tight uppercase flex items-center gap-2">
+                Thống kê học tập <div className="w-1.5 h-1.5 rounded-full bg-[#1a7a3c]" />
               </h2>
-              <p className="text-sm text-gray-400 font-medium mt-1">Dữ liệu thời gian thực từ Google Calendar</p>
+              <p className="text-[11px] text-gray-400 font-bold uppercase tracking-wider mt-1">Dữ liệu thời gian thực từ Google Calendar</p>
             </div>
 
-            {/* BỘ CHỌN TYPE: TUẦN / THÁNG / NĂM */}
-            <div className="flex bg-gray-100 p-1.5 rounded-2xl border border-gray-200 shadow-inner">
+            {/* BỘ CHỌN TYPE */}
+            <div className="flex bg-gray-100 p-1 rounded-xl border border-gray-200/60 shadow-none">
               {["week", "month", "year"].map((type) => (
                 <button
                   key={type}
                   onClick={() => setViewType(type)}
-                  className={`px-6 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${viewType === type
-                      ? "bg-white text-[#377437] shadow-sm scale-105"
+                  className={`px-4 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all ${viewType === type
+                      ? "bg-white text-[#1a7a3c] border border-gray-200/30"
                       : "text-gray-400 hover:text-gray-600"
                     }`}
                 >
@@ -456,101 +467,99 @@ const Dashboard = () => {
           </div>
         </div>
 
-        {/* BÊN PHẢI: PHÂN BỔ KỸ NĂNG (CHIẾM 4 CỘT) */}
-        <div className="lg:col-span-4 bg-white p-8 rounded-[3rem] shadow-sm border border-gray-50 flex flex-col transition-all duration-300 hover:shadow-md">
-          <div className="mb-8">
-            <h3 className="text-xl font-black text-gray-800 uppercase tracking-tight">Kỹ năng</h3>
-            <p className="text-xs text-gray-400 font-medium mt-1 uppercase tracking-widest">Skill Distribution</p>
+        {/* BÊN PHẢI: PHÂN BỔ KỸ NĂNG */}
+        <div className="lg:col-span-4 bg-white p-6 md:p-8 rounded-2xl border border-gray-200/80 flex flex-col transition-all">
+          <div className="mb-6">
+            <h3 className="text-base font-black text-gray-800 uppercase tracking-tight">Kỹ năng</h3>
+            <p className="text-[10px] text-gray-400 font-bold mt-1 uppercase tracking-widest">Skill Distribution</p>
           </div>
 
           <div className="flex-1 flex items-center justify-center relative min-h-[280px]">
             <KLDonutChart data={skillStats} />
 
-            {/* TEXT Ở GIỮA BIỂU ĐỒ TRÒN */}
+            {/* TEXT TRÊN BIỂU ĐỒ TRÒN */}
             <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none -translate-y-4">
-              <span className="text-4xl font-black text-gray-800 tracking-tighter">
+              <span className="text-3xl font-black text-gray-800 tracking-tighter">
                 {studyEvents.length}
               </span>
-              <div className="h-[2px] w-4 bg-[#377437] my-1 rounded-full" />
-              <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Buổi học</span>
+              <div className="h-[1.5px] w-3 bg-[#1a7a3c] my-1 rounded-full" />
+              <span className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Buổi học</span>
             </div>
           </div>
 
-          {/* Footer nhỏ bên dưới biểu đồ kỹ năng nếu cần */}
-          <div className="mt-4 pt-4 border-t border-gray-50 flex justify-center">
-            <span className="text-[10px] font-bold text-gray-300 uppercase tracking-[0.2em]">Learning Analytics</span>
+          <div className="mt-4 pt-4 border-t border-gray-100 flex justify-center">
+            <span className="text-[9px] font-bold text-gray-300 uppercase tracking-[0.2em]">Learning Analytics</span>
           </div>
         </div>
 
       </div>
-      <div className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-gray-50 flex items-center gap-6">
-        <div className="w-16 h-16 bg-orange-50 rounded-2xl flex items-center justify-center text-orange-500 shadow-inner">
-          <Zap size={32} fill="currentColor" />
+
+      {/* STREAK */}
+      <div className="bg-white p-6 rounded-2xl border border-gray-200/80 flex items-center gap-5">
+        <div className="w-12 h-12 bg-orange-50 rounded-xl flex items-center justify-center text-orange-500 border border-orange-200/50">
+          <Zap size={24} fill="currentColor" />
         </div>
         <div>
-          <h3 className="text-gray-400 text-xs font-black uppercase tracking-widest">Learning Streak</h3>
-          <div className="flex items-baseline gap-2">
-            <span className="text-4xl font-black text-gray-800">{streak}</span>
-            <span className="text-sm font-bold text-gray-500 uppercase">Ngày liên tiếp</span>
+          <h3 className="text-gray-400 text-[10px] font-black uppercase tracking-widest">Learning Streak</h3>
+          <div className="flex items-baseline gap-1.5 mt-0.5">
+            <span className="text-2xl font-black text-gray-800">{dbStreak > 0 ? dbStreak : streak}</span>
+            <span className="text-xs font-bold text-gray-500 uppercase">Ngày liên tiếp</span>
           </div>
         </div>
-        {streak > 0 && (
+        {(dbStreak > 0 || streak > 0) && (
           <div className="ml-auto animate-bounce text-orange-500 font-black flex items-center gap-1">
-            🔥 <span className="text-xs">ON FIRE!</span>
+            🔥 <span className="text-[10px]">ON FIRE!</span>
           </div>
         )}
       </div>
 
       {/* --- PHẦN 3: WORD SETS --- */}
       <div>
-        <div className="flex justify-between items-center mb-6 px-2">
-          <h2 className="text-xl font-black text-gray-800 uppercase tracking-widest flex items-center gap-3">
-            <BookOpen size={20} className="text-blue-500" /> Bộ từ vựng
+        <div className="flex justify-between items-center mb-5 px-1">
+          <h2 className="text-base font-black text-gray-800 uppercase tracking-widest flex items-center gap-2">
+            <BookOpen size={18} className="text-blue-500" /> Bộ từ vựng
           </h2>
-          <div className="flex gap-2">
-            <button className="w-10 h-10 flex items-center justify-center bg-white rounded-full text-gray-400 hover:text-gray-800 shadow-sm transition"><ChevronLeft size={20} /></button>
-            <button className="w-10 h-10 flex items-center justify-center bg-white rounded-full text-gray-400 hover:text-gray-800 shadow-sm transition"><ChevronRight size={20} /></button>
+          <div className="flex gap-1.5">
+            <button className="w-8 h-8 flex items-center justify-center bg-white rounded-xl text-gray-400 hover:text-gray-800 border border-gray-200/80 transition"><ChevronLeft size={16} /></button>
+            <button className="w-8 h-8 flex items-center justify-center bg-white rounded-xl text-gray-400 hover:text-gray-800 border border-gray-200/80 transition"><ChevronRight size={16} /></button>
           </div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {/* Card Vocabulary */}
-          <div className="relative h-52 rounded-[2.5rem] overflow-hidden group cursor-pointer hover:shadow-2xl hover:shadow-pink-100 transition-all duration-500">
-            <div className="absolute inset-0 bg-gradient-to-br from-[#FF9A9E] to-[#FECFEF]"></div>
-            <button className="absolute top-6 right-6 bg-white/30 backdrop-blur-sm p-3 rounded-2xl hover:bg-white/50 transition">
-              <Heart className="w-5 h-5 text-white fill-white" />
+          <div className="relative h-52 rounded-2xl overflow-hidden group cursor-pointer border border-pink-200/60 bg-pink-50/30 transition-all duration-300 hover:bg-pink-50/50">
+            <button className="absolute top-6 right-6 bg-pink-100/50 p-2.5 rounded-xl hover:bg-pink-200/50 transition">
+              <Heart className="w-5 h-5 text-pink-600 fill-pink-600" />
             </button>
-            <div className="absolute inset-0 p-8 flex flex-col justify-end z-10">
-              <h3 className="text-white text-2xl font-black tracking-wide drop-shadow-md">Vocabulary</h3>
-              <p className="text-white/80 text-[10px] font-bold uppercase tracking-widest mt-1">3500 Words • 85% Mastered</p>
+            <div className="absolute inset-0 p-6 flex flex-col justify-end z-10">
+              <h3 className="text-gray-900 text-xl font-black tracking-tight">Vocabulary</h3>
+              <p className="text-gray-500 text-[10px] font-black uppercase tracking-widest mt-1">3500 Words • 85% Mastered</p>
             </div>
-            <img src={vocabImg} className="absolute bottom-6 right-6 w-28 h-28 object-contain group-hover:scale-110 group-hover:-rotate-6 transition-transform duration-500 rounded-3xl" alt="vocab" />
+            <img src={vocabImg} className="absolute bottom-6 right-6 w-24 h-24 object-contain group-hover:scale-105 transition-transform duration-300 rounded-2xl" alt="vocab" />
           </div>
 
           {/* Card Quizzet */}
-          <div className="relative h-52 rounded-[2.5rem] overflow-hidden group cursor-pointer hover:shadow-2xl hover:shadow-purple-100 transition-all duration-500">
-            <div className="absolute inset-0 bg-gradient-to-br from-[#C471ED] to-[#F64F59]"></div>
-            <button className="absolute top-6 right-6 bg-white/30 backdrop-blur-sm p-3 rounded-2xl hover:bg-white/50 transition">
-              <Heart className="w-5 h-5 text-white fill-white" />
+          <div className="relative h-52 rounded-2xl overflow-hidden group cursor-pointer border border-purple-200/60 bg-purple-50/30 transition-all duration-300 hover:bg-purple-50/50">
+            <button className="absolute top-6 right-6 bg-purple-100/50 p-2.5 rounded-xl hover:bg-purple-200/50 transition">
+              <Heart className="w-5 h-5 text-purple-600 fill-purple-600" />
             </button>
-            <div className="absolute inset-0 p-8 flex flex-col justify-end z-10">
-              <h3 className="text-white text-2xl font-black tracking-wide drop-shadow-md">Quizzet</h3>
-              <p className="text-white/80 text-[10px] font-bold uppercase tracking-widest mt-1">12 Topics • Daily Challenge</p>
+            <div className="absolute inset-0 p-6 flex flex-col justify-end z-10">
+              <h3 className="text-gray-900 text-xl font-black tracking-tight">Quizzet</h3>
+              <p className="text-gray-500 text-[10px] font-black uppercase tracking-widest mt-1">12 Topics • Daily Challenge</p>
             </div>
-            <img src={quizzImg} className="absolute bottom-4 right-4 w-32 h-32 object-contain group-hover:rotate-12 transition-transform duration-500 rounded-3xl" alt="quizz" />
+            <img src={quizzImg} className="absolute bottom-4 right-4 w-28 h-28 object-contain group-hover:scale-105 transition-transform duration-300 rounded-2xl" alt="quizz" />
           </div>
 
           {/* Card Test */}
-          <div className="relative h-52 rounded-[2.5rem] overflow-hidden group cursor-pointer hover:shadow-2xl hover:shadow-blue-100 transition-all duration-500">
-            <div className="absolute inset-0 bg-gradient-to-br from-[#4facfe] to-[#00f2fe]"></div>
-            <button className="absolute top-6 right-6 bg-white/30 backdrop-blur-sm p-3 rounded-2xl hover:bg-white/50 transition">
-              <Heart className="w-5 h-5 text-white fill-white" />
+          <div className="relative h-52 rounded-2xl overflow-hidden group cursor-pointer border border-blue-200/60 bg-blue-50/30 transition-all duration-300 hover:bg-blue-50/50">
+            <button className="absolute top-6 right-6 bg-blue-100/50 p-2.5 rounded-xl hover:bg-blue-200/50 transition">
+              <Heart className="w-5 h-5 text-blue-600 fill-blue-600" />
             </button>
-            <div className="absolute inset-0 p-8 flex flex-col justify-end z-10">
-              <h3 className="text-white text-2xl font-black tracking-wide drop-shadow-md">Final Test</h3>
-              <p className="text-white/80 text-[10px] font-bold uppercase tracking-widest mt-1">Level B1 • 45 Minutes</p>
+            <div className="absolute inset-0 p-6 flex flex-col justify-end z-10">
+              <h3 className="text-gray-900 text-xl font-black tracking-tight">Final Test</h3>
+              <p className="text-gray-500 text-[10px] font-black uppercase tracking-widest mt-1">Level B1 • 45 Minutes</p>
             </div>
-            <img src={testImg} className="absolute bottom-6 right-6 w-28 h-28 object-contain group-hover:-translate-y-3 transition-transform duration-500 rounded-3xl" alt="test" />
+            <img src={testImg} className="absolute bottom-6 right-6 w-24 h-24 object-contain group-hover:scale-105 transition-transform duration-300 rounded-2xl" alt="test" />
           </div>
         </div>
       </div>

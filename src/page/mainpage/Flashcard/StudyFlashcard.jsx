@@ -3,8 +3,9 @@ import { useParams, useNavigate } from "react-router-dom";
 import {
   ArrowLeft, Star, Volume2, RotateCcw,
   ChevronLeft, ChevronRight, CheckCircle2,
-  BookOpen, ArrowRight,
+  BookOpen, ArrowRight, Loader2, Frown, Smile, ThumbsUp
 } from "lucide-react";
+import flashcardService from "../../../AdminControl/Service/API/lessonServiceAPI/flashcard.service";
 
 // ─── Mock data ───
 const MOCK_FLASHCARDS = [
@@ -55,11 +56,31 @@ function ConfettiAnimation() {
   );
 }
 
+const getGlobalStarredCards = () => {
+  try {
+    const saved = localStorage.getItem("starred_flashcards_data");
+    return saved ? JSON.parse(saved) : [];
+  } catch (err) {
+    console.error("Lỗi đọc global starred cards:", err);
+    return [];
+  }
+};
+
+const saveGlobalStarredCards = (cards) => {
+  try {
+    localStorage.setItem("starred_flashcards_data", JSON.stringify(cards));
+  } catch (err) {
+    console.error("Lỗi lưu global starred cards:", err);
+  }
+};
+
 export default function StudyFlashcard() {
   const { setId } = useParams();
   const navigate = useNavigate();
 
-  const flashcards = MOCK_FLASHCARDS;
+  const [flashcards, setFlashcards] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isFlipped, setIsFlipped] = useState(false);
@@ -68,17 +89,87 @@ export default function StudyFlashcard() {
   const [showConfetti, setShowConfetti] = useState(false);
   const [isTransitioning, setIsTransitioning] = useState(false);
 
+  useEffect(() => {
+    fetchDueCards();
+  }, [setId]);
+
+  const fetchDueCards = async () => {
+    setIsLoading(true);
+    try {
+      let data = [];
+      if (setId === "starred") {
+        data = getGlobalStarredCards();
+      } else {
+        data = await flashcardService.getDueCards(setId);
+      }
+      setFlashcards(data || []);
+      if (!data || data.length === 0) {
+        setIsFinished(true);
+      }
+
+      // Fetch starred cards from LocalStorage (FE-only flow)
+      try {
+        if (setId === "starred") {
+          const ids = (data || []).map(c => c.id);
+          setStarredIds(new Set(ids));
+        } else {
+          const savedStarred = localStorage.getItem(`starred_flashcards_set_${setId}`);
+          if (savedStarred) {
+            const starredArr = JSON.parse(savedStarred);
+            if (Array.isArray(starredArr)) {
+              setStarredIds(new Set(starredArr));
+            }
+          } else {
+            setStarredIds(new Set());
+          }
+        }
+      } catch (err) {
+        console.error("Không thể tải danh sách thẻ đã gắn sao từ LocalStorage:", err);
+      }
+    } catch (err) {
+      console.error("Lỗi khi tải flashcard:", err);
+      setError("Không thể tải bộ thẻ. Vui lòng thử lại sau.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+
+
   const card = flashcards[currentIndex];
   const progress = ((currentIndex + 1) / flashcards.length) * 100;
   const isStarred = starredIds.has(card?.id);
 
-  // ── Toggle star ──
+  // ── Toggle star (FE-only flow) ──
   const toggleStar = (e) => {
     e.stopPropagation();
+    if (!card) return;
+
     setStarredIds((prev) => {
       const next = new Set(prev);
-      if (next.has(card.id)) next.delete(card.id);
-      else next.add(card.id);
+      const isCurrentlyStarred = next.has(card.id);
+
+      if (isCurrentlyStarred) {
+        next.delete(card.id);
+        const currentStarred = getGlobalStarredCards();
+        const updatedStarred = currentStarred.filter(c => c.id !== card.id);
+        saveGlobalStarredCards(updatedStarred);
+      } else {
+        next.add(card.id);
+        const currentStarred = getGlobalStarredCards();
+        if (!currentStarred.some(c => c.id === card.id)) {
+          currentStarred.push({ ...card, progress: card.progress || 0 });
+          saveGlobalStarredCards(currentStarred);
+        }
+      }
+
+      // Persist to LocalStorage for current deck
+      try {
+        localStorage.setItem(`starred_flashcards_set_${setId}`, JSON.stringify(Array.from(next)));
+      } catch (err) {
+        console.error("Không thể lưu trạng thái gắn sao vào LocalStorage:", err);
+      }
+
       return next;
     });
   };
@@ -89,10 +180,35 @@ export default function StudyFlashcard() {
     setIsFlipped((prev) => !prev);
   }, [isTransitioning]);
 
-  // ── Go to next card ──
-  const handleNext = useCallback(() => {
+
+  // ── Manual Navigation (Next / Prev) ──
+  const handleManualNext = useCallback(async () => {
     if (isTransitioning) return;
     setIsTransitioning(true);
+
+    if (card) {
+      if (setId === "starred") {
+        try {
+          const currentStarred = getGlobalStarredCards();
+          const updatedStarred = currentStarred.map((c) => {
+            if (c.id === card.id) {
+              return { ...c, progress: Math.min((c.progress || 0) + 25, 100) };
+            }
+            return c;
+          });
+          saveGlobalStarredCards(updatedStarred);
+        } catch (err) {
+          console.error("Lỗi cập nhật tiến độ local:", err);
+        }
+      } else {
+        try {
+          await flashcardService.submitReview(card.id, 4); // Default to 'Good'
+        } catch (err) {
+          console.error("Lỗi cập nhật tiến độ:", err);
+        }
+      }
+    }
+
     setTimeout(() => {
       setIsFlipped(false);
       setTimeout(() => {
@@ -106,19 +222,34 @@ export default function StudyFlashcard() {
         setIsTransitioning(false);
       }, 200);
     }, 150);
-  }, [currentIndex, flashcards.length, isTransitioning]);
+  }, [currentIndex, flashcards.length, isTransitioning, card, setId]);
+
+  const handleManualPrev = useCallback(() => {
+    if (isTransitioning || currentIndex === 0) return;
+    setIsTransitioning(true);
+    setTimeout(() => {
+      setIsFlipped(false);
+      setTimeout(() => {
+        setCurrentIndex((prev) => prev - 1);
+        setIsTransitioning(false);
+      }, 200);
+    }, 150);
+  }, [currentIndex, isTransitioning]);
 
   // ── Keyboard shortcuts ──
   useEffect(() => {
     const handler = (e) => {
-      if (e.code === "Space") { e.preventDefault(); handleFlip(); }
-      if (isFlipped && (e.key === "Enter" || e.key === "ArrowRight")) {
-        handleNext();
+      if (e.code === "Space" || e.key === "Enter") { e.preventDefault(); handleFlip(); }
+      if (e.key === "ArrowRight") {
+        handleManualNext();
+      }
+      if (e.key === "ArrowLeft") {
+        handleManualPrev();
       }
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-  }, [handleFlip, handleNext, isFlipped]);
+  }, [handleFlip, handleManualNext, handleManualPrev]);
 
   // ─────────────────────────────────────────────────────────────────
   // COMPLETION SCREEN
@@ -150,7 +281,7 @@ export default function StudyFlashcard() {
             Bạn đã hoàn thành bộ thẻ hôm nay
           </p>
           <p className="text-sm text-gray-400 mb-10">
-            {flashcards.length} thẻ · {starredIds.size} từ đã gắn ⭐
+            {flashcards.length === 0 ? "Tuyệt vời, bạn không còn thẻ nào cần ôn hôm nay!" : `${flashcards.length} thẻ · ${starredIds.size} từ đã gắn ⭐`}
           </p>
 
           {/* Starred summary */}
@@ -169,6 +300,7 @@ export default function StudyFlashcard() {
           <div className="flex flex-col sm:flex-row gap-3 w-full max-w-sm">
             <button
               onClick={() => {
+                fetchDueCards(); // Fetch again to see if any missed
                 setIsFinished(false);
                 setCurrentIndex(0);
                 setIsFlipped(false);
@@ -202,9 +334,27 @@ export default function StudyFlashcard() {
   // ─────────────────────────────────────────────────────────────────
   // MAIN STUDY SCREEN
   // ─────────────────────────────────────────────────────────────────
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center font-sans relative" style={{ background: "linear-gradient(180deg, #f8faff 0%, #f0f4f8 100%)" }}>
+        <Loader2 size={40} className="animate-spin text-[#1a7a3c] mb-4" />
+        <p className="font-bold text-gray-500 uppercase tracking-widest text-sm">Đang tải thẻ học...</p>
+      </div>
+    );
+  }
+
+  if (!card && !isFinished) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center font-sans relative" style={{ background: "linear-gradient(180deg, #f8faff 0%, #f0f4f8 100%)" }}>
+        <p className="font-bold text-gray-500 uppercase tracking-widest text-sm">Không tìm thấy thẻ học hợp lệ.</p>
+      </div>
+    );
+  }
+
   return (
     <div
-      className="min-h-screen flex flex-col font-sans overflow-hidden"
+      className="min-h-screen flex flex-col font-sans overflow-hidden relative"
       style={{ background: "linear-gradient(180deg, #f8faff 0%, #f0f4f8 100%)" }}
     >
       {/* ── TOP BAR ── */}
@@ -285,8 +435,8 @@ export default function StudyFlashcard() {
 
         {/* CARD */}
         <div
-          className="flashcard-scene w-full max-w-2xl mb-8"
-          style={{ height: "clamp(280px, 40vh, 360px)" }}
+          className="flashcard-scene w-full max-w-[360px] mb-8"
+          style={{ height: "clamp(460px, 65vh, 540px)" }}
         >
           <div
             className={`flashcard-inner ${isFlipped ? "is-flipped" : ""}`}
@@ -322,14 +472,14 @@ export default function StudyFlashcard() {
               {/* Korean word */}
               <div className="absolute inset-0 flex flex-col items-center justify-center px-8">
                 <p
-                  className="text-5xl sm:text-6xl font-extrabold text-gray-900 text-center leading-none mb-4 tracking-tight"
+                  className="text-3xl sm:text-4xl font-extrabold text-gray-900 text-center leading-none mb-3 tracking-tight"
                   style={{ letterSpacing: "-0.02em" }}
                 >
-                  {card.front}
+                  {card?.frontText || card?.front || ""}
                 </p>
-                {card.romanization && (
-                  <p className="text-base text-gray-400 font-medium italic">
-                    {card.romanization}
+                {card?.romanization && (
+                  <p className="text-sm text-gray-400 font-medium italic">
+                    {card?.romanization}
                   </p>
                 )}
               </div>
@@ -348,44 +498,57 @@ export default function StudyFlashcard() {
             {/* ── BACK FACE ── */}
             <div
               className="flashcard-face flashcard-face--back"
-              style={{
-                background: "linear-gradient(135deg, #0f5a2a 0%, #1a7a3c 50%, #16a34a 100%)",
-                boxShadow: "0 24px 64px rgba(26,122,60,0.35), 0 8px 24px rgba(0,0,0,0.15)",
-              }}
+              style={{ background: "white", boxShadow: "0 24px 64px rgba(0,0,0,0.1), 0 8px 24px rgba(0,0,0,0.07)" }}
             >
-              {/* Decorative blobs */}
-              <div className="absolute -top-12 -right-12 w-40 h-40 rounded-full opacity-20" style={{ background: "radial-gradient(circle, #4ade80, transparent)" }} />
-              <div className="absolute -bottom-8 -left-8 w-32 h-32 rounded-full opacity-15" style={{ background: "radial-gradient(circle, #86efac, transparent)" }} />
+              {/* Top accent */}
+              <div
+                className="absolute top-0 left-0 right-0 h-1"
+                style={{ background: "linear-gradient(90deg, transparent, #1a7a3c, #4ade80, #1a7a3c, transparent)" }}
+              />
+
+              {/* Star button */}
+              <button
+                onClick={toggleStar}
+                className={`absolute top-5 right-5 p-2 rounded-xl transition-all z-20 ${isStarred ? "star-pop" : ""}`}
+                style={{
+                  background: isStarred ? "rgba(245,158,11,0.12)" : "rgba(0,0,0,0.04)",
+                  color: isStarred ? "#f59e0b" : "#d1d5db",
+                }}
+                onMouseEnter={(e) => { if (!isStarred) { e.currentTarget.style.background = "rgba(245,158,11,0.08)"; e.currentTarget.style.color = "#f59e0b"; } }}
+                onMouseLeave={(e) => { if (!isStarred) { e.currentTarget.style.background = "rgba(0,0,0,0.04)"; e.currentTarget.style.color = "#d1d5db"; } }}
+              >
+                <Star size={18} fill={isStarred ? "#f59e0b" : "none"} />
+              </button>
 
               {/* Speaker button */}
               <button
                 onClick={(e) => e.stopPropagation()}
-                className="absolute top-5 right-5 p-2.5 rounded-xl transition-all z-20"
-                style={{ background: "rgba(255,255,255,0.12)", color: "white" }}
-                onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(255,255,255,0.2)"; }}
-                onMouseLeave={(e) => { e.currentTarget.style.background = "rgba(255,255,255,0.12)"; }}
+                className="absolute top-5 left-5 p-2.5 rounded-xl transition-all z-20"
+                style={{ background: "rgba(0,0,0,0.04)", color: "#9ca3af" }}
+                onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(0,0,0,0.08)"; e.currentTarget.style.color = "#4b5563"; }}
+                onMouseLeave={(e) => { e.currentTarget.style.background = "rgba(0,0,0,0.04)"; e.currentTarget.style.color = "#9ca3af"; }}
               >
                 <Volume2 size={18} />
               </button>
 
               {/* Meaning */}
               <div className="absolute inset-0 flex flex-col items-center justify-center px-8 gap-4 z-10">
-                <p className="text-4xl sm:text-5xl font-extrabold text-white text-center leading-none drop-shadow-lg">
-                  {card.back}
+                <p className="text-2xl sm:text-3xl font-extrabold text-gray-900 text-center leading-none tracking-tight">
+                  {card?.backText || card?.back || ""}
                 </p>
 
                 {/* Example sentence */}
-                {card.example && (
+                {card?.example && (
                   <div
-                    className="mt-2 px-5 py-3.5 rounded-2xl max-w-[90%] text-center"
-                    style={{ background: "rgba(255,255,255,0.1)", border: "1px solid rgba(255,255,255,0.12)" }}
+                    className="mt-4 px-4 py-3 rounded-2xl max-w-[90%] text-center"
+                    style={{ background: "rgba(0,0,0,0.03)", border: "1px solid rgba(0,0,0,0.05)" }}
                   >
-                    <p className="text-sm font-medium text-white/80 italic mb-1">
-                      "{card.example}"
+                    <p className="text-xs sm:text-sm font-medium text-gray-700 italic mb-1">
+                      "{card?.example}"
                     </p>
-                    {card.exampleTrans && (
-                      <p className="text-xs text-white/50 font-medium">
-                        {card.exampleTrans}
+                    {card?.exampleTrans && (
+                      <p className="text-[11px] sm:text-xs text-gray-400 font-medium">
+                        {card?.exampleTrans}
                       </p>
                     )}
                   </div>
@@ -396,69 +559,28 @@ export default function StudyFlashcard() {
           </div>
         </div>
 
-        {/* ── NEXT BUTTON (appear after flip) ── */}
-        {isFlipped && !isTransitioning ? (
-          <div className="w-full max-w-2xl flex flex-col items-center gap-3">
-            <button
-              onClick={handleNext}
-              className="flex items-center gap-3 px-10 py-3.5 rounded-2xl font-bold text-white text-sm transition-all"
-              style={{
-                background: "linear-gradient(135deg, #1a7a3c, #22c55e)",
-                boxShadow: "0 8px 24px rgba(26,122,60,0.3)",
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.transform = "translateY(-2px)";
-                e.currentTarget.style.boxShadow = "0 12px 32px rgba(26,122,60,0.4)";
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.transform = "";
-                e.currentTarget.style.boxShadow = "0 8px 24px rgba(26,122,60,0.3)";
-              }}
-            >
-              {currentIndex < flashcards.length - 1 ? (
-                <>Tiếp theo <ArrowRight size={16} /></>
-              ) : (
-                <>Hoàn thành <CheckCircle2 size={16} /></>
-              )}
-            </button>
-            <p className="text-[10px] text-gray-300 font-bold uppercase tracking-widest">
-              Hoặc nhấn <kbd className="bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded font-mono text-[9px]">Enter</kbd>
-            </p>
-          </div>
-        ) : (
-          /* Flip button when card not yet flipped */
-          !isTransitioning && (
-            <div className="flex flex-col items-center gap-3">
-              <button
-                onClick={handleFlip}
-                className="flex items-center gap-3 px-8 py-3.5 rounded-2xl font-bold text-gray-600 transition-all text-sm"
-                style={{
-                  background: "white",
-                  border: "2px solid rgba(0,0,0,0.1)",
-                  boxShadow: "0 4px 12px rgba(0,0,0,0.06)",
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.borderColor = "rgba(26,122,60,0.3)";
-                  e.currentTarget.style.color = "#1a7a3c";
-                  e.currentTarget.style.transform = "translateY(-1px)";
-                  e.currentTarget.style.boxShadow = "0 8px 24px rgba(26,122,60,0.12)";
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.borderColor = "rgba(0,0,0,0.1)";
-                  e.currentTarget.style.color = "#4b5563";
-                  e.currentTarget.style.transform = "";
-                  e.currentTarget.style.boxShadow = "0 4px 12px rgba(0,0,0,0.06)";
-                }}
-              >
-                <RotateCcw size={18} />
-                Xem đáp án
-              </button>
-              <p className="text-[10px] text-gray-300 font-bold uppercase tracking-widest">
-                Hoặc nhấn <kbd className="bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded font-mono text-[9px]">Space</kbd>
-              </p>
-            </div>
-          )
-        )}
+
+
+        {/* ── MANUAL NAVIGATION BAR ── */}
+        <div className="w-full max-w-[360px] flex justify-between items-center mt-6 gap-4 px-2">
+          <button
+            onClick={handleManualPrev}
+            disabled={currentIndex === 0 || isTransitioning}
+            className="flex items-center gap-2 px-5 py-3 rounded-xl font-bold text-gray-500 bg-white border border-gray-200 hover:bg-gray-50 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <ChevronLeft size={18} />
+            Trước
+          </button>
+
+          <button
+            onClick={handleManualNext}
+            disabled={isTransitioning}
+            className="flex items-center gap-2 px-5 py-3 rounded-xl font-bold text-gray-500 bg-white border border-gray-200 hover:bg-gray-50 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {currentIndex < flashcards.length - 1 ? "Tiếp" : "Hoàn thành"}
+            <ChevronRight size={18} />
+          </button>
+        </div>
 
       </div>
     </div>

@@ -2,75 +2,39 @@ import React, { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { 
   ChevronLeft, CreditCard, QrCode, Wallet, Loader2, 
-  AlertCircle, PartyPopper, Play, CheckCircle2, Copy 
+  AlertCircle, PartyPopper, CheckCircle2, ShieldCheck, 
+  Building2, Hash, Image as ImageIcon
 } from "lucide-react";
 import courseService from "../../../AdminControl/Service/API/courseServiceAPI/course.service";
-import subscriptionService from "../../../AdminControl/Service/API/subscriptonAPI/subscription.service";
+import userEnrollmentService from "../../../AdminControl/Service/API/courseServiceAPI/user-enrollment.service";
 import orderService from "../../../AdminControl/Service/API/orderAPI/order.service";
 import { useAuth } from "../../../context/authContext";
 
-// --- SUB-COMPONENT: THÔNG BÁO THÀNH CÔNG KHÓA HỌC ---
-const CourseSuccessOverlay = ({ courseTitle, onNavigate }) => {
+// --- SUB-COMPONENT: THÔNG BÁO THÀNH CÔNG ---
+const SuccessOverlay = ({ courseTitle, className, onNavigate }) => {
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-white/90 backdrop-blur-md animate-in fade-in duration-500">
-      <div className="max-w-md w-full bg-white rounded-[3rem] shadow-2xl p-10 border border-gray-100 text-center animate-in zoom-in-95 duration-500">
-        <div className="w-24 h-24 bg-green-100 text-[#377437] rounded-full flex items-center justify-center mx-auto mb-6">
-          <PartyPopper size={48} />
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm animate-in fade-in duration-500">
+      <div className="max-w-md w-full bg-white rounded-2xl p-10 border border-gray-205 text-center animate-in zoom-in-95 duration-500 relative overflow-hidden">
+        <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-emerald-400 to-teal-500"></div>
+        <div className="w-20 h-20 bg-emerald-50 text-emerald-500 rounded-full flex items-center justify-center mx-auto mb-6">
+          <PartyPopper size={40} />
         </div>
 
-        <h2 className="text-3xl font-black text-gray-900 mb-2 italic tracking-tighter uppercase">
-          Thành công!
+        <h2 className="text-2xl font-extrabold text-gray-900 mb-2 tracking-tight">
+          Waiting for Approval!
         </h2>
-        <p className="text-gray-500 font-medium mb-8 leading-relaxed">
-          Bạn đã thanh toán thành công và được ghi danh vào khóa học <br />
-          <span className="text-[#377437] font-bold">"{courseTitle}"</span> <br />
-          tại lớp <span className="font-black text-gray-800 uppercase italic tracking-widest">Tự động phân lớp</span>
+        <p className="text-gray-600 font-medium mb-8 leading-relaxed">
+          Order created successfully for <br />
+          <span className="text-emerald-600 font-bold">"{courseTitle}"</span> <br />
+          Please complete your payment and wait for admin approval.
         </p>
 
         <div className="space-y-3">
-          <button
-            onClick={() => onNavigate("/courses/mycourses")}
-            className="w-full py-5 bg-[#377437] text-white rounded-2xl font-black flex items-center justify-center gap-2 hover:bg-green-800 transition-all shadow-lg shadow-green-100 active:scale-95"
-          >
-            Bắt đầu học ngay <Play size={18} fill="currentColor" />
-          </button>
-
           <button
             onClick={() => onNavigate("/user/active-courses")}
-            className="w-full py-4 bg-gray-50 text-gray-400 rounded-2xl font-bold text-sm hover:text-gray-600 transition-all"
+            className="w-full py-4 bg-gray-900 text-white rounded-xl font-bold hover:bg-gray-800 transition-all active:scale-95"
           >
-            Về danh sách khóa học
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-// --- SUB-COMPONENT: THÔNG BÁO THÀNH CÔNG GÓI CƯỚC SUBSCRIPTION ---
-const SubscriptionSuccessOverlay = ({ planTitle, onNavigate }) => {
-  return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-white/90 backdrop-blur-md animate-in fade-in duration-500">
-      <div className="max-w-md w-full bg-white rounded-[3rem] shadow-2xl p-10 border border-gray-100 text-center animate-in zoom-in-95 duration-500">
-        <div className="w-24 h-24 bg-green-100 text-[#377437] rounded-full flex items-center justify-center mx-auto mb-6">
-          <CheckCircle2 size={48} />
-        </div>
-
-        <h2 className="text-3xl font-black text-gray-900 mb-2 italic tracking-tighter uppercase animate-bounce">
-          Nâng cấp VIP!
-        </h2>
-        <p className="text-gray-500 font-medium mb-8 leading-relaxed">
-          Tài khoản của bạn đã được kích hoạt VIP thành công với gói <br />
-          <span className="text-[#377437] font-bold">"{planTitle}"</span>. <br />
-          Bây giờ bạn đã có quyền truy cập toàn bộ các đặc quyền của KoreanLab.
-        </p>
-
-        <div className="space-y-3">
-          <button
-            onClick={() => onNavigate("/user/dashboard")}
-            className="w-full py-5 bg-[#377437] text-white rounded-2xl font-black flex items-center justify-center gap-2 hover:bg-green-800 transition-all shadow-lg shadow-green-100 active:scale-95"
-          >
-            Khám phá đặc quyền VIP ngay
+            Go to My Courses
           </button>
         </div>
       </div>
@@ -80,68 +44,39 @@ const SubscriptionSuccessOverlay = ({ planTitle, onNavigate }) => {
 
 const PaymentPage = () => {
   const navigate = useNavigate();
-  const { courseId, itemType: routeItemType, itemId: routeItemId } = useParams();
+  const { courseId } = useParams();
   const { user } = useAuth();
 
-  const itemType = routeItemType || 'course';
-  const itemId = routeItemId || courseId;
-
   // --- 1. STATES ---
-  const [itemData, setItemData] = useState(null);
+  const [courseData, setCourseData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [method, setMethod] = useState("qr"); // Default to QR payment (bank transfer)
-  const [checkoutResult, setCheckoutResult] = useState(null);
-  const [paymentSuccess, setPaymentSuccess] = useState(false);
-  const [isProcessing, setIsProcessing] = useState(false);
-  const [copied, setCopied] = useState(false);
+  const [method, setMethod] = useState("bank_transfer");
+  const [enrolledInfo, setEnrolledInfo] = useState(null); 
+  const [isEnrolling, setIsEnrolling] = useState(false);
 
-  // --- 2. FETCH DETAILS ---
+  // --- 2. FETCH COURSE DETAILS ---
   useEffect(() => {
-    const fetchItemDetails = async () => {
+    const fetchCoursePrice = async () => {
       try {
         setLoading(true);
-        if (itemType === 'subscription') {
-          const plans = await subscriptionService.getPlans();
-          const matchedPlan = plans.find(p => p.id === Number(itemId));
-          if (!matchedPlan) {
-            setError("Không tìm thấy gói cước tương ứng.");
-            return;
-          }
-          setItemData({
-            title: matchedPlan.name,
-            priceVal: parseFloat(matchedPlan.price) || 0,
-            salePriceVal: 0,
-            description: matchedPlan.description,
-          });
-        } else {
-          // Default: course
-          const data = await courseService.getCourseDetails(itemId);
-          setItemData({
-            title: data.title,
-            priceVal: parseFloat(data.price) || 0,
-            salePriceVal: parseFloat(data.salePrice) || 0,
-            description: data.description,
-          });
-        }
+        const data = await courseService.getCourseDetails(courseId);
+        setCourseData(data);
       } catch (err) {
-        console.error("Error fetching payment details:", err);
+        console.error("Error fetching price:", err);
         setError("Không thể tải thông tin thanh toán.");
       } finally {
         setLoading(false);
       }
     };
-    if (itemId) fetchItemDetails();
-  }, [itemType, itemId]);
+    if (courseId) fetchCoursePrice();
+  }, [courseId]);
 
-  // --- 3. PRICE CALCULATION ---
+  // --- 3. LOGIC TÍNH TOÁN GIÁ ---
   const calculateOrder = () => {
-    if (!itemData) return { price: 0, discount: 0, total: 0 };
-    if (itemType === 'subscription') {
-      return { price: itemData.priceVal, discount: 0, total: itemData.priceVal };
-    }
-    const originalPrice = itemData.priceVal || 0;
-    const salePrice = itemData.salePriceVal || 0;
+    if (!courseData) return { price: 0, discount: 0, total: 0 };
+    const originalPrice = parseFloat(courseData.price) || 0;
+    const salePrice = parseFloat(courseData.salePrice) || 0;
     const hasDiscount = salePrice > 0 && salePrice < originalPrice;
     const finalTotal = hasDiscount ? salePrice : originalPrice;
     const discountAmount = hasDiscount ? originalPrice - salePrice : 0;
@@ -151,305 +86,278 @@ const PaymentPage = () => {
   const { price, discount, total } = calculateOrder();
 
   const paymentMethods = [
-    { id: "qr", title: "Chuyển khoản QR Ngân hàng", desc: "Quét mã để thanh toán tức thì", icon: <QrCode size={24} /> },
-    { id: "card", title: "Thẻ Tín dụng / Ghi nợ", desc: "Visa, Mastercard, JCB", icon: <CreditCard size={24} /> },
-    { id: "wallet", title: "Ví điện tử", desc: "Momo, ZaloPay, PayPal", icon: <Wallet size={24} /> },
+    { id: "bank_transfer", title: "Bank Transfer", desc: "Direct transfer to our bank account", icon: <Building2 size={24} /> },
+    { id: "vnpay", title: "VNPay / QR Code", desc: "Scan QR via Banking App", icon: <QrCode size={24} /> },
+    { id: "momo", title: "E-Wallet", desc: "Momo, ZaloPay", icon: <Wallet size={24} /> },
   ];
 
-  // --- 4. CREATE PENDING ORDER ---
-  const handleCheckout = async () => {
-    if (isProcessing) return;
+  // --- 4. XỬ LÝ THANH TOÁN ---
+  const handlePayment = async () => {
+    if (isEnrolling) return;
     try {
-      setIsProcessing(true);
+      setIsEnrolling(true);
       
-      const payload = {
-        items: [
-          {
-            itemType: itemType === 'subscription' ? 'subscription' : 'course',
-            itemId: Number(itemId),
-            itemTitle: itemData.title,
-            price: total
-          }
-        ],
-        paymentMethod: 'bank_transfer'
-      };
+      const order = await orderService.createOrder({
+        items: [{
+          itemType: "course",
+          itemId: Number(courseId),
+          itemTitle: courseData?.title,
+          price: total
+        }],
+        paymentMethod: method,
+        couponCode: ""
+      });
 
-      const res = await orderService.checkout(payload);
-      setCheckoutResult(res);
-    } catch (err) {
-      console.error("Checkout error:", err);
-      const errorMsg = err.response?.data?.message || "Có lỗi xảy ra khi tạo đơn hàng.";
+      // Nếu BE trả về URL thanh toán (VNPay, Momo) thì redirect user
+      if (order && order.paymentUrl) {
+        window.location.href = order.paymentUrl;
+        return;
+      }
+
+      // Nếu thanh toán chuyển khoản, hiển thị popup chờ phê duyệt (hoặc cập nhật state để hiển thị QR từ BE)
+      setEnrolledInfo({
+        orderId: order?.id,
+        class: { name: "Tự động phân lớp" },
+        qrUrl: order?.qrUrl,
+        transferContent: order?.transferContent
+      }); 
+      
+    } catch (error) {
+      console.error("Enrollment error:", error);
+      const errorMsg = error.response?.data?.message || "Có lỗi xảy ra khi tạo đơn hàng.";
       alert(`Lỗi: ${errorMsg}`);
     } finally {
-      setIsProcessing(false);
+      setIsEnrolling(false);
     }
   };
 
-  // --- 5. SIMULATE PAYMENT SUCCESS ---
-  const handleSimulatePayment = async () => {
-    if (!checkoutResult || isProcessing) return;
-    try {
-      setIsProcessing(true);
-      await orderService.simulatePayment(checkoutResult.orderCode, checkoutResult.finalAmount);
-      setPaymentSuccess(true);
-    } catch (err) {
-      console.error("Simulation error:", err);
-      alert("Không thể giả lập thanh toán. Vui lòng thử lại.");
-    } finally {
-      setIsProcessing(false);
-    }
-  };
-
-  const copyToClipboard = (text) => {
-    navigator.clipboard.writeText(text);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  };
-
-  // --- 6. RENDER LOGIC ---
+  // --- 5. RENDER LOGIC ---
   if (loading) {
     return (
-      <div className="w-full h-screen flex flex-col items-center justify-center bg-[#F8F9FC]">
-        <Loader2 className="w-10 h-10 text-[#377437] animate-spin mb-4" />
-        <p className="text-gray-500 font-bold uppercase tracking-widest text-[10px]">Đang chuẩn bị đơn hàng...</p>
+      <div className="w-full min-h-screen flex flex-col items-center justify-center bg-slate-50">
+        <div className="relative flex justify-center items-center">
+          <div className="absolute animate-ping w-16 h-16 rounded-full bg-emerald-400 opacity-20"></div>
+          <Loader2 className="w-12 h-12 text-emerald-600 animate-spin relative z-10" />
+        </div>
+        <p className="mt-6 text-gray-500 font-bold uppercase tracking-widest text-sm animate-pulse">Preparing your order...</p>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="w-full h-screen flex flex-col items-center justify-center bg-[#F8F9FC]">
-        <AlertCircle className="w-12 h-12 text-rose-500 mb-4" />
-        <p className="text-rose-500 font-bold mb-6">{error}</p>
-        <button onClick={() => navigate(-1)} className="px-8 py-3 bg-gray-800 text-white rounded-xl font-bold">Quay lại</button>
+      <div className="w-full min-h-screen flex flex-col items-center justify-center bg-slate-50">
+        <div className="bg-white p-8 rounded-2xl border border-gray-200 text-center max-w-md w-full">
+          <div className="w-20 h-20 bg-rose-100 text-rose-500 rounded-full flex items-center justify-center mx-auto mb-6">
+            <AlertCircle size={40} />
+          </div>
+          <p className="text-gray-800 font-bold text-xl mb-6">{error}</p>
+          <button onClick={() => navigate(-1)} className="w-full px-6 py-4 bg-gray-900 hover:bg-gray-800 transition-colors text-white rounded-xl font-bold">Go Back</button>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="w-full min-h-screen bg-[#F8F9FC] p-4 md:p-12 font-sans text-left relative overflow-x-hidden">
+    <div className="w-full min-h-screen bg-slate-50 p-4 md:p-8 font-sans text-left relative overflow-x-hidden">
       
       {/* HIỂN THỊ OVERLAY KHI THANH TOÁN THÀNH CÔNG */}
-      {paymentSuccess && itemType === 'course' && (
-        <CourseSuccessOverlay 
-          courseTitle={itemData?.title} 
+      {enrolledInfo && (
+        <SuccessOverlay 
+          courseTitle={courseData?.title} 
+          className={enrolledInfo?.class?.name} 
           onNavigate={navigate} 
         />
       )}
 
-      {paymentSuccess && itemType === 'subscription' && (
-        <SubscriptionSuccessOverlay 
-          planTitle={itemData?.title} 
-          onNavigate={navigate} 
-        />
-      )}
-
-      <div className="max-w-6xl mx-auto">
+      <div className="max-w-6xl mx-auto pt-6">
         <button
           onClick={() => navigate(-1)}
-          className="flex items-center gap-2 text-gray-500 font-bold mb-8 hover:text-[#377437] transition-colors group"
+          className="flex items-center gap-2 text-gray-600 hover:text-emerald-600 font-semibold mb-8 transition-colors group"
         >
-          <ChevronLeft size={24} className="group-hover:-translate-x-1 transition-transform" />
-          Quay lại trang trước
+          <div className="w-8 h-8 rounded-full bg-white shadow-sm flex items-center justify-center group-hover:bg-emerald-50 transition-all">
+            <ChevronLeft size={18} className="group-hover:-translate-x-0.5 transition-transform" />
+          </div>
+          Back to Course Detail
         </button>
 
-        {!checkoutResult ? (
-          // === STEP 1: CHOOSE METHOD & CONFIRM ORDER ===
-          <div className="flex flex-col lg:flex-row gap-10">
+        <div className="flex flex-col lg:flex-row gap-8 items-start">
 
-            {/* === LEFT: PAYMENT METHOD === */}
-            <div className="flex-[1.5] bg-white rounded-[2.5rem] p-8 md:p-10 shadow-sm border border-gray-50">
-              <div className="mb-10">
-                <h1 className="text-3xl font-black text-gray-900 mb-2 tracking-tight uppercase italic">
-                  Phương thức thanh toán
+          {/* === LEFT: PAYMENT METHOD === */}
+          <div className="flex-[1.5] space-y-6">
+            <div className="bg-white rounded-2xl p-8 border border-gray-200">
+              <div className="mb-8">
+                <h1 className="text-2xl font-extrabold text-gray-900 tracking-tight flex items-center gap-3">
+                  <CreditCard className="text-emerald-500" size={28} />
+                  Payment Method
                 </h1>
-                <p className="text-gray-400 font-medium italic">
-                  {itemType === 'subscription' ? 'Đăng ký gói:' : 'Mua khóa học:'} {itemData?.title}
-                </p>
+                <p className="text-gray-500 mt-2 font-medium">Select how you want to pay for this course.</p>
               </div>
 
-              <div className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {paymentMethods.map((pm) => (
                   <label
                     key={pm.id}
-                    className={`flex items-center gap-6 p-6 rounded-[1.5rem] border-2 cursor-pointer transition-all
+                    className={`flex flex-col gap-4 p-5 rounded-2xl border-2 cursor-pointer transition-all
                       ${method === pm.id
-                        ? "border-[#377437] bg-[#F0F7F0] shadow-lg shadow-green-900/5"
-                        : "border-gray-50 hover:border-gray-200 bg-white"
+                        ? "border-emerald-500 bg-emerald-50/50 shadow-md"
+                        : "border-gray-100 hover:border-gray-300 bg-white"
                       }`}
                   >
-                    <input
-                      type="radio"
-                      name="payment"
-                      checked={method === pm.id}
-                      onChange={() => setMethod(pm.id)}
-                      className="w-5 h-5 accent-[#377437]"
-                    />
-
-                    <div className={`p-4 rounded-2xl ${method === pm.id ? "bg-[#377437] text-white" : "bg-gray-50 text-gray-400"}`}>
-                      {pm.icon}
+                    <div className="flex items-center justify-between w-full">
+                      <div className={`p-3 rounded-xl ${method === pm.id ? "bg-emerald-500 text-white shadow-sm" : "bg-gray-100 text-gray-500"}`}>
+                        {pm.icon}
+                      </div>
+                      <input
+                        type="radio"
+                        name="payment"
+                        checked={method === pm.id}
+                        onChange={() => setMethod(pm.id)}
+                        className="w-5 h-5 accent-emerald-500"
+                      />
                     </div>
-
-                    <div className="flex-1">
-                      <h3 className="text-lg font-black text-gray-900">{pm.title}</h3>
-                      <p className="text-sm font-bold text-gray-400 mt-1 uppercase tracking-tighter opacity-70">{pm.desc}</p>
+                    <div>
+                      <h3 className={`text-lg font-bold ${method === pm.id ? "text-emerald-900" : "text-gray-900"}`}>{pm.title}</h3>
+                      <p className="text-sm font-medium text-gray-500 mt-1">{pm.desc}</p>
                     </div>
                   </label>
                 ))}
               </div>
             </div>
 
-            {/* === RIGHT: ORDER SUMMARY === */}
-            <div className="lg:w-[420px] shrink-0">
-              <div className="bg-white rounded-[2.5rem] p-10 shadow-xl border border-gray-50 sticky top-10">
-                <h2 className="text-2xl font-black text-gray-900 mb-8 uppercase italic tracking-tighter">
-                  Tóm tắt đơn hàng
-                </h2>
-
-                <div className="space-y-4 mb-8">
-                  <div className="flex justify-between font-bold text-gray-500">
-                    <span className="text-sm uppercase tracking-widest opacity-60">Tạm tính</span>
-                    <span className="text-gray-900">{price.toLocaleString('vi-VN')} VND</span>
-                  </div>
-
-                  {discount > 0 && (
-                    <div className="flex justify-between font-bold text-gray-500">
-                      <span className="text-sm uppercase tracking-widest opacity-60">Giảm giá</span>
-                      <span className="text-rose-500">-{discount.toLocaleString('vi-VN')} VND</span>
+            {/* HIỂN THỊ THÔNG TIN THANH TOÁN DỰA TRÊN PHƯƠNG THỨC */}
+            <div className="bg-white rounded-2xl p-8 border border-gray-200 animate-in fade-in slide-in-from-bottom-4 duration-500">
+              {method === "bank_transfer" && (
+                <div className="space-y-6">
+                  <h3 className="text-xl font-bold text-gray-900">Bank Transfer Details</h3>
+                  <div className="bg-gray-50 rounded-2xl p-6 border border-gray-200">
+                    <div className="space-y-4">
+                      <div className="flex justify-between items-center pb-4 border-b border-gray-200">
+                        <span className="text-gray-500 font-medium">Bank Name</span>
+                        <span className="font-bold text-gray-900">MB</span>
+                      </div>
+                      <div className="flex justify-between items-center pb-4 border-b border-gray-200">
+                        <span className="text-gray-500 font-medium">Account Name</span>
+                        <span className="font-bold text-gray-900">NGUYEN VAN A</span>
+                      </div>
+                      <div className="flex justify-between items-center pb-4 border-b border-gray-200">
+                        <span className="text-gray-500 font-medium">Account Number</span>
+                        <span className="font-bold text-emerald-600 text-lg tracking-widest">0123456789</span>
+                      </div>
+                      <div className="flex justify-between items-center pt-2">
+                        <span className="text-gray-500 font-medium">Transfer Content</span>
+                        <span className="font-bold bg-yellow-100 text-yellow-800 px-3 py-1 rounded-md tracking-wider">
+                          {enrolledInfo?.transferContent || `PAY C${courseId} U${user?.id || "X"}`}
+                        </span>
+                      </div>
                     </div>
-                  )}
-
-                  <div className="pt-8 mt-4 border-t border-dashed border-gray-100 flex justify-between items-center">
-                    <span className="text-xl font-black text-gray-900 uppercase italic">Tổng cộng</span>
-                    <span className="text-3xl font-black text-[#377437] tracking-tighter">
-                      {total.toLocaleString('vi-VN')} VND
-                    </span>
                   </div>
+
+                  <div className="bg-white p-4 rounded-2xl border border-gray-200 flex justify-center">
+                    <img 
+                      src={enrolledInfo?.qrUrl || `https://img.vietqr.io/image/MB-0123456789-compact2.png?amount=${total}&addInfo=PAY_C${courseId}_U${user?.id || "X"}&accountName=NGUYEN_VAN_A`} 
+                      alt="Payment QR Code"
+                      className="w-48 h-48 object-contain rounded-xl shadow-sm"
+                    />
+                  </div>
+
+                  <p className="text-sm text-gray-500 font-medium flex items-start gap-2">
+                    <AlertCircle size={16} className="text-amber-500 shrink-0 mt-0.5" />
+                    Please transfer the exact amount with the transfer content above. Your order will be approved within 24 hours.
+                  </p>
                 </div>
+              )}
 
-                <button
-                  onClick={handleCheckout}
-                  disabled={isProcessing}
-                  className="w-full bg-[#377437] hover:bg-green-800 text-white font-black text-xl py-6 rounded-[1.5rem] shadow-xl shadow-green-900/20 transform transition-all hover:scale-[1.02] active:scale-95 mb-6 uppercase italic tracking-widest flex items-center justify-center gap-3"
-                >
-                  {isProcessing ? <Loader2 className="animate-spin" /> : "Xác nhận Thanh toán"}
-                </button>
-
-                <p className="text-[10px] text-center text-gray-400 font-bold uppercase tracking-widest px-4">
-                  Bằng việc hoàn tất thanh toán, bạn đồng ý với Điều khoản dịch vụ của chúng tôi.
-                </p>
-              </div>
-            </div>
-
-          </div>
-        ) : (
-          // === STEP 2: SHOW TRANSFER INSTRUCTIONS & QR CODE ===
-          <div className="flex flex-col lg:flex-row gap-10 items-start">
-            
-            {/* INSTRUCTIONS & QR CODE */}
-            <div className="flex-[1.5] bg-white rounded-[2.5rem] p-8 md:p-10 shadow-sm border border-gray-50">
-              <div className="mb-8 border-b border-gray-100 pb-6">
-                <h1 className="text-3xl font-black text-[#377437] mb-2 tracking-tight uppercase italic">
-                  Quét Mã QR Chuyển Khoản
-                </h1>
-                <p className="text-gray-500 font-medium">
-                  Hệ thống đã gửi email chi tiết đơn hàng đến địa chỉ đăng ký của bạn. Vui lòng hoàn tất chuyển khoản theo thông tin dưới đây.
-                </p>
-              </div>
-
-              <div className="flex flex-col md:flex-row gap-8 items-center">
-                {/* QR Code */}
-                <div className="bg-white p-4 border-2 border-dashed border-gray-200 rounded-[2rem] shadow-inner text-center shrink-0">
-                  <img 
-                    src={checkoutResult.qrCodeUrl} 
-                    alt="Mã QR VietQR" 
-                    className="w-64 h-64 md:w-72 md:h-72 object-contain"
-                  />
-                  <p className="text-xs text-gray-400 font-bold uppercase tracking-widest mt-3">Quét mã bằng app Ngân hàng</p>
+              {method === "vnpay" && (
+                <div className="space-y-6 text-center">
+                  <h3 className="text-xl font-bold text-gray-900">Scan QR Code</h3>
+                  <div className="w-48 h-48 mx-auto bg-gray-100 rounded-xl border-2 border-dashed border-gray-300 flex items-center justify-center relative overflow-hidden">
+                    <img src="https://upload.wikimedia.org/wikipedia/commons/d/d0/QR_code_for_mobile_English_Wikipedia.svg" alt="QR Code" className="w-40 h-40 object-cover opacity-80 mix-blend-multiply" />
+                    <div className="absolute inset-0 bg-gradient-to-t from-white/50 to-transparent pointer-events-none"></div>
+                  </div>
+                  <p className="text-sm text-gray-500 font-medium">
+                    Open your banking app or VNPay and scan this QR code to complete the payment.
+                  </p>
                 </div>
+              )}
 
-                {/* Bank account details */}
-                <div className="flex-1 space-y-4 w-full">
-                  <div className="p-5 bg-green-50/50 rounded-2xl border border-green-100">
-                    <span className="text-[10px] font-black text-[#377437] uppercase tracking-wider">Ngân hàng thụ hưởng</span>
-                    <p className="text-base font-black text-gray-900 mt-1">{checkoutResult.bankName}</p>
+              {method === "momo" && (
+                <div className="space-y-6 text-center">
+                  <h3 className="text-xl font-bold text-gray-900">Momo E-Wallet</h3>
+                  <div className="w-48 h-48 mx-auto bg-pink-50 rounded-xl border border-pink-200 flex items-center justify-center">
+                    <QrCode size={80} className="text-pink-500" />
                   </div>
-
-                  <div className="p-5 bg-gray-50 rounded-2xl border border-gray-100 flex justify-between items-center">
-                    <div>
-                      <span className="text-[10px] font-black text-gray-400 uppercase tracking-wider">Số tài khoản</span>
-                      <p className="text-lg font-black text-gray-900 mt-1">{checkoutResult.accountNumber}</p>
-                    </div>
-                    <button 
-                      onClick={() => copyToClipboard(checkoutResult.accountNumber)}
-                      className="p-3 bg-white hover:bg-gray-100 rounded-xl border border-gray-200 text-gray-500 hover:text-gray-900 transition-colors"
-                      title="Sao chép số tài khoản"
-                    >
-                      <Copy size={18} />
-                    </button>
-                  </div>
-
-                  <div className="p-5 bg-gray-50 rounded-2xl border border-gray-100">
-                    <span className="text-[10px] font-black text-gray-400 uppercase tracking-wider">Tên tài khoản</span>
-                    <p className="text-base font-black text-gray-900 mt-1">{checkoutResult.accountName}</p>
-                  </div>
-
-                  <div className="p-5 bg-red-50/50 rounded-2xl border border-red-100 flex justify-between items-center">
-                    <div>
-                      <span className="text-[10px] font-black text-red-500 uppercase tracking-wider">Nội dung chuyển khoản (Bắt buộc)</span>
-                      <p className="text-lg font-black text-red-600 mt-1">{checkoutResult.orderCode}</p>
-                    </div>
-                    <button 
-                      onClick={() => copyToClipboard(checkoutResult.orderCode)}
-                      className="p-3 bg-white hover:bg-red-100 rounded-xl border border-red-200 text-red-500 hover:text-red-900 transition-colors"
-                      title="Sao chép nội dung chuyển khoản"
-                    >
-                      <Copy size={18} />
-                    </button>
-                  </div>
-                </div>
-              </div>
-
-              {copied && (
-                <div className="mt-4 p-3 bg-[#E4FBE1] text-[#377437] font-bold text-center rounded-xl text-sm transition-all animate-bounce">
-                  ✓ Đã sao chép vào bộ nhớ tạm!
+                  <p className="text-sm text-gray-500 font-medium">
+                    Please use Momo App to scan this QR code.
+                  </p>
                 </div>
               )}
             </div>
+          </div>
 
-            {/* SIMULATOR CARD */}
-            <div className="lg:w-[400px] shrink-0 w-full">
-              <div className="bg-slate-900 text-white rounded-[2.5rem] p-8 shadow-2xl space-y-6">
-                <div>
-                  <h3 className="text-xl font-black uppercase italic tracking-wider text-orange-400">Trình giả lập thanh toán</h3>
-                  <p className="text-xs text-slate-400 font-medium mt-1 leading-relaxed">
-                    Đây là môi trường thử nghiệm. Bạn có thể nhấn nút dưới đây để kích hoạt giả lập casso/webhook ngân hàng nhằm duyệt ngay đơn hàng của bạn.
-                  </p>
+          {/* === RIGHT: ORDER SUMMARY === */}
+          <div className="w-full lg:w-[420px] shrink-0 space-y-6">
+            <div className="bg-white rounded-2xl p-8 border border-gray-200 sticky top-10">
+              <h2 className="text-xl font-extrabold text-gray-900 mb-6 tracking-tight">
+                Order Summary
+              </h2>
+
+              {/* COURSE INFO COMPONENT INSIDE SUMMARY */}
+              <div className="flex gap-4 items-center bg-gray-50 p-4 rounded-2xl mb-6 border border-gray-100">
+                <div className="w-20 h-20 bg-gray-200 rounded-xl overflow-hidden shrink-0 shadow-sm">
+                  {courseData?.thumbnail ? (
+                    <img src={courseData.thumbnail} className="w-full h-full object-cover" alt="thumbnail" />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center text-gray-400">
+                      <ImageIcon size={24} />
+                    </div>
+                  )}
+                </div>
+                <div className="flex-1">
+                  <h3 className="font-bold text-gray-900 line-clamp-2 leading-snug">{courseData?.title}</h3>
+                  <p className="text-xs font-semibold text-emerald-600 mt-1 uppercase tracking-wider">{courseData?.level || "All Levels"}</p>
+                </div>
+              </div>
+
+              <div className="space-y-4 mb-6">
+                <div className="flex justify-between font-semibold text-gray-500">
+                  <span>Original Price</span>
+                  <span className="text-gray-900">{Number(price).toLocaleString('vi-VN')} đ</span>
                 </div>
 
-                <div className="border-t border-dashed border-slate-800 pt-6 space-y-4">
-                  <div className="flex justify-between text-sm">
-                    <span className="text-slate-400">Đơn hàng:</span>
-                    <span className="font-bold text-white">{checkoutResult.orderCode}</span>
+                {discount > 0 && (
+                  <div className="flex justify-between font-semibold text-gray-500">
+                    <span>Discount</span>
+                    <span className="text-rose-500">-{Number(discount).toLocaleString('vi-VN')} đ</span>
                   </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-slate-400">Số tiền:</span>
-                    <span className="font-black text-green-400">{checkoutResult.finalAmount.toLocaleString('vi-VN')} VND</span>
-                  </div>
-                </div>
+                )}
 
-                <button
-                  onClick={handleSimulatePayment}
-                  disabled={isProcessing}
-                  className="w-full py-5 bg-orange-500 hover:bg-orange-600 text-white font-black text-base rounded-2xl transition-all shadow-lg active:scale-95 flex items-center justify-center gap-2"
-                >
-                  {isProcessing ? <Loader2 className="animate-spin" /> : "Xác nhận đã chuyển khoản (Giả lập)"}
-                </button>
+                <div className="pt-6 mt-2 border-t border-dashed border-gray-200 flex justify-between items-center">
+                  <span className="text-lg font-bold text-gray-900">Total</span>
+                  <span className="text-3xl lg:text-4xl font-black text-emerald-600 tracking-tight break-all text-right">
+                    {Number(total).toLocaleString('vi-VN')} đ
+                  </span>
+                </div>
+              </div>
+
+              <button
+                onClick={handlePayment}
+                disabled={isEnrolling}
+                className="w-full bg-emerald-600 hover:bg-emerald-700 disabled:opacity-70 disabled:hover:bg-emerald-600 text-white font-bold text-lg py-5 rounded-xl transition-all active:scale-95 mb-6 flex items-center justify-center gap-3"
+              >
+                {isEnrolling ? <Loader2 className="animate-spin" /> : "Complete Payment"}
+              </button>
+
+              <div className="flex items-center gap-2 justify-center text-gray-400">
+                <ShieldCheck size={16} />
+                <p className="text-[10px] font-bold uppercase tracking-widest text-center">
+                  Secure Encrypted Payment
+                </p>
               </div>
             </div>
-
           </div>
-        )}
+
+        </div>
       </div>
     </div>
   );

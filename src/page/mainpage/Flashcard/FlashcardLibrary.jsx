@@ -1,9 +1,13 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import folderService from "../../../AdminControl/Service/API/lessonServiceAPI/folder.service";
+import flashcardService from "../../../AdminControl/Service/API/lessonServiceAPI/flashcard.service";
+import { useAuth } from "../../../context/authContext";
+import { Loader2 } from "lucide-react";
 import {
   Layers, Plus, Search, Star, Clock, ChevronRight,
   Folder, X, BookOpen, Zap, Filter, Grid3X3, List,
-  MoreHorizontal, Play,
+  MoreHorizontal, Play, Trash2,
 } from "lucide-react";
 
 // --- MOCK DATA ---
@@ -101,26 +105,25 @@ function StatusBadge({ status, dueCount }) {
   );
 }
 
-function DeckCard({ deck, onClick }) {
+function DeckCard({ deck, onClick, onDelete }) {
   const [hovered, setHovered] = useState(false);
+  const [showMenu, setShowMenu] = useState(false);
 
   return (
     <div
       onClick={() => onClick(deck.id)}
       onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
-      className="group relative bg-white rounded-2xl border cursor-pointer overflow-hidden transition-all duration-300"
+      onMouseLeave={() => { setHovered(false); setShowMenu(false); }}
+      className="group relative bg-white rounded-2xl border cursor-pointer overflow-hidden transition-all duration-200"
       style={{
-        borderColor: hovered ? "rgba(26,122,60,0.3)" : "rgba(0,0,0,0.07)",
-        boxShadow: hovered
-          ? "0 16px 40px rgba(26,122,60,0.1), 0 4px 12px rgba(0,0,0,0.07)"
-          : "0 2px 8px rgba(0,0,0,0.04)",
-        transform: hovered ? "translateY(-3px)" : "translateY(0)",
+        borderColor: hovered ? "rgba(26,122,60,0.4)" : "rgba(0,0,0,0.08)",
+        boxShadow: "none",
+        transform: "none",
       }}
     >
       {/* Color accent top bar */}
       <div
-        className={`h-1 w-full bg-gradient-to-r ${deck.color}`}
+        className={`h-1 w-full bg-gradient-to-r ${deck.color || "from-green-600 to-emerald-500"}`}
         style={{
           opacity: hovered ? 1 : 0.6,
           transition: "opacity 0.2s",
@@ -129,33 +132,57 @@ function DeckCard({ deck, onClick }) {
 
       <div className="p-5">
         {/* Header */}
-        <div className="flex items-start justify-between mb-3">
+        <div className="flex items-start justify-between mb-3 relative">
           <div className="flex-1 min-w-0 pr-2">
-            <h3 className="font-bold text-gray-900 text-[15px] leading-snug mb-1 line-clamp-2">
+            <h3 className="font-bold text-gray-900 text-[15px] leading-snug mb-1 line-clamp-2 font-black leading-tight">
               {deck.title}
             </h3>
-            {deck.folder && (
-              <span className="text-[11px] text-gray-400 font-medium flex items-center gap-1">
+            {deck.folder?.name && (
+              <span className="text-[11px] text-gray-400 font-medium flex items-center gap-1 mt-1">
                 <Folder size={10} />
-                {deck.folder}
+                {deck.folder.name}
               </span>
             )}
           </div>
-          <button
-            onClick={(e) => e.stopPropagation()}
-            className="p-1.5 rounded-lg text-gray-300 hover:text-gray-500 transition-colors flex-shrink-0"
-            onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(0,0,0,0.05)"; }}
-            onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}
-          >
-            <MoreHorizontal size={16} />
-          </button>
+          
+          <div className="relative">
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setShowMenu(!showMenu);
+              }}
+              className="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors flex-shrink-0"
+              title="Thao tác"
+            >
+              <MoreHorizontal size={16} />
+            </button>
+
+            {showMenu && (
+              <div 
+                className="absolute right-0 mt-1 w-32 rounded-xl bg-white border border-gray-200 shadow-xl py-1 z-20 overflow-hidden"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setShowMenu(false);
+                    onDelete(deck.id, deck.title);
+                  }}
+                  className="w-full text-left px-3 py-2 text-xs font-bold text-red-600 hover:bg-red-50 flex items-center gap-2 transition-colors"
+                >
+                  <Trash2 size={14} />
+                  Xóa học phần
+                </button>
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Stats row */}
         <div className="flex items-center gap-2 mb-3">
-          <StatusBadge status={deck.status} dueCount={deck.dueCount} />
+          <StatusBadge status={deck.status || "new"} dueCount={deck.dueCount || 0} />
           <span className="text-[11px] text-gray-400 font-semibold">
-            {deck.terms} từ
+            {deck.terms || deck._count?.flashcards || deck.flashcards?.length || 0} từ
           </span>
         </div>
 
@@ -167,9 +194,9 @@ function DeckCard({ deck, onClick }) {
             </span>
             <span
               className="text-[11px] font-extrabold"
-              style={{ color: deck.progress > 0 ? "#1a7a3c" : "#9ca3af" }}
+              style={{ color: (deck.progress || 0) > 0 ? "#1a7a3c" : "#9ca3af" }}
             >
-              {deck.progress}%
+              {deck.progress || 0}%
             </span>
           </div>
           <div
@@ -177,8 +204,8 @@ function DeckCard({ deck, onClick }) {
             style={{ background: "rgba(0,0,0,0.06)" }}
           >
             <div
-              className={`h-full rounded-full bg-gradient-to-r ${deck.color} transition-all duration-500`}
-              style={{ width: `${deck.progress}%` }}
+              className={`h-full rounded-full bg-gradient-to-r ${deck.color || "from-blue-500 to-indigo-600"} transition-all duration-500`}
+              style={{ width: `${deck.progress || 0}%` }}
             />
           </div>
         </div>
@@ -187,17 +214,15 @@ function DeckCard({ deck, onClick }) {
         <div className="flex items-center justify-between pt-3 border-t border-gray-50">
           <div className="flex items-center gap-1.5 text-gray-400">
             <Clock size={11} />
-            <span className="text-[11px] font-medium">{deck.lastStudied}</span>
+            <span className="text-[11px] font-medium">{deck.lastStudied || "Chưa học"}</span>
           </div>
           <button
             onClick={(e) => { e.stopPropagation(); }}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-bold text-white transition-all"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-bold text-white transition-all hover:opacity-90 active:scale-95"
             style={{
               background: "linear-gradient(135deg, #1a7a3c, #22c55e)",
-              boxShadow: "0 2px 8px rgba(26,122,60,0.25)",
+              boxShadow: "none",
             }}
-            onMouseEnter={(e) => { e.currentTarget.style.transform = "scale(1.05)"; }}
-            onMouseLeave={(e) => { e.currentTarget.style.transform = ""; }}
           >
             <Play size={10} fill="white" />
             Học ngay
@@ -208,35 +233,203 @@ function DeckCard({ deck, onClick }) {
   );
 }
 
+function FolderCard({ folder, onClick, onDelete }) {
+  const [hovered, setHovered] = useState(false);
+  const [showMenu, setShowMenu] = useState(false);
+  const folderColor = folder.color || "#3b82f6";
+
+  return (
+    <div
+      onClick={() => onClick(folder.id)}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => { setHovered(false); setShowMenu(false); }}
+      className="bg-white p-4 rounded-xl border border-gray-200/80 cursor-pointer group flex items-center gap-3 relative transition-all duration-200"
+      style={{
+        borderColor: hovered ? folderColor : "rgba(229,231,235,0.8)",
+        boxShadow: "none"
+      }}
+    >
+      <div
+        className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
+        style={{ background: folderColor + "15" }}
+      >
+        <Folder size={18} style={{ color: folderColor }} />
+      </div>
+      <div className="flex-1 min-w-0">
+        <p className="font-bold text-gray-800 text-sm truncate">{folder.name || folder.title}</p>
+        <p className="text-[11px] text-gray-400 font-medium">{folder.deckCount || folder._count?.decks || 0} học phần</p>
+      </div>
+
+      <div className="relative">
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            setShowMenu(!showMenu);
+          }}
+          className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-all"
+          title="Thao tác"
+        >
+          <MoreHorizontal size={15} />
+        </button>
+
+        {showMenu && (
+          <div 
+            className="absolute right-0 mt-1 w-32 rounded-xl bg-white border border-gray-200 shadow-xl py-1 z-20 overflow-hidden"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setShowMenu(false);
+                onDelete(e, folder.id, folder.name || folder.title);
+              }}
+              className="rounded-xl w-full text-left px-3 py-2 text-xs font-bold text-red-600 hover:bg-red-50 flex items-center gap-2 transition-colors"
+            >
+              <Trash2 size={14} />
+              Xóa thư mục
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export default function FlashcardLibrary() {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [showCreateOptions, setShowCreateOptions] = useState(false);
   const [showFolderModal, setShowFolderModal] = useState(false);
   const [newFolderName, setNewFolderName] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [viewMode, setViewMode] = useState("grid"); // grid | list
-  const [folders, setFolders] = useState(MOCK_FOLDERS);
-  const [decks, setDecks] = useState(MOCK_DECKS);
+  const [folders, setFolders] = useState([]);
+  const [decks, setDecks] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [starredTermsCount, setStarredTermsCount] = useState(0);
 
-  const handleCreateFolder = () => {
-    if (!newFolderName.trim()) return;
-    setFolders([
-      { id: Date.now(), title: newFolderName, count: 0, color: "#64748b" },
-      ...folders,
-    ]);
-    setNewFolderName("");
-    setShowFolderModal(false);
+  useEffect(() => {
+    fetchLibraryData();
+    try {
+      const saved = localStorage.getItem("starred_flashcards_data");
+      if (saved) {
+        const arr = JSON.parse(saved);
+        if (Array.isArray(arr)) {
+          setStarredTermsCount(arr.length);
+        }
+      }
+    } catch (e) {
+      console.error("Lỗi đọc starred count:", e);
+    }
+  }, [user?.id]);
+
+  const fetchLibraryData = async () => {
+    setIsLoading(true);
+    try {
+      // Fetch folders and decks concurrently
+      const [foldersRes, decksRes] = await Promise.all([
+        folderService.getMyFolders(),
+        flashcardService.getAllAccessibleDecks() // Or getMyDecks()
+      ]);
+      const foldersArray = Array.isArray(foldersRes) ? foldersRes : (foldersRes?.items || foldersRes?.data || []);
+      const mappedFolders = foldersArray.map(f => ({
+        id: f.folder_id || f.id,
+        name: f.folder_name || f.name || f.title,
+        description: f.folder_description || f.description,
+        deckCount: Number(f.deckCount) || 0,
+        color: f.color || "#3b82f6"
+      }));
+      setFolders(mappedFolders);
+      
+      // Lấy chi tiết từng thư mục để biết học phần nào nằm trong thư mục
+      const folderDetails = await Promise.all(
+        mappedFolders.map(f => folderService.getFolderDetail(f.id).catch(() => null))
+      );
+
+      const assignedDeckIds = new Set();
+      folderDetails.forEach(detail => {
+        if (detail && Array.isArray(detail.decks)) {
+          detail.decks.forEach(d => {
+            assignedDeckIds.add(d.id);
+          });
+        }
+      });
+
+      const decksArray = Array.isArray(decksRes) ? decksRes : (decksRes?.items || decksRes?.data || []);
+      
+      // Lọc bỏ những học phần do chính user tạo ra để không hiển thị chung ở list ngoài
+      const otherPublicDecks = decksArray.filter(d => {
+        const creatorId = d.createdBy || d.userId;
+        return Number(creatorId) !== Number(user?.id);
+      });
+
+      // Chỉ giữ lại những học phần CHƯA được gán vào thư mục nào
+      const unassignedDecks = otherPublicDecks.filter(d => !assignedDeckIds.has(d.id));
+      setDecks(unassignedDecks);
+    } catch (err) {
+      console.error("Lỗi khi tải thư viện thẻ:", err);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const filteredDecks = decks.filter((d) =>
-    d.title.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const handleCreateFolder = async () => {
+    if (!newFolderName.trim()) return;
+    try {
+      const newFolder = await folderService.createFolder({ name: newFolderName, description: "" });
+      const mappedNewFolder = {
+        id: newFolder.folder_id || newFolder.id,
+        name: newFolder.folder_name || newFolder.name || newFolder.title,
+        description: newFolder.folder_description || newFolder.description,
+        deckCount: Number(newFolder.deckCount) || 0,
+        color: newFolder.color || "#3b82f6"
+      };
+      setFolders([mappedNewFolder, ...folders]);
+      setNewFolderName("");
+      setShowFolderModal(false);
+    } catch (err) {
+      console.error("Lỗi tạo thư mục:", err);
+      alert("Không thể tạo thư mục. Vui lòng thử lại.");
+    }
+  };
+
+  const handleDeleteFolder = async (e, folderId, folderName) => {
+    e.stopPropagation();
+    if (window.confirm(`Bạn có chắc chắn muốn xóa thư mục "${folderName}" không?`)) {
+      try {
+        await folderService.deleteFolder(folderId);
+        setFolders(folders.filter(f => f.id !== folderId));
+        alert("Đã xóa thư mục thành công!");
+        fetchLibraryData(); // Tải lại thư viện để các học phần cũ tự động quay lại list ngoài
+      } catch (err) {
+        console.error("Lỗi xóa thư mục:", err);
+        alert(`Không thể xóa thư mục: ${err.response?.data?.message || err.message}`);
+      }
+    }
+  };
+
+  const handleDeleteDeck = async (id, title) => {
+    if (window.confirm(`Bạn có chắc chắn muốn xóa học phần "${title}" không?`)) {
+      try {
+        await flashcardService.deleteDeck(id);
+        setDecks(decks.filter(d => d.id !== id));
+        alert("Đã xóa học phần thành công!");
+      } catch (err) {
+        console.error("Lỗi xóa học phần:", err);
+        alert(`Không thể xóa học phần: ${err.response?.data?.message || err.message}`);
+      }
+    }
+  };
+
+  const filteredDecks = Array.isArray(decks) ? decks.filter((d) =>
+    (d?.title || "").toLowerCase().includes(searchQuery.toLowerCase())
+  ) : [];
 
   const stats = {
-    total: decks.reduce((sum, d) => sum + d.terms, 0),
-    learned: decks.filter((d) => d.status === "learned").length,
-    review: decks.filter((d) => d.status === "review").length,
-    newCount: decks.filter((d) => d.status === "new").length,
+    total: Array.isArray(decks) ? decks.reduce((sum, d) => sum + (d.terms || d._count?.flashcards || d.flashcards?.length || d.cards?.length || 0), 0) : 0,
+    learned: Array.isArray(decks) ? decks.filter(d => d.status === "learned").length : 0,
+    review: Array.isArray(decks) ? decks.filter(d => d.status === "review").length : 0,
+    newCount: Array.isArray(decks) ? decks.filter(d => d.status === "new" || !d.status).length : 0,
   };
 
   return (
@@ -377,7 +570,14 @@ export default function FlashcardLibrary() {
           </div>
         </div>
       </div>
-
+      
+      {isLoading ? (
+        <div className="flex flex-col items-center justify-center py-20 opacity-50">
+           <Loader2 size={40} className="animate-spin text-[#1a7a3c] mb-4" />
+           <p className="font-bold text-gray-500 uppercase tracking-widest text-sm">Đang tải thư viện...</p>
+        </div>
+      ) : (
+        <>
       {/* ── STARRED DECK (PINNED FIRST) ── */}
       <div className="mb-8">
         <div className="flex items-center gap-2 mb-3">
@@ -431,22 +631,8 @@ export default function FlashcardLibrary() {
               </p>
               <div className="flex items-center gap-4 mt-3">
                 <span className="text-yellow-400 font-bold text-sm">
-                  ⭐ {STARRED_DECK.terms} từ đã đánh dấu
+                  ⭐ {starredTermsCount} từ đã đánh dấu
                 </span>
-                <div className="flex items-center gap-2">
-                  <div
-                    className="h-1 w-24 rounded-full overflow-hidden"
-                    style={{ background: "rgba(255,255,255,0.1)" }}
-                  >
-                    <div
-                      className="h-full rounded-full"
-                      style={{ width: `${STARRED_DECK.progress}%`, background: "linear-gradient(90deg, #f59e0b, #fcd34d)" }}
-                    />
-                  </div>
-                  <span className="text-[11px] font-bold" style={{ color: "#fcd34d" }}>
-                    {STARRED_DECK.progress}%
-                  </span>
-                </div>
               </div>
             </div>
 
@@ -476,25 +662,12 @@ export default function FlashcardLibrary() {
           </h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
             {folders.map((folder) => (
-              <div
+              <FolderCard
                 key={folder.id}
-                onClick={() => navigate(`/user/flashcards/folder/${folder.id}`)}
-                className="bg-white p-4 rounded-xl border border-gray-100 hover:shadow-md transition-all cursor-pointer group flex items-center gap-3"
-                onMouseEnter={(e) => { e.currentTarget.style.borderColor = folder.color + "40"; }}
-                onMouseLeave={(e) => { e.currentTarget.style.borderColor = "rgba(0,0,0,0.07)"; }}
-              >
-                <div
-                  className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
-                  style={{ background: folder.color + "15" }}
-                >
-                  <Folder size={18} style={{ color: folder.color }} />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="font-bold text-gray-800 text-sm truncate">{folder.title}</p>
-                  <p className="text-[11px] text-gray-400 font-medium">{folder.count} học phần</p>
-                </div>
-                <ChevronRight size={15} className="text-gray-300 group-hover:text-gray-500 transition-colors flex-shrink-0" />
-              </div>
+                folder={folder}
+                onClick={(id) => navigate(`/user/flashcards/folder/${id}`)}
+                onDelete={handleDeleteFolder}
+              />
             ))}
           </div>
         </div>
@@ -522,6 +695,7 @@ export default function FlashcardLibrary() {
               key={deck.id}
               deck={deck}
               onClick={(id) => navigate(`/user/flashcards/study/${id}`)}
+              onDelete={handleDeleteDeck}
             />
           ))}
 
@@ -614,6 +788,8 @@ export default function FlashcardLibrary() {
             </div>
           </div>
         </div>
+      )}
+      </>
       )}
     </div>
   );

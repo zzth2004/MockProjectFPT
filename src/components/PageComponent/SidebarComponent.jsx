@@ -41,7 +41,7 @@ export default function Sidebar({ isMobile, onClose }) {
     { icon: Bot,             label: "AI Support",    to: "/user/ai-support",     badge: "Beta", badgeColor: "#6366f1" },
     { icon: Trophy,          label: "Leaderboard",   to: "/user/leaderboard" },
     { icon: Gamepad2,        label: "Games",         to: "/user/games" },
-    { icon: ClipboardList,   label: "Quiz Room",     to: "/user/quiz" },
+    { icon: ClipboardList,   label: "Quiz Room",     to: `/user/game-room/play?name=${encodeURIComponent(user?.fullName || "")}&uid=${user?.id || ""}`, blank: true },
     { icon: FileText,        label: "Bài Thi",       to: "/user/exams",          badge: "Mới",  badgeColor: "#0ea5e9" },
     { icon: CalendarDays,    label: "Schedule",      to: "/user/schedule" },
     { icon: GraduationCap,   label: "My Courses",    to: "/user/active-courses" },
@@ -61,35 +61,10 @@ export default function Sidebar({ isMobile, onClose }) {
       (item.to !== "/user/dashboard" && location.pathname.startsWith(item.to));
     const Icon = item.icon;
 
-    return (
-      <Link
-        to={item.to}
-        onClick={isMobile && onClose ? onClose : undefined}
-        className="group relative flex items-center gap-3 px-3 py-2.5 mx-2 mb-0.5 rounded-xl transition-all duration-200 overflow-hidden"
-        style={{
-          background: isActive
-            ? "linear-gradient(135deg, rgba(26,122,60,0.1) 0%, rgba(34,197,94,0.07) 100%)"
-            : "transparent",
-          color: item.danger ? "#ef4444" : isActive ? PRIMARY : "#64748b",
-          border: isActive ? "1px solid rgba(26,122,60,0.15)" : "1px solid transparent",
-        }}
-        onMouseEnter={(e) => {
-          if (!isActive) {
-            e.currentTarget.style.background = item.danger
-              ? "rgba(239,68,68,0.06)"
-              : "rgba(26,122,60,0.05)";
-            e.currentTarget.style.color = item.danger ? "#dc2626" : PRIMARY;
-          }
-        }}
-        onMouseLeave={(e) => {
-          if (!isActive) {
-            e.currentTarget.style.background = "transparent";
-            e.currentTarget.style.color = item.danger ? "#ef4444" : "#64748b";
-          }
-        }}
-      >
+    const innerContent = (
+      <>
         {/* Active left indicator */}
-        {isActive && (
+        {/* {isActive && (
           <div
             className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 rounded-r-full"
             style={{
@@ -97,22 +72,16 @@ export default function Sidebar({ isMobile, onClose }) {
               height: "20px",
             }}
           />
-        )}
+        )} */}
 
         {/* Icon */}
         <div
           className="flex-shrink-0 w-8 h-8 flex items-center justify-center rounded-lg transition-all duration-200"
           style={{
-            background: isActive
-              ? "rgba(26,122,60,0.12)"
-              : "rgba(0,0,0,0.04)",
+            background: isActive ? "rgba(26,122,60,0.12)" : "rgba(0,0,0,0.04)",
           }}
         >
-          <Icon
-            size={16}
-            strokeWidth={isActive ? 2.5 : 2}
-            className="flex-shrink-0"
-          />
+          <Icon size={16} strokeWidth={isActive ? 2.5 : 2} className="flex-shrink-0" />
         </div>
 
         {/* Label */}
@@ -130,9 +99,61 @@ export default function Sidebar({ isMobile, onClose }) {
           </span>
         )}
 
-        {isActive && (
-          <ChevronRight size={13} className="opacity-40 flex-shrink-0" />
-        )}
+        {isActive && <ChevronRight size={13} className="opacity-40 flex-shrink-0" />}
+      </>
+    );
+
+    const linkStyle = {
+      background: isActive
+        ? "linear-gradient(135deg, rgba(26,122,60,0.1) 0%, rgba(34,197,94,0.07) 100%)"
+        : "transparent",
+      color: item.danger ? "#ef4444" : isActive ? PRIMARY : "#64748b",
+      border: isActive ? "1px solid rgba(26,122,60,0.15)" : "1px solid transparent",
+    };
+
+    const handleMouseEnter = (e) => {
+      if (!isActive) {
+        e.currentTarget.style.background = item.danger
+          ? "rgba(239,68,68,0.06)"
+          : "rgba(26,122,60,0.05)";
+        e.currentTarget.style.color = item.danger ? "#dc2626" : PRIMARY;
+      }
+    };
+
+    const handleMouseLeave = (e) => {
+      if (!isActive) {
+        e.currentTarget.style.background = "transparent";
+        e.currentTarget.style.color = item.danger ? "#ef4444" : "#64748b";
+      }
+    };
+
+    if (item.blank) {
+      return (
+        <a
+          href={item.to}
+          onClick={isMobile && onClose ? onClose : undefined}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="group relative flex items-center gap-3 px-3 py-2.5 mx-2 mb-0.5 rounded-xl transition-all duration-200 overflow-hidden"
+          style={linkStyle}
+          onMouseEnter={handleMouseEnter}
+          onMouseLeave={handleMouseLeave}
+        >
+          {innerContent}
+        </a>
+      );
+    }
+
+    return (
+      <Link
+        to={item.to}
+        onClick={isMobile && onClose ? onClose : undefined}
+        className="group relative flex items-center gap-3 px-3 py-2.5 mx-2 mb-0.5 rounded-xl transition-all duration-200 overflow-hidden"
+        style={linkStyle}
+        onMouseEnter={handleMouseEnter}
+        onMouseLeave={handleMouseLeave}
+      >
+        {innerContent}
       </Link>
     );
   };

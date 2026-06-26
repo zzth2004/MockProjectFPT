@@ -1,5 +1,5 @@
 import React, { useEffect, useCallback, useState, useMemo, memo } from "react";
-import { BookOpen, Search, Filter, X, ChevronLeft, ChevronRight, Layers, AudioWaveform } from "lucide-react";
+import { BookOpen, Search, Filter, X, ChevronLeft, ChevronRight, Layers, AudioWaveform, ArrowLeft } from "lucide-react";
 import { KLCard } from "../../../../AdminControl/Component/Card";
 import { KLButton } from "../../../../AdminControl/Component/Button";
 import { KLBadge } from "../../../../AdminControl/Component/Badge";
@@ -33,7 +33,7 @@ const Pagination = memo(({ current, total, onPageChange, totalItems, pageSize })
     return (
         <div className="mt-12 flex flex-col items-center gap-6">
             {/* Thanh phân trang chính */}
-            <div className="flex flex-wrap items-center justify-center md:justify-between w-full bg-white p-3 md:px-8 md:py-4 rounded-[2rem] shadow-xl shadow-green-900/5 border border-gray-50">
+            <div className="flex flex-wrap items-center justify-center md:justify-between w-full bg-white p-3 md:px-8 md:py-4 rounded-2xl border border-gray-200">
 
                 {/* Khối bên trái: Thông tin (Hidden on small mobile) */}
                 <div className="hidden md:flex flex-col items-start">
@@ -50,25 +50,25 @@ const Pagination = memo(({ current, total, onPageChange, totalItems, pageSize })
                     <button
                         onClick={() => onPageChange(current - 1)}
                         disabled={current === 1}
-                        className="flex items-center justify-center w-10 h-10 md:w-12 md:h-12 rounded-2xl bg-gray-50 text-gray-400 hover:bg-green-700 hover:text-white disabled:opacity-20 disabled:hover:bg-gray-50 disabled:hover:text-gray-400 transition-all duration-300 group shadow-sm"
+                        className="flex items-center justify-center w-10 h-10 md:w-12 md:h-12 rounded-xl bg-gray-50 text-gray-400 hover:bg-green-700 hover:text-white disabled:opacity-20 disabled:hover:bg-gray-50 disabled:hover:text-gray-400 transition-all duration-300 group"
                     >
                         <ChevronLeft size={20} className="group-hover:-translate-x-0.5 transition-transform" />
                     </button>
 
                     {/* Dải số trang */}
-                    <div className="flex items-center gap-1 md:gap-2 bg-gray-50/80 p-1 rounded-[1.5rem] border border-gray-100">
+                    <div className="flex items-center gap-1 md:gap-2 bg-gray-50/80 p-1 rounded-lg border border-gray-200">
                         {pages.map((page, idx) => (
                             <button
                                 key={idx}
                                 disabled={page === "..."}
                                 onClick={() => onPageChange(page)}
                                 className={`
-                                    min-w-[36px] h-9 md:min-w-[44px] md:h-11 rounded-[1rem] text-[11px] md:text-xs font-black transition-all duration-300
+                                    min-w-[36px] h-9 md:min-w-[44px] md:h-11 rounded-lg text-[11px] md:text-xs font-black transition-all duration-300
                                     ${page === current
-                                        ? "bg-green-700 text-white shadow-lg shadow-green-200 scale-105"
+                                        ? "bg-green-700 text-white"
                                         : page === "..."
                                             ? "text-gray-300 cursor-default"
-                                            : "text-gray-500 hover:bg-white hover:text-green-700 hover:shadow-sm"}
+                                            : "text-gray-500 hover:bg-white hover:text-green-700 border border-transparent hover:border-gray-200"}
                                 `}
                             >
                                 {page}
@@ -80,7 +80,7 @@ const Pagination = memo(({ current, total, onPageChange, totalItems, pageSize })
                     <button
                         onClick={() => onPageChange(current + 1)}
                         disabled={current === total}
-                        className="flex items-center justify-center w-10 h-10 md:w-12 md:h-12 rounded-2xl bg-gray-50 text-gray-400 hover:bg-green-700 hover:text-white disabled:opacity-20 disabled:hover:bg-gray-50 transition-all duration-300 group shadow-sm"
+                        className="flex items-center justify-center w-10 h-10 md:w-12 md:h-12 rounded-xl bg-gray-50 text-gray-400 hover:bg-green-700 hover:text-white disabled:opacity-20 disabled:hover:bg-gray-50 transition-all duration-300 group"
                     >
                         <ChevronRight size={20} className="group-hover:translate-x-0.5 transition-transform" />
                     </button>
@@ -114,7 +114,7 @@ const CourseCard = memo(({ course }) => {
     return (
         <KLCard
             onClick={handleCardClick}
-            className="p-0 overflow-hidden flex flex-col h-full border-none shadow-md hover:shadow-2xl transition-all duration-500 bg-white rounded-[2.5rem] group">
+            className="p-0 overflow-hidden flex flex-col h-full bg-white rounded-2xl border border-gray-200 hover:border-green-600/40 transition-all duration-350 group">
             <div className="h-56 w-full bg-gray-100 relative overflow-hidden">
                 {thumbnail ? (
                     <img src={thumbnail} alt={title} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110 rounded-2xl" />
@@ -192,7 +192,8 @@ export default function CourseListGrid() {
         return rawData.filter(c => {
             const matchSearch = !searchTerm || [c.title, c.slug].some(f => f?.toLowerCase().includes(searchTerm.toLowerCase()));
             const matchLevel = !filters.level || c.level === filters.level;
-            return matchSearch && matchLevel;
+            const isFree = !c.price || Number(c.price) === 0 || Number(c.salePrice) === 0;
+            return matchSearch && matchLevel && isFree;
         });
     }, [rawData, searchTerm, filters]);
 
@@ -207,6 +208,28 @@ export default function CourseListGrid() {
 
     return (
         <div className="space-y-8 p-6 animate-in fade-in slide-in-from-bottom-4 duration-1000 container mx-auto max-w-7xl text-left">
+
+            {/* Back nav */}
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => navigate("/courses")}
+                className="flex items-center justify-center w-9 h-9 rounded-xl bg-white border border-gray-200 text-gray-500 hover:text-gray-900 hover:border-gray-300 hover:shadow-sm active:scale-95 transition-all duration-150"
+                aria-label="Quay lại"
+              >
+                <ArrowLeft size={17} />
+              </button>
+              <nav className="flex items-center gap-1.5 text-sm font-medium text-gray-400">
+                <span
+                  className="hover:text-gray-700 cursor-pointer transition-colors"
+                  onClick={() => navigate("/courses")}
+                >
+                  Khóa học
+                </span>
+                <ChevronRight size={14} className="text-gray-300" />
+                <span className="text-gray-800 font-semibold">General Learning</span>
+              </nav>
+            </div>
+
             {/* Header Section */}
             <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 pb-6 border-b-2 border-dashed border-gray-100">
                 <div>
@@ -221,13 +244,13 @@ export default function CourseListGrid() {
             </div>
 
             {/* Filters Section */}
-            <KLCard className="bg-white border-none shadow-xl shadow-gray-100/50 p-6 rounded-[2.5rem]">
+            <KLCard className="bg-white border border-gray-200 p-6 rounded-2xl">
                 <div className="flex flex-col md:flex-row gap-4">
                     <div className="relative flex-1 group">
                         <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-gray-300 group-focus-within:text-green-600 transition-colors" size={20} />
                         <input
                             placeholder="Tìm kiếm nội dung khóa học..."
-                            className="w-full pl-14 pr-6 py-4 bg-gray-50 rounded-[1.5rem] border-2 border-transparent focus:border-green-700/10 focus:bg-white focus:ring-4 focus:ring-green-700/5 transition-all font-bold text-sm"
+                            className="w-full pl-14 pr-6 py-4 bg-gray-50 rounded-xl border border-gray-200 focus:border-green-700/60 focus:bg-white transition-all font-bold text-sm"
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
                         />
@@ -236,7 +259,7 @@ export default function CourseListGrid() {
                         variant={showFilters ? "primary" : "outline"}
                         icon={showFilters ? X : Filter}
                         onClick={() => setShowFilters(!showFilters)}
-                        className={`rounded-[1.5rem] px-8 py-4 transition-all font-black text-[12px] uppercase italic tracking-wider shadow-sm ${showFilters ? 'bg-black text-white' : 'bg-green-700 text-white hover:bg-green-800'}`}
+                        className={`rounded-xl px-8 py-4 transition-all font-black text-[12px] uppercase italic tracking-wider border ${showFilters ? 'bg-black border-black text-white' : 'bg-green-700 border-[#377437] text-white hover:bg-green-800'}`}
                     >
                         {showFilters ? "Đóng bộ lọc" : "Lọc nâng cao"}
                     </KLButton>
@@ -253,11 +276,7 @@ export default function CourseListGrid() {
                                     onChange={(e) => setFilters({ ...filters, level: e.target.value })}
                                 >
                                     <option value="">Tất cả cấp độ</option>
-
-                                    {/* SỬA ĐOẠN NÀY: Viết HOA toàn bộ chữ để khớp 100% với chữ trong Database */}
-                                    {['BEGINNER', 'INTERMEDIATE', 'ADVANCED'].map(l => (
-                                        <option key={l} value={l}>{l}</option>
-                                    ))}
+                                    {['beginer', 'intermediate', 'advanced'].map(l => <option key={l} value={l}>{l}</option>)}
                                 </select>
                             </div>
                         </div>
@@ -268,10 +287,10 @@ export default function CourseListGrid() {
             {/* Grid Content */}
             {loading ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                    {[...Array(pageSize)].map((_, i) => <div key={i} className="h-[450px] animate-pulse bg-gray-100 rounded-[2.5rem]" />)}
+                    {[...Array(pageSize)].map((_, i) => <div key={i} className="h-[450px] animate-pulse bg-gray-100 rounded-2xl" />)}
                 </div>
             ) : filteredData.length === 0 ? (
-                <div className="py-32 text-center border-4 border-dashed border-gray-50 rounded-[3rem] bg-gray-50/30">
+                <div className="py-32 text-center border-2 border-dashed border-gray-200 rounded-2xl bg-gray-50/30">
                     <div className="bg-white w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6 shadow-sm">
                         <BookOpen size={40} className="text-gray-200" />
                     </div>
