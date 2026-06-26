@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { ChevronLeft, FolderOpen, Plus, Layers, Loader2 } from "lucide-react";
+import { ChevronLeft, FolderOpen, Plus, Layers, Loader2, Trash2 } from "lucide-react";
 import folderService from "../../../AdminControl/Service/API/lessonServiceAPI/folder.service";
 
 export default function FolderDetail() {
@@ -22,6 +22,23 @@ export default function FolderDetail() {
       console.error("Lỗi khi tải chi tiết thư mục:", err);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleRemoveDeck = async (e, deckId, deckTitle) => {
+    e.stopPropagation();
+    if (window.confirm(`Bạn có chắc chắn muốn xóa học phần "${deckTitle}" khỏi thư mục này không?`)) {
+      try {
+        await folderService.removeDeckFromFolder(folderId, deckId);
+        setFolder({
+          ...folder,
+          decks: folder.decks.filter(d => d.id !== deckId)
+        });
+        alert("Đã xóa học phần khỏi thư mục thành công!");
+      } catch (err) {
+        console.error("Lỗi xóa học phần khỏi thư mục:", err);
+        alert(`Không thể xóa học phần khỏi thư mục: ${err.response?.data?.message || err.message}`);
+      }
     }
   };
 
@@ -67,8 +84,8 @@ export default function FolderDetail() {
          
          {/* Card Thêm học phần mới vào thư mục */}
          <div 
-            onClick={() => navigate('/user/flashcards/create-set')}
-            className="h-48 border-2 border-dashed border-gray-300 rounded-3xl flex flex-col items-center justify-center cursor-pointer hover:border-[#377437] hover:bg-green-50 transition-all group"
+            onClick={() => navigate(`/user/flashcards/create-set?folderId=${folderId}`)}
+            className="h-48 border-2 border-dashed border-gray-300 rounded-2xl flex flex-col items-center justify-center cursor-pointer hover:border-[#377437] hover:bg-green-50 transition-all group"
          >
             <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mb-3 group-hover:bg-[#377437] group-hover:text-white transition-colors">
                <Plus size={24} className="text-gray-400 group-hover:text-white" />
@@ -82,7 +99,7 @@ export default function FolderDetail() {
                key={set.id} 
                /* 👇 QUAN TRỌNG: Dẫn tới trang StudyFlashcard */
                onClick={() => navigate(`/user/flashcards/study/${set.id}`)}
-               className="bg-white p-6 rounded-3xl border border-gray-200 hover:border-green-400 hover:shadow-xl hover:-translate-y-1 transition-all cursor-pointer flex flex-col justify-between h-48 group"
+               className="bg-white p-6 rounded-2xl border border-gray-200 hover:border-green-400 transition-all cursor-pointer flex flex-col justify-between h-48 group"
             >
                <div>
                   <h3 className="font-bold text-xl text-gray-900 mb-2 line-clamp-2 leading-tight group-hover:text-[#377437] transition-colors">
@@ -96,13 +113,22 @@ export default function FolderDetail() {
                </div>
 
                <div className="flex items-center gap-3 pt-4 border-t border-gray-50">
-                  <div className="w-8 h-8 rounded-full bg-gray-100 border border-white shadow-sm overflow-hidden">
+                  <div className="w-8 h-8 rounded-full bg-gray-100 border border-white overflow-hidden">
                      <img src="https://i.pravatar.cc/150?u=12" alt="User" className="w-full h-full object-cover" />
                   </div>
                   <span className="text-xs font-bold text-gray-500">{set.owner?.fullName || "Người dùng"}</span>
                   
-                  {/* Icon mũi tên nhỏ để gợi ý bấm vào */}
-                  <div className="ml-auto opacity-0 group-hover:opacity-100 transition-opacity text-[#377437]">
+                  {/* Remove from folder button */}
+                  <button
+                     onClick={(e) => handleRemoveDeck(e, set.id, set.title)}
+                     className="ml-auto p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all opacity-0 group-hover:opacity-100 flex-shrink-0"
+                     title="Xóa khỏi thư mục"
+                  >
+                     <Trash2 size={16} />
+                  </button>
+                  
+                  {/* Icon details (hidden on hover when trash appears) */}
+                  <div className="ml-auto opacity-100 group-hover:opacity-0 transition-opacity text-[#377437]">
                      <Layers size={18} />
                   </div>
                </div>

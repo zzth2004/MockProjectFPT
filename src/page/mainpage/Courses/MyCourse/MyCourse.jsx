@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { ChevronLeft, ChevronRight, Clock, User, Calendar, Loader2, BookOpen } from "lucide-react";
+import { ArrowLeft, ChevronRight, Clock, User, Calendar, Loader2, BookOpen } from "lucide-react";
 import courseService from "../../../../AdminControl/Service/API/courseServiceAPI/course.service"
 
 const MyCourse = () => {
@@ -46,38 +46,38 @@ const MyCourse = () => {
   }
 
   return (
-    <div className="w-full min-h-screen font-sans pt-2 pb-8">
-      
-      {/* --- HEADER --- */}
-      <header className="flex items-center gap-2 mb-8 -ml-2">
-        <button 
-          onClick={() => navigate('/courses')} 
-          className="p-2 rounded-full bg-white text-gray-500 hover:text-gray-900 hover:shadow-sm transition-all border border-gray-200"
-        >
-          <ChevronLeft size={20} />
-        </button>
+    <div className="w-full min-h-screen font-sans py-6 pb-8">
 
-        <div className="flex items-center gap-2 text-lg font-bold text-gray-800 ml-1">
-            <span 
-              className="opacity-50 hover:opacity-100 cursor-pointer transition" 
-              onClick={() => navigate('/courses')}
-            >
-                Khám phá
-            </span>
-            <ChevronRight size={18} className="text-gray-400" />
-            <span>Khóa học của tôi</span>
-        </div>
-      </header>
+      {/* --- HEADER --- */}
+      <div className="flex items-center gap-3 mb-8">
+        <button
+          onClick={() => navigate('/courses')}
+          className="flex items-center justify-center w-9 h-9 rounded-xl bg-white border border-gray-200 text-gray-500 hover:text-gray-900 hover:border-gray-300 hover:shadow-sm active:scale-95 transition-all duration-150"
+          aria-label="Quay lại"
+        >
+          <ArrowLeft size={17} />
+        </button>
+        <nav className="flex items-center gap-1.5 text-sm font-medium text-gray-400">
+          <span
+            className="hover:text-gray-700 cursor-pointer transition-colors"
+            onClick={() => navigate('/courses')}
+          >
+            Khóa học
+          </span>
+          <ChevronRight size={14} className="text-gray-300" />
+          <span className="text-gray-800 font-semibold">Khóa học của tôi</span>
+        </nav>
+      </div>
 
       {/* --- EMPTY STATE --- */}
       {!loading && courses.length === 0 && (
-        <div className="bg-white rounded-3xl p-20 text-center border-2 border-dashed border-gray-100">
+        <div className="bg-white rounded-2xl p-20 text-center border-2 border-dashed border-gray-200">
            <BookOpen className="mx-auto w-16 h-16 text-gray-200 mb-4" />
            <h3 className="text-xl font-bold text-gray-800 mb-2">Bạn chưa đăng ký khóa học nào</h3>
            <p className="text-gray-500 mb-6">Hãy khám phá các khóa học tiếng Hàn thú vị ngay nhé!</p>
            <button 
              onClick={() => navigate('/user/active-courses')}
-             className="px-8 py-3 bg-[#377437] text-white rounded-xl font-bold hover:bg-[#2d5e2d] transition shadow-lg shadow-green-100"
+             className="px-8 py-3 bg-[#377437] text-white rounded-xl font-bold hover:bg-[#2d5e2d] transition"
            >
              Xem danh sách khóa học
            </button>
@@ -93,8 +93,8 @@ const MyCourse = () => {
             <div 
               key={item.enrollmentId}
               onClick={() => !item.class?.isExpired && navigate(`/courses/mycourses/${course.id}`)}
-              className={`group bg-white rounded-[2rem] shadow-sm border border-gray-100 overflow-hidden cursor-pointer hover:shadow-xl transition-all duration-500 flex flex-col
-                ${classInfo?.isExpired ? 'opacity-75 grayscale-[0.5]' : 'hover:-translate-y-2'}`}
+              className={`group bg-white rounded-2xl border border-gray-200 overflow-hidden cursor-pointer transition-all duration-350 flex flex-col
+                ${classInfo?.isExpired ? 'opacity-75 grayscale-[0.5]' : 'hover:border-green-600/40'}`}
             >
               {/* 1. Image & Badge Section */}
               <div className="h-44 w-full bg-gray-50 overflow-hidden relative">
@@ -147,7 +147,7 @@ const MyCourse = () => {
                     </div>
                     <div className="w-full h-2 bg-gray-100 rounded-full overflow-hidden">
                       <div 
-                        className={`h-full rounded-full transition-all duration-1000 ease-out shadow-[0_0_8px_rgba(55,116,55,0.3)]
+                        className={`h-full rounded-full transition-all duration-1000 ease-out
                           ${classInfo?.isExpired ? 'bg-gray-400' : 'bg-[#377437]'}`}
                         style={{ width: `${progress}%` }}
                       />

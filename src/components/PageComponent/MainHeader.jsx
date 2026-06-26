@@ -4,11 +4,12 @@ import {
   ShieldCheck, ChevronDown, CheckCircle2, AlertCircle,
   BookOpen, Loader2, GraduationCap, X, ChevronRight,
   LayoutDashboard, CalendarDays, Bot, Layers, Trophy,
-  Gamepad2, ClipboardList, Settings, MessageSquare, Sparkles,
+  Gamepad2, ClipboardList, Settings, MessageSquare, Sparkles, Flame
 } from "lucide-react";
 import { useNavigate, Link, useLocation } from "react-router-dom";
 import { useAuth } from "../../context/authContext";
 import { authLogout } from '../../services/authService';
+import axiosClient from "../../api/axiosAPI";
 
 const PRIMARY = "#1a7a3c";
 
@@ -21,7 +22,7 @@ const PAGE_MAP = {
   "/user/ai-support":    { label: "AI Support",    icon: Bot,             emoji: "🤖" },
   "/user/leaderboard":   { label: "Leaderboard",   icon: Trophy,          emoji: "🏆" },
   "/user/games":         { label: "Games",         icon: Gamepad2,        emoji: "🎮" },
-  "/user/quiz":          { label: "Quiz Room",     icon: ClipboardList,   emoji: "✏️" },
+  "/user/game-room/play": { label: "Quiz Room",     icon: ClipboardList,   emoji: "✏️" },
   "/user/schedule":      { label: "Schedule",      icon: CalendarDays,    emoji: "📅" },
   "/user/active-courses":{ label: "My Courses",    icon: GraduationCap,   emoji: "🎓" },
   "/user/settings":      { label: "Settings",      icon: Settings,        emoji: "⚙️" },
@@ -52,6 +53,7 @@ export default function MainHeader({ onMenuClick }) {
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [searchFocused, setSearchFocused] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [streak, setStreak] = useState(0);
 
   const dropdownRef = useRef(null);
   const notifRef = useRef(null);
@@ -59,6 +61,22 @@ export default function MainHeader({ onMenuClick }) {
   const isAdmin = user?.role === "admin";
   const isTeacher = user?.role === "teacher";
   const hasConsoleAccess = isAdmin || isTeacher;
+
+  useEffect(() => {
+    if (user && user.role !== "admin") {
+      axiosClient.get("/gamification/stats/me")
+        .then(res => {
+          if (res.data?.currentStreak !== undefined) {
+            setStreak(res.data.currentStreak);
+          } else if (res.data?.data?.currentStreak !== undefined) {
+            setStreak(res.data.data.currentStreak);
+          }
+        })
+        .catch(err => {
+          console.error("Failed to fetch streak:", err);
+        });
+    }
+  }, [user]);
 
   const pageInfo = getPageInfo(location.pathname);
   const PageIcon = pageInfo.icon;
@@ -199,6 +217,17 @@ export default function MainHeader({ onMenuClick }) {
 
           {/* ── RIGHT: Notifications + Profile ── */}
           <div className="flex items-center gap-1">
+
+            {/* Streak */}
+            {!isAdmin && (
+              <div 
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-orange-50 cursor-pointer mr-1 transition-colors hover:bg-orange-100"
+                title="Chuỗi ngày học liên tiếp"
+              >
+                <Flame size={18} className="text-orange-500" />
+                <span className="text-sm font-bold text-orange-600">{streak}</span>
+              </div>
+            )}
 
             {/* Notification Bell */}
             <div className="relative" ref={notifRef}>

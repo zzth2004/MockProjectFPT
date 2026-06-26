@@ -3,15 +3,13 @@ import axios from "axios";
 
 const axiosClient = axios.create({
 
-  baseURL: "https://0087-171-225-184-91.ngrok-free.app/api",
+  baseURL: "https://677b-118-69-73-134.ngrok-free.app/api",
   //baseURL: "http://localhost:3000/api",
 
   headers: {
     "Content-Type": "application/json",
 
     "ngrok-skip-browser-warning": "69420"
-    // "ngrok-skip-browser-warning": "69420",
-
   },
   timeout: 100000,
 });

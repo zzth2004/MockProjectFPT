@@ -4,8 +4,11 @@ import {
   Star, Check, X, Clock, Trophy, RotateCcw, Play,
   Volume2, Headphones, BookMarked, Filter, Search,
   ChevronDown, ChevronUp, AlertCircle, CheckCircle2,
-  ListOrdered, Layers,
+  ListOrdered, Layers, Lock
 } from "lucide-react";
+import { useAuth } from "../../../context/authContext";
+import { useNavigate } from "react-router-dom";
+import topikService from "../../../AdminControl/Service/API/topikServiceAPI/topik.service";
 
 // ═══════════════════════════════════════════════════════════════════
 //  DATA — VOCAB & GRAMMAR by TOPIK level
@@ -405,44 +408,35 @@ const MOCK_TESTS = {
 // ═══════════════════════════════════════════════════════════════════
 //  SUB-COMPONENTS
 // ═══════════════════════════════════════════════════════════════════
-function LevelPill({ lvl, active, onClick }) {
-  const cfg = TOPIK_LEVELS.find(l => l.level === lvl);
-  return (
-    <button onClick={onClick}
-      className="flex flex-col items-center px-4 py-2.5 rounded-2xl font-bold text-sm transition-all duration-200"
-      style={{
-        background: active ? cfg.color : "white",
-        color: active ? "white" : cfg.color,
-        border: `2px solid ${active ? cfg.color : cfg.border}`,
-        boxShadow: active ? `0 4px 16px ${cfg.bg}` : "0 1px 4px rgba(0,0,0,0.05)",
-      }}>
-      <span className="text-[9px] font-black uppercase tracking-widest opacity-70">{cfg.badge}</span>
-      <span>{cfg.label}</span>
-    </button>
-  );
-}
-
 function VocabCard({ item, levelColor }) {
   const [flipped, setFlipped] = useState(false);
+  const word = item.word || item.wordKorean || "";
+  const meaning = item.meaning || item.meaningVietnamese || "";
+  const example = item.example || item.exampleKorean || "";
+  const exTrans = item.exTrans || item.exampleVietnamese || "";
+  
   return (
-    <div onClick={() => setFlipped(f => !f)} className="cursor-pointer rounded-2xl p-5 border transition-all duration-200 select-none"
-      style={{ background: "white", border: "1.5px solid rgba(0,0,0,0.07)", boxShadow: "0 2px 8px rgba(0,0,0,0.04)" }}
-      onMouseEnter={e => { e.currentTarget.style.boxShadow = `0 8px 24px ${levelColor}20`; e.currentTarget.style.borderColor = `${levelColor}40`; }}
-      onMouseLeave={e => { e.currentTarget.style.boxShadow = "0 2px 8px rgba(0,0,0,0.04)"; e.currentTarget.style.borderColor = "rgba(0,0,0,0.07)"; }}>
+    <div 
+      onClick={() => setFlipped(f => !f)} 
+      className="cursor-pointer rounded-2xl p-5 border transition-all duration-200 select-none bg-white border-gray-200/70"
+      style={{ boxShadow: "none" }}
+      onMouseEnter={e => { e.currentTarget.style.borderColor = levelColor; e.currentTarget.style.background = "#fcfdfd"; }}
+      onMouseLeave={e => { e.currentTarget.style.borderColor = "rgba(229,231,235,0.7)"; e.currentTarget.style.background = "white"; }}
+    >
       {!flipped ? (
         <div>
           <div className="flex items-start justify-between mb-2">
-            <span className="text-2xl font-extrabold text-gray-900">{item.word}</span>
-            {item.hanja && <span className="text-xs text-gray-400 font-medium bg-gray-50 px-2 py-0.5 rounded-lg">{item.hanja}</span>}
+            <span className="text-xl font-extrabold text-gray-900">{word}</span>
+            {item.hanja && <span className="text-[10px] text-gray-400 font-bold bg-gray-50 px-2 py-0.5 rounded-lg border border-gray-100">{item.hanja}</span>}
           </div>
-          <p className="text-sm font-semibold" style={{ color: levelColor }}>{item.meaning}</p>
-          <p className="text-[10px] font-black uppercase tracking-widest text-gray-300 mt-3">Nhấn để xem ví dụ →</p>
+          <p className="text-sm font-semibold" style={{ color: levelColor }}>{meaning}</p>
+          <p className="text-[10px] font-black uppercase tracking-widest text-gray-300 mt-4">Nhấn để xem ví dụ →</p>
         </div>
       ) : (
         <div>
-          <p className="text-sm font-bold text-gray-700 mb-1">{item.example}</p>
-          <p className="text-sm text-gray-500 italic">{item.exTrans}</p>
-          <p className="text-[10px] font-black uppercase tracking-widest mt-3" style={{ color: levelColor }}>← Nhấn để quay lại</p>
+          <p className="text-sm font-bold text-gray-700 mb-1 leading-snug">{example}</p>
+          <p className="text-xs text-gray-500 italic">{exTrans}</p>
+          <p className="text-[10px] font-black uppercase tracking-widest mt-4" style={{ color: levelColor }}>← Nhấn để quay lại</p>
         </div>
       )}
     </div>
@@ -451,28 +445,35 @@ function VocabCard({ item, levelColor }) {
 
 function GrammarCard({ item, levelColor }) {
   const [open, setOpen] = useState(false);
+  const pattern = item.pattern || "";
+  const meaning = item.meaning || item.explanation || "";
+  const example = item.example || item.exampleKorean || "";
+  const exTrans = item.exTrans || item.exampleVietnamese || "";
+  const usage = item.usage || item.usageNote || "";
+
   return (
-    <div className="rounded-2xl border overflow-hidden transition-all duration-200"
-      style={{ border: "1.5px solid rgba(0,0,0,0.07)", boxShadow: "0 2px 8px rgba(0,0,0,0.04)" }}>
+    <div className="rounded-2xl border border-gray-200/70 overflow-hidden bg-white" style={{ boxShadow: "none" }}>
       <button onClick={() => setOpen(o => !o)}
-        className="w-full flex items-center justify-between p-5 bg-white text-left"
+        className="w-full flex items-center justify-between p-4 bg-white text-left transition-colors hover:bg-gray-50"
         style={{ borderBottom: open ? "1px solid rgba(0,0,0,0.06)" : "none" }}>
         <div className="flex items-center gap-3">
-          <span className="text-lg font-extrabold font-mono" style={{ color: levelColor }}>{item.pattern}</span>
-          <span className="text-sm font-semibold text-gray-600">{item.meaning}</span>
+          <span className="text-base font-extrabold font-mono" style={{ color: levelColor }}>{pattern}</span>
+          <span className="text-sm font-bold text-gray-600">{meaning}</span>
         </div>
-        {open ? <ChevronUp size={18} className="text-gray-400" /> : <ChevronDown size={18} className="text-gray-400" />}
+        {open ? <ChevronUp size={16} className="text-gray-400" /> : <ChevronDown size={16} className="text-gray-400" />}
       </button>
       {open && (
-        <div className="p-5 bg-gray-50/50 space-y-3">
-          <div className="p-3 rounded-xl" style={{ background: `${levelColor}0D`, border: `1px solid ${levelColor}20` }}>
-            <p className="text-sm font-bold text-gray-800">{item.example}</p>
-            <p className="text-xs text-gray-500 italic mt-1">{item.exTrans}</p>
+        <div className="p-4 bg-gray-50/50 space-y-3 border-t border-gray-100">
+          <div className="p-3.5 rounded-xl border border-gray-200/50 bg-white">
+            <p className="text-sm font-bold text-gray-800 leading-snug">{example}</p>
+            <p className="text-xs text-gray-500 italic mt-1">{exTrans}</p>
           </div>
-          <div className="flex items-start gap-2">
-            <AlertCircle size={14} className="mt-0.5 flex-shrink-0" style={{ color: levelColor }} />
-            <p className="text-xs text-gray-600 font-medium">{item.usage}</p>
-          </div>
+          {(usage || item.partOfSpeech) && (
+            <div className="flex items-start gap-2">
+              <AlertCircle size={14} className="mt-0.5 flex-shrink-0" style={{ color: levelColor }} />
+              <p className="text-xs text-gray-600 font-semibold">{usage || `Từ loại: ${item.partOfSpeech}`}</p>
+            </div>
+          )}
         </div>
       )}
     </div>
@@ -481,46 +482,139 @@ function GrammarCard({ item, levelColor }) {
 
 // ── VOCAB & GRAMMAR TAB ──────────────────────────────────────────
 function VocabGrammarTab() {
-  const [activeLevel, setActiveLevel] = useState(1);
+  const { user } = useAuth();
+  const userLevelNum = parseInt(user?.level?.split("_")[1]) || 1;
+  const isVip = user?.VIP || user?.role === 'admin' || user?.role === 'teacher';
+
+  const [activeLevel, setActiveLevel] = useState(userLevelNum);
   const [activeSection, setActiveSection] = useState("vocab"); // vocab | grammar
   const [search, setSearch] = useState("");
+  
+  const [vocabList, setVocabList] = useState([]);
+  const [grammarList, setGrammarList] = useState([]);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      setLoading(true);
+      try {
+        const levelKey = `topik_${activeLevel}`;
+        if (activeSection === "vocab") {
+          const res = await topikService.getVocabByLevel(levelKey);
+          console.log("DEBUG: getVocabByLevel response:", res);
+          if (Array.isArray(res)) {
+            setVocabList(res);
+          } else if (res && Array.isArray(res.data)) {
+            setVocabList(res.data);
+          } else if (res && res.data && Array.isArray(res.data.data)) {
+            setVocabList(res.data.data);
+          } else {
+            setVocabList([]);
+          }
+        } else {
+          const res = await topikService.getGrammarByLevel(levelKey);
+          console.log("DEBUG: getGrammarByLevel response:", res);
+          if (Array.isArray(res)) {
+            setGrammarList(res);
+          } else if (res && Array.isArray(res.data)) {
+            setGrammarList(res.data);
+          } else if (res && res.data && Array.isArray(res.data.data)) {
+            setGrammarList(res.data.data);
+          } else {
+            setGrammarList([]);
+          }
+        }
+      } catch (error) {
+        console.error("Lỗi lấy dữ liệu:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchData();
+  }, [activeLevel, activeSection]);
+
   const cfg = TOPIK_LEVELS.find(l => l.level === activeLevel);
 
-  const vocab = (VOCAB_DATA[activeLevel] || []).filter(v =>
-    !search || v.word.includes(search) || v.meaning.toLowerCase().includes(search.toLowerCase())
-  );
-  const grammar = GRAMMAR_DATA[activeLevel] || [];
+  const safeVocabList = Array.isArray(vocabList) ? vocabList : [];
+  const safeGrammarList = Array.isArray(grammarList) ? grammarList : [];
+
+  const filteredVocab = safeVocabList.filter(v => {
+    const word = v.word || v.wordKorean || v.name || "";
+    const meaning = v.meaning || v.meaningVietnamese || "";
+    return !search || word.includes(search) || meaning.toLowerCase().includes(search.toLowerCase());
+  });
+  
+  const isLocked = (lvl) => {
+    if (isVip) return false;
+    return lvl !== userLevelNum;
+  };
+
+  const handleLevelClick = (lvl) => {
+    if (isLocked(lvl)) {
+      alert("Bạn cần nâng cấp VIP để xem cấp độ này!");
+      return;
+    }
+    setActiveLevel(lvl);
+    setSearch("");
+  };
 
   return (
     <div className="space-y-6">
-      {/* Level selector */}
-      <div className="flex flex-wrap gap-2">
-        {TOPIK_LEVELS.map(l => (
-          <LevelPill key={l.level} lvl={l.level} active={activeLevel === l.level} onClick={() => { setActiveLevel(l.level); setSearch(""); }} />
-        ))}
+      {/* Selection toolbar (Dropdown select for levels, buttons for section) */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 bg-gray-50 rounded-2xl border border-gray-200/60">
+        <div className="flex items-center gap-3">
+          <label htmlFor="topik-level-select" className="text-xs font-bold text-gray-500 uppercase tracking-wide">
+            Cấp độ TOPIK:
+          </label>
+          <div className="relative">
+            <select
+              id="topik-level-select"
+              value={activeLevel}
+              onChange={(e) => handleLevelClick(Number(e.target.value))}
+              className="appearance-none pr-10 pl-4 py-2 bg-white border border-gray-200 rounded-xl text-sm font-extrabold text-gray-800 focus:border-[#1a7a3c] outline-none cursor-pointer transition-all shadow-none"
+              style={{ minWidth: "180px" }}
+            >
+              {TOPIK_LEVELS.map(l => (
+                <option key={l.level} value={l.level}>
+                  {l.badge} — {l.label} {isLocked(l.level) ? " 🔒 (VIP)" : ""}
+                </option>
+              ))}
+            </select>
+            <ChevronDown size={14} className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+          </div>
+        </div>
+
+        {/* Section Toggle */}
+        <div className="flex items-center gap-1.5 p-1 bg-white rounded-xl border border-gray-200/60">
+          {[{ id: "vocab", label: "Từ vựng", icon: BookOpen }, { id: "grammar", label: "Ngữ pháp", icon: Brain }].map(s => (
+            <button
+              key={s.id}
+              onClick={() => setActiveSection(s.id)}
+              className="flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-black transition-all"
+              style={{
+                background: activeSection === s.id ? cfg.color : "transparent",
+                color: activeSection === s.id ? "white" : "#6b7280"
+              }}
+            >
+              <s.icon size={13} />
+              {s.label}
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* Level info banner */}
-      <div className="flex items-center gap-3 px-5 py-3 rounded-2xl"
+      <div className="flex items-center gap-3 px-5 py-3.5 rounded-2xl"
         style={{ background: cfg.bg, border: `1px solid ${cfg.border}` }}>
         <div className="w-8 h-8 rounded-xl flex items-center justify-center font-black text-white text-sm" style={{ background: cfg.color }}>
           {cfg.level}
         </div>
         <div>
           <p className="font-black text-gray-900 text-sm">{cfg.label} — {cfg.badge}</p>
-          <p className="text-xs text-gray-500">{vocab.length} từ vựng · {grammar.length} cấu trúc ngữ pháp</p>
+          <p className="text-xs text-gray-500 mt-0.5">
+            {activeSection === "vocab" ? `${vocabList.length} từ vựng` : `${grammarList.length} cấu trúc ngữ pháp`}
+          </p>
         </div>
-      </div>
-
-      {/* Section toggle */}
-      <div className="flex items-center gap-2 p-1 bg-gray-100 rounded-2xl w-fit">
-        {[{ id: "vocab", label: "Từ vựng", icon: BookOpen }, { id: "grammar", label: "Ngữ pháp", icon: Brain }].map(s => (
-          <button key={s.id} onClick={() => setActiveSection(s.id)}
-            className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold transition-all"
-            style={{ background: activeSection === s.id ? "white" : "transparent", color: activeSection === s.id ? cfg.color : "#6b7280", boxShadow: activeSection === s.id ? "0 2px 8px rgba(0,0,0,0.08)" : "none" }}>
-            <s.icon size={15} />{s.label}
-          </button>
-        ))}
       </div>
 
       {/* VOCAB section */}
@@ -529,12 +623,14 @@ function VocabGrammarTab() {
           <div className="relative mb-4">
             <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
             <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Tìm từ vựng..."
-              className="w-full pl-10 pr-4 py-3 bg-white border border-gray-200 rounded-2xl text-sm font-medium outline-none focus:border-gray-400 transition-colors" />
+              className="w-full pl-10 pr-4 py-3 bg-white border border-gray-200/80 rounded-2xl text-sm font-medium outline-none focus:border-gray-300 transition-colors" />
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-            {vocab.map((v, i) => <VocabCard key={i} item={v} levelColor={cfg.color} />)}
+            {loading ? (
+               <div className="col-span-full py-10 text-center text-gray-400">Đang tải...</div>
+            ) : filteredVocab.map((v, i) => <VocabCard key={i} item={v} levelColor={cfg.color} />)}
           </div>
-          {vocab.length === 0 && (
+          {!loading && filteredVocab.length === 0 && (
             <div className="text-center py-12 text-gray-400">
               <Search size={40} className="mx-auto mb-3 opacity-30" />
               <p className="font-medium">Không tìm thấy từ vựng nào</p>
@@ -546,7 +642,14 @@ function VocabGrammarTab() {
       {/* GRAMMAR section */}
       {activeSection === "grammar" && (
         <div className="space-y-3">
-          {grammar.map((g, i) => <GrammarCard key={i} item={g} levelColor={cfg.color} />)}
+          {loading ? (
+             <div className="py-10 text-center text-gray-400">Đang tải...</div>
+          ) : safeGrammarList.map((g, i) => <GrammarCard key={i} item={g} levelColor={cfg.color} />)}
+          {!loading && safeGrammarList.length === 0 && (
+            <div className="text-center py-12 text-gray-400">
+              <p className="font-medium">Không tìm thấy ngữ pháp nào</p>
+            </div>
+          )}
         </div>
       )}
     </div>
@@ -555,7 +658,10 @@ function VocabGrammarTab() {
 
 // ── MOCK TEST TAB ────────────────────────────────────────────────
 function MockTestTab() {
-  const [selectedTest, setSelectedTest] = useState(null); // null | "topik1" | "topik2"
+  const [mockTests, setMockTests] = useState([]);
+  const [loadingTests, setLoadingTests] = useState(true);
+  
+  const [selectedTest, setSelectedTest] = useState(null); // Detailed test object
   const [phase, setPhase] = useState("lobby");             // lobby | reading | listening | result
   const [readingAnswers, setReadingAnswers] = useState({});
   const [listeningAnswers, setListeningAnswers] = useState({});
@@ -564,10 +670,32 @@ function MockTestTab() {
   const [timeLeft, setTimeLeft] = useState(0);
   const timerRef = useRef(null);
 
-  const test = selectedTest ? MOCK_TESTS[selectedTest] : null;
+  useEffect(() => {
+    const fetchTests = async () => {
+      try {
+        const res = await topikService.getMockTests();
+        setMockTests(res?.data || []);
+      } catch (err) {
+        console.error("Lỗi lấy đề thi:", err);
+      } finally {
+        setLoadingTests(false);
+      }
+    };
+    fetchTests();
+  }, []);
 
-  const startTest = (testId, section) => {
-    setSelectedTest(testId);
+  const test = selectedTest;
+
+  const startTest = async (testInfo, section) => {
+    try {
+      // Gọi API lấy chi tiết nếu cần thiết, ở đây tạm giả định getMockTestDetail
+      const detailRes = await topikService.getMockTestDetail(testInfo.id || testInfo._id || testInfo);
+      setSelectedTest(detailRes?.data || detailRes || testInfo);
+    } catch (err) {
+      console.error(err);
+      setSelectedTest(MOCK_TESTS[testInfo]); // Fallback
+    }
+
     setPhase(section);
     setReadingAnswers({});
     setListeningAnswers({});
@@ -589,8 +717,8 @@ function MockTestTab() {
 
   const calcScore = () => {
     if (!test) return { reading: 0, listening: 0, total: 0, rTotal: 0, lTotal: 0 };
-    const rTotal = test.reading.length;
-    const lTotal = test.listening.length;
+    const rTotal = test.reading?.length || 0;
+    const lTotal = test.listening?.length || 0;
     const rc = test.reading.filter((q, i) => readingAnswers[q.id] === q.answer).length;
     const lc = test.listening.filter((q, i) => listeningAnswers[q.id] === q.answer).length;
     return { reading: rc, listening: lc, total: rc + lc, rTotal, lTotal };
@@ -599,45 +727,44 @@ function MockTestTab() {
   // Lobby
   if (phase === "lobby") {
     return (
-      <div className="space-y-8">
-        <div className="px-5 py-4 rounded-2xl flex items-center gap-3"
-          style={{ background: "rgba(139,92,246,0.05)", border: "1px solid rgba(139,92,246,0.12)" }}>
+      <div className="space-y-6">
+        <div className="px-5 py-4 rounded-2xl flex items-center gap-3 bg-purple-50/20 border border-purple-200/50">
           <FileText size={18} style={{ color: "#8b5cf6" }} />
-          <p className="text-sm font-medium text-gray-600">Đề thi giả lập theo cấu trúc TOPIK chính thức. Mỗi phần có giới hạn thời gian và sẽ chấm điểm tự động.</p>
+          <p className="text-sm font-semibold text-gray-600">Đề thi giả lập theo cấu trúc TOPIK chính thức. Mỗi phần có giới hạn thời gian và sẽ chấm điểm tự động.</p>
         </div>
 
         {[
           { id: "topik1", label: "TOPIK I", desc: "Dành cho trình độ 1-2", color: "#22c55e", icon: "🌱", reading: "30 câu · 40 phút", listening: "30 câu · 30 phút" },
           { id: "topik2", label: "TOPIK II", desc: "Dành cho trình độ 3-6", color: "#8b5cf6", icon: "🏆", reading: "50 câu · 70 phút", listening: "50 câu · 60 phút" },
         ].map(t => (
-          <div key={t.id} className="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden">
-            <div className="h-1.5 w-full" style={{ background: `linear-gradient(90deg, ${t.color}, ${t.color}80)` }} />
-            <div className="p-6">
+          <div key={t.id} className="bg-white rounded-2xl border border-gray-200/80 overflow-hidden" style={{ boxShadow: "none" }}>
+            <div className="h-1 w-full" style={{ background: `linear-gradient(90deg, ${t.color}, ${t.color}80)` }} />
+            <div className="p-5">
               <div className="flex items-center gap-3 mb-4">
-                <span className="text-3xl">{t.icon}</span>
+                <span className="text-2xl">{t.icon}</span>
                 <div>
-                  <h3 className="font-extrabold text-gray-900 text-lg">{t.label}</h3>
-                  <p className="text-sm text-gray-500">{t.desc}</p>
+                  <h3 className="font-extrabold text-gray-900 text-base">{t.label}</h3>
+                  <p className="text-xs text-gray-500 font-semibold">{t.desc}</p>
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-3 mb-5">
+              <div className="grid grid-cols-2 gap-3 mb-1">
                 {[
                   { section: "reading", label: "Đọc hiểu (읽기)", icon: BookOpen, detail: t.reading },
                   { section: "listening", label: "Nghe hiểu (듣기)", icon: Headphones, detail: t.listening },
                 ].map(s => (
                   <button key={s.section} onClick={() => startTest(t.id, s.section)}
-                    className="flex flex-col items-start p-4 rounded-2xl text-left transition-all hover:-translate-y-0.5"
-                    style={{ background: `${t.color}08`, border: `1.5px solid ${t.color}30` }}
-                    onMouseEnter={e => e.currentTarget.style.boxShadow = `0 8px 20px ${t.color}20`}
-                    onMouseLeave={e => e.currentTarget.style.boxShadow = "none"}>
-                    <div className="flex items-center gap-2 mb-2">
-                      <s.icon size={16} style={{ color: t.color }} />
-                      <span className="text-xs font-black uppercase tracking-widest" style={{ color: t.color }}>{s.section === "reading" ? "Đọc" : "Nghe"}</span>
+                    className="flex flex-col items-start p-4 rounded-xl text-left transition-all bg-gray-50 border border-gray-200/60 hover:-translate-y-0"
+                    onMouseEnter={e => { e.currentTarget.style.background = `${t.color}0D`; e.currentTarget.style.borderColor = t.color; }}
+                    onMouseLeave={e => { e.currentTarget.style.background = "rgba(249,250,251,1)"; e.currentTarget.style.borderColor = "rgba(229,231,235,0.6)"; }}
+                  >
+                    <div className="flex items-center gap-1.5 mb-1.5">
+                      <s.icon size={14} style={{ color: t.color }} />
+                      <span className="text-[10px] font-black uppercase tracking-widest" style={{ color: t.color }}>{s.section === "reading" ? "Đọc" : "Nghe"}</span>
                     </div>
-                    <p className="font-bold text-gray-900 text-sm mb-1">{s.label}</p>
-                    <p className="text-xs text-gray-400">{s.detail}</p>
-                    <div className="mt-3 flex items-center gap-1 text-xs font-bold" style={{ color: t.color }}>
-                      <Play size={12} fill={t.color} /> Làm ngay
+                    <p className="font-extrabold text-gray-900 text-sm mb-0.5">{s.label}</p>
+                    <p className="text-[11px] text-gray-400 font-semibold">{s.detail}</p>
+                    <div className="mt-2.5 flex items-center gap-1 text-[11px] font-black" style={{ color: t.color }}>
+                      <Play size={10} fill={t.color} /> Làm ngay
                     </div>
                   </button>
                 ))}
@@ -654,16 +781,15 @@ function MockTestTab() {
     const { reading, listening, total, rTotal, lTotal } = calcScore();
     const pct = Math.round((total / (rTotal + lTotal)) * 100);
     return (
-      <div className="space-y-6">
-        <div className="text-center py-8 bg-white rounded-3xl border border-gray-100 shadow-sm">
-          <div className="w-20 h-20 rounded-3xl flex items-center justify-center mx-auto mb-4"
-            style={{ background: "linear-gradient(135deg,#1a7a3c,#22c55e)", boxShadow: "0 16px 48px rgba(26,122,60,0.3)" }}>
-            <Trophy size={40} className="text-white" />
+      <div className="space-y-4">
+        <div className="text-center py-8 bg-white rounded-2xl border border-gray-200/80" style={{ boxShadow: "none" }}>
+          <div className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4 bg-gradient-to-br from-green-600 to-emerald-500">
+            <Trophy size={32} className="text-white" />
           </div>
-          <h2 className="text-2xl font-extrabold text-gray-900 mb-1">Kết quả bài thi</h2>
-          <p className="text-gray-500">{test.title}</p>
-          <div className="text-5xl font-extrabold mt-4" style={{ color: pct >= 60 ? "#22c55e" : "#f97316" }}>{pct}%</div>
-          <p className="text-sm text-gray-400 mt-1">{total}/{rTotal + lTotal} câu đúng</p>
+          <h2 className="text-xl font-extrabold text-gray-900 mb-1">Kết quả bài thi</h2>
+          <p className="text-xs text-gray-500 font-semibold">{test.title}</p>
+          <div className="text-4xl font-extrabold mt-3" style={{ color: pct >= 60 ? "#1a7a3c" : "#f97316" }}>{pct}%</div>
+          <p className="text-xs text-gray-400 mt-1 font-bold">{total}/{rTotal + lTotal} câu đúng</p>
         </div>
 
         <div className="grid grid-cols-2 gap-4">
@@ -671,9 +797,9 @@ function MockTestTab() {
             { label: "Đọc hiểu", correct: reading, total: rTotal, color: "#3b82f6" },
             { label: "Nghe hiểu", correct: listening, total: lTotal, color: "#8b5cf6" },
           ].map(s => (
-            <div key={s.label} className="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm text-center">
-              <p className="text-xs font-black uppercase tracking-widest text-gray-400 mb-2">{s.label}</p>
-              <p className="text-3xl font-extrabold" style={{ color: s.color }}>{s.correct}<span className="text-lg text-gray-300">/{s.total}</span></p>
+            <div key={s.label} className="bg-white rounded-xl p-4 border border-gray-200/80 text-center" style={{ boxShadow: "none" }}>
+              <p className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-1">{s.label}</p>
+              <p className="text-2xl font-extrabold" style={{ color: s.color }}>{s.correct}<span className="text-sm text-gray-300">/{s.total}</span></p>
             </div>
           ))}
         </div>
@@ -683,42 +809,42 @@ function MockTestTab() {
           { questions: test.reading, answers: readingAnswers, label: "Đọc hiểu" },
           { questions: test.listening, answers: listeningAnswers, label: "Nghe hiểu" },
         ].map(section => (
-          <div key={section.label} className="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden">
-            <div className="px-6 py-4 border-b border-gray-50 flex items-center gap-2">
-              <ListOrdered size={18} className="text-gray-500" />
-              <h3 className="font-extrabold text-gray-900">Xem lại — {section.label}</h3>
+          <div key={section.label} className="bg-white rounded-2xl border border-gray-200/80 overflow-hidden" style={{ boxShadow: "none" }}>
+            <div className="px-5 py-3.5 border-b border-gray-100 flex items-center gap-2 bg-gray-50/50">
+              <ListOrdered size={16} className="text-gray-500" />
+              <h3 className="font-extrabold text-sm text-gray-900">Xem lại — {section.label}</h3>
             </div>
-            <div className="p-6 space-y-4">
+            <div className="p-5 space-y-4">
               {section.questions.map((q, i) => {
                 const userAns = section.answers[q.id];
                 const isRight = userAns === q.answer;
                 const isShowEx = showExplain[q.id];
                 return (
-                  <div key={q.id} className="p-4 rounded-2xl" style={{ background: isRight ? "rgba(34,197,94,0.05)" : "rgba(239,68,68,0.05)", border: `1.5px solid ${isRight ? "rgba(34,197,94,0.2)" : "rgba(239,68,68,0.2)"}` }}>
-                    <div className="flex items-start gap-3 mb-3">
-                      <div className={`w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 ${isRight ? "bg-green-100" : "bg-red-100"}`}>
-                        {isRight ? <Check size={13} className="text-green-600" /> : <X size={13} className="text-red-500" />}
+                  <div key={q.id} className="p-4 rounded-xl border border-gray-200/60" style={{ background: isRight ? "rgba(34,197,94,0.02)" : "rgba(239,68,68,0.02)", borderColor: isRight ? "rgba(34,197,94,0.15)" : "rgba(239,68,68,0.15)" }}>
+                    <div className="flex items-start gap-2.5 mb-2.5">
+                      <div className={`w-5.5 h-5.5 rounded-full flex items-center justify-center flex-shrink-0 ${isRight ? "bg-green-50 border border-green-200/50" : "bg-red-50 border border-red-200/50"}`}>
+                        {isRight ? <Check size={11} className="text-green-600" /> : <X size={11} className="text-red-500" />}
                       </div>
-                      <p className="text-sm font-bold text-gray-800">Câu {i + 1}: {q.question}</p>
+                      <p className="text-xs sm:text-sm font-bold text-gray-800">Câu {i + 1}: {q.question}</p>
                     </div>
-                    <div className="ml-9 space-y-1 mb-3">
+                    <div className="ml-8 space-y-1 mb-2.5">
                       {q.options.map((opt, oi) => (
-                        <div key={oi} className="flex items-center gap-2 text-xs px-3 py-1.5 rounded-xl"
+                        <div key={oi} className="flex items-center gap-2 text-xs px-2.5 py-1.5 rounded-lg"
                           style={{
-                            background: oi === q.answer ? "rgba(34,197,94,0.1)" : (oi === userAns && !isRight) ? "rgba(239,68,68,0.1)" : "transparent",
+                            background: oi === q.answer ? "rgba(34,197,94,0.08)" : (oi === userAns && !isRight) ? "rgba(239,68,68,0.08)" : "transparent",
                             color: oi === q.answer ? "#16a34a" : (oi === userAns && !isRight) ? "#dc2626" : "#6b7280",
                             fontWeight: oi === q.answer ? "700" : "500",
                           }}>
                           <span>{["①", "②", "③", "④"][oi]}</span> {opt}
-                          {oi === q.answer && <Check size={11} className="ml-auto" />}
+                          {oi === q.answer && <Check size={10} className="ml-auto" />}
                         </div>
                       ))}
                     </div>
                     <button onClick={() => setShowExplain(prev => ({ ...prev, [q.id]: !isShowEx }))}
-                      className="ml-9 text-xs font-bold text-blue-500 hover:text-blue-700">
+                      className="ml-8 text-xs font-bold text-blue-500 hover:text-blue-700">
                       {isShowEx ? "▲ Ẩn giải thích" : "▼ Xem giải thích"}
                     </button>
-                    {isShowEx && <p className="ml-9 mt-2 text-xs text-gray-600 bg-blue-50 p-3 rounded-xl">{q.explanation}</p>}
+                    {isShowEx && <p className="ml-8 mt-2 text-xs text-gray-600 bg-blue-50/50 p-3 rounded-lg border border-blue-100/50 leading-relaxed">{q.explanation}</p>}
                   </div>
                 );
               })}
@@ -727,8 +853,7 @@ function MockTestTab() {
         ))}
 
         <button onClick={() => { setPhase("lobby"); setSelectedTest(null); }}
-          className="w-full py-4 rounded-2xl font-bold text-white text-sm"
-          style={{ background: "linear-gradient(135deg,#1a7a3c,#22c55e)", boxShadow: "0 8px 24px rgba(26,122,60,0.25)" }}>
+          className="w-full py-3.5 rounded-xl font-bold text-white text-sm bg-gradient-to-r from-green-700 to-emerald-600 shadow-none hover:opacity-95 transition-all">
           ← Quay lại danh sách đề
         </button>
       </div>
@@ -753,7 +878,7 @@ function MockTestTab() {
     return (
       <div className="space-y-4">
         {/* Header */}
-        <div className="flex items-center justify-between bg-white rounded-2xl px-5 py-3 border border-gray-100 shadow-sm">
+        <div className="flex items-center justify-between bg-white rounded-xl px-5 py-3 border border-gray-200/80" style={{ boxShadow: "none" }}>
           <div className="flex items-center gap-3">
             {phase === "reading" ? <BookOpen size={18} className="text-blue-500" /> : <Headphones size={18} className="text-purple-500" />}
             <div>
@@ -761,20 +886,21 @@ function MockTestTab() {
               <p className="text-xs text-gray-400">{phase === "reading" ? "Đọc hiểu" : "Nghe hiểu"} · {answered}/{questions.length} đã trả lời</p>
             </div>
           </div>
-          <div className="flex items-center gap-2 px-4 py-2 rounded-2xl font-black text-sm"
-            style={{ background: isUrgent ? "rgba(239,68,68,0.1)" : "rgba(34,197,94,0.1)", color: isUrgent ? "#dc2626" : "#16a34a", border: `2px solid ${isUrgent ? "rgba(239,68,68,0.2)" : "rgba(34,197,94,0.2)"}` }}>
-            <Clock size={14} /> {formatTime(timeLeft)}
+          <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl font-black text-xs sm:text-sm border border-gray-200 bg-gray-50/80"
+            style={{ color: isUrgent ? "#dc2626" : "#1a7a3c" }}>
+            <Clock size={13} /> {formatTime(timeLeft)}
           </div>
         </div>
 
         {/* Progress dots */}
-        <div className="flex flex-wrap gap-1.5">
+        <div className="flex flex-wrap gap-1 bg-white p-3 rounded-xl border border-gray-200/80">
           {questions.map((qq, i) => (
             <button key={i} onClick={() => setCurrentQ(i)}
-              className="w-7 h-7 rounded-lg text-[10px] font-black transition-all"
+              className="w-7.5 h-7.5 rounded-lg text-[10px] font-black transition-all border"
               style={{
-                background: i === currentQ ? "#1a7a3c" : answers[qq.id] !== undefined ? "rgba(26,122,60,0.15)" : "#f3f4f6",
+                background: i === currentQ ? "#1a7a3c" : answers[qq.id] !== undefined ? "rgba(26,122,60,0.06)" : "white",
                 color: i === currentQ ? "white" : answers[qq.id] !== undefined ? "#1a7a3c" : "#9ca3af",
+                borderColor: i === currentQ ? "#1a7a3c" : answers[qq.id] !== undefined ? "rgba(26,122,60,0.2)" : "rgba(229,231,235,0.7)"
               }}>
               {i + 1}
             </button>
@@ -782,42 +908,39 @@ function MockTestTab() {
         </div>
 
         {/* Question card */}
-        <div className="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden">
+        <div className="bg-white rounded-2xl border border-gray-200/80 overflow-hidden" style={{ boxShadow: "none" }}>
           {showInstruction && q.instruction && (
-            <div className="px-6 py-3 bg-gray-50 border-b border-gray-100">
+            <div className="px-5 py-2.5 bg-gray-50 border-b border-gray-100">
               <p className="text-xs font-bold text-gray-500">{q.instruction}</p>
             </div>
           )}
 
-          <div className="p-6 space-y-4">
+          <div className="p-5 space-y-4">
             {/* Passage / Image */}
             {showPassage && q.passage && (
-              <div className="p-4 rounded-2xl text-sm leading-relaxed text-gray-700 font-medium"
-                style={{ background: "rgba(59,130,246,0.04)", border: "1px solid rgba(59,130,246,0.1)" }}>
+              <div className="p-4 rounded-xl text-xs sm:text-sm leading-relaxed text-gray-700 font-medium bg-blue-50/30 border border-blue-100/50">
                 {q.passage}
               </div>
             )}
             {q.image && (
-              <div className="p-4 rounded-2xl text-sm font-medium text-center"
-                style={{ background: "rgba(249,115,22,0.05)", border: "1px solid rgba(249,115,22,0.15)" }}>
+              <div className="p-4 rounded-xl text-xs sm:text-sm font-semibold text-center bg-orange-50/30 border border-orange-100/50">
                 {q.image}
               </div>
             )}
 
             {/* Script for listening */}
             {showScript && q.script && (
-              <div className="p-4 rounded-2xl"
-                style={{ background: "rgba(139,92,246,0.05)", border: "1px solid rgba(139,92,246,0.15)" }}>
+              <div className="p-4 rounded-xl bg-purple-50/20 border border-purple-100/50">
                 <div className="flex items-center gap-2 mb-2">
-                  <Volume2 size={14} className="text-purple-500" />
-                  <span className="text-[10px] font-black uppercase tracking-widest text-purple-500">대화 스크립트 (Script)</span>
+                  <Volume2 size={13} className="text-purple-500" />
+                  <span className="text-[9px] font-black uppercase tracking-widest text-purple-500">대화 스크립트 (Script)</span>
                 </div>
-                <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-line font-medium">{q.script}</p>
+                <p className="text-xs sm:text-sm text-gray-700 leading-relaxed whitespace-pre-line font-semibold">{q.script}</p>
               </div>
             )}
 
             {/* Question */}
-            <p className="font-bold text-gray-900">{currentQ + 1}. {q.question}</p>
+            <p className="font-bold text-sm sm:text-base text-gray-900">{currentQ + 1}. {q.question}</p>
 
             {/* Options */}
             <div className="space-y-2">
@@ -826,14 +949,13 @@ function MockTestTab() {
                 const isSelected = userAns === oi;
                 return (
                   <button key={oi} onClick={() => setAnswers(prev => ({ ...prev, [q.id]: oi }))}
-                    className="w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl text-sm font-semibold text-left transition-all duration-200"
+                    className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-xs sm:text-sm font-bold text-left transition-all duration-200"
                     style={{
-                      background: isSelected ? "rgba(26,122,60,0.08)" : "rgba(0,0,0,0.02)",
-                      border: isSelected ? "2px solid rgba(26,122,60,0.4)" : "1.5px solid rgba(0,0,0,0.06)",
-                      color: isSelected ? "#1a7a3c" : "#374151",
-                      transform: isSelected ? "scale(1.005)" : "scale(1)",
+                      background: isSelected ? "rgba(26,122,60,0.06)" : "white",
+                      border: isSelected ? "1.5px solid #1a7a3c" : "1.5px solid rgba(229,231,235,0.8)",
+                      color: isSelected ? "#1a7a3c" : "#374151"
                     }}>
-                    <span className="w-7 h-7 rounded-xl flex-shrink-0 flex items-center justify-center text-xs font-black"
+                    <span className="w-6.5 h-6.5 rounded-lg flex-shrink-0 flex items-center justify-center text-[10px] font-black"
                       style={{ background: isSelected ? "#1a7a3c" : "#f3f4f6", color: isSelected ? "white" : "#6b7280" }}>
                       {["①", "②", "③", "④"][oi]}
                     </span>
@@ -848,21 +970,19 @@ function MockTestTab() {
         {/* Navigation */}
         <div className="flex gap-3">
           <button onClick={() => setCurrentQ(q => Math.max(0, q - 1))} disabled={currentQ === 0}
-            className="flex items-center gap-2 px-5 py-3 rounded-2xl font-bold text-sm bg-white border border-gray-200 text-gray-500 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-all">
-            <ChevronLeft size={16} /> Câu trước
+            className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl font-bold text-xs sm:text-sm bg-white border border-gray-200 text-gray-500 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-all">
+            <ChevronLeft size={14} /> Câu trước
           </button>
           <div className="flex-1" />
           {currentQ < questions.length - 1 ? (
             <button onClick={() => setCurrentQ(q => Math.min(questions.length - 1, q + 1))}
-              className="flex items-center gap-2 px-6 py-3 rounded-2xl font-bold text-sm text-white transition-all"
-              style={{ background: "linear-gradient(135deg,#1a7a3c,#22c55e)", boxShadow: "0 4px 16px rgba(26,122,60,0.25)" }}>
-              Câu tiếp <ChevronRight size={16} />
+              className="flex items-center gap-1.5 px-5 py-2.5 rounded-xl font-bold text-xs sm:text-sm text-white transition-all bg-[#1a7a3c] hover:opacity-95 shadow-none">
+              Câu tiếp <ChevronRight size={14} />
             </button>
           ) : (
             <button onClick={() => { clearInterval(timerRef.current); setPhase("result"); }}
-              className="flex items-center gap-2 px-6 py-3 rounded-2xl font-bold text-sm text-white transition-all"
-              style={{ background: "linear-gradient(135deg,#f97316,#ef4444)", boxShadow: "0 4px 16px rgba(249,115,22,0.25)" }}>
-              <CheckCircle2 size={16} /> Nộp bài
+              className="flex items-center gap-1.5 px-5 py-2.5 rounded-xl font-bold text-xs sm:text-sm text-white transition-all bg-gradient-to-r from-orange-600 to-red-500 shadow-none hover:opacity-95">
+              <CheckCircle2 size={14} /> Nộp bài
             </button>
           )}
         </div>
@@ -920,7 +1040,8 @@ export default function TopikPrepPage() {
             style={{
               background: activeTab === t.id ? "white" : "transparent",
               color: activeTab === t.id ? "#1a7a3c" : "#6b7280",
-              boxShadow: activeTab === t.id ? "0 2px 12px rgba(0,0,0,0.08)" : "none",
+              boxShadow: activeTab === t.id ? "none" : "none",
+              border: activeTab === t.id ? "1px solid rgba(0,0,0,0.06)" : "1px solid transparent"
             }}>
             <t.icon size={16} /> {t.label}
           </button>

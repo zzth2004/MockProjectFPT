@@ -368,8 +368,8 @@ export default function AiSupportConsole() {
 
           {/* Nội dung tin nhắn */}
           <div className="flex flex-col gap-2">
-            <div className={`p-4 rounded-[2rem] shadow-sm border ${isAi
-              ? "bg-white border-gray-100 rounded-tl-none text-gray-800"
+            <div className={`p-4 rounded-2xl border ${isAi
+              ? "bg-white border-gray-200 rounded-tl-none text-gray-800"
               : "bg-[#377437] border-[#377437] rounded-tr-none text-white"
               }`}>
               <p className="text-sm font-medium leading-relaxed whitespace-pre-wrap">
@@ -420,7 +420,7 @@ export default function AiSupportConsole() {
     `}</style>
 
       {/* --- CỘT 1: SIDEBAR --- */}
-      <aside className="w-72 bg-white rounded-[2.5rem] shadow-sm border border-gray-100 flex flex-col p-6 flex-shrink-0">
+      <aside className="w-72 bg-white rounded-2xl border border-gray-200 flex flex-col p-6 flex-shrink-0">
         <div className="mb-10 px-2">
           <h2 className="text-2xl font-black text-gray-900 tracking-tighter uppercase italic">AICHAT</h2>
           <p className="text-[10px] font-bold text-gray-400 mt-1 uppercase tracking-widest">Support System {error && " - Error!"}</p>
@@ -438,8 +438,8 @@ export default function AiSupportConsole() {
                 setInputText(""); // ✅ Thêm: Clear input
                 clearTranscript(); // ✅ Thêm: Clear transcript
               }}
-              className={`w-full flex items-center justify-between p-4 rounded-2xl transition-all group
-                ${activeMode === mode.id ? "bg-green-50 text-[#377437] shadow-sm" : "text-gray-500 hover:bg-gray-50"}`}
+              className={`w-full flex items-center justify-between p-4 rounded-xl transition-all group border ${
+                activeMode === mode.id ? "bg-green-50/50 text-[#377437] border-green-200" : "text-gray-500 hover:bg-gray-50 border-transparent hover:border-gray-200"}`}
             >
               <div className="flex items-center gap-3">
                 <div className={`p-2 rounded-xl transition-colors ${activeMode === mode.id ? "bg-[#377437] text-white" : "bg-gray-50 text-gray-400 group-hover:text-[#377437]"}`}>
@@ -456,7 +456,7 @@ export default function AiSupportConsole() {
       </aside>
 
       {/* --- CỘT 2: KHUNG CHÍNH --- */}
-      <main className="flex-1 bg-white rounded-[2.5rem] shadow-sm border border-gray-100 flex flex-col overflow-hidden relative">
+      <main className="flex-1 bg-white rounded-2xl border border-gray-200 flex flex-col overflow-hidden relative">
         <div className="px-10 py-6 border-b border-gray-50 flex items-center justify-between bg-white/50 backdrop-blur-sm z-10 space-between">
           <div className="flex items-center gap-4">
             <div className="w-12 h-12 bg-green-100 rounded-2xl flex items-center justify-center">
@@ -506,7 +506,7 @@ export default function AiSupportConsole() {
                       /* Trạng thái chờ */
                       <div className="space-y-4">
                         {lessonsentence && (
-                          <div className="bg-green-50/50 p-6 rounded-[2rem] border border-green-100/50">
+                          <div className="bg-green-50/50 p-6 rounded-2xl border border-green-200/50">
                             <p className="text-[10px] uppercase font-black text-[#377437] mb-2 tracking-widest opacity-60">Mẫu câu cần đọc:</p>
                             <p className="text-2xl font-black text-[#377437] leading-tight">{lessonsentence}</p>
                           </div>
@@ -519,9 +519,9 @@ export default function AiSupportConsole() {
                   </div>
                 </div>
 
-                <div className={`w-32 h-32 rounded-full flex items-center justify-center shadow-xl transition-all duration-500 
-                  ${isListening ? 'bg-red-50 text-red-500 scale-110 shadow-red-100' :
-                    isSpeaking ? 'bg-blue-50 text-blue-600 scale-105 shadow-blue-100' : 'bg-green-50 text-[#377437]'}`}>
+                <div className={`w-32 h-32 rounded-full flex items-center justify-center border-2 transition-all duration-500 
+                  ${isListening ? 'bg-red-50 border-red-200 text-red-500 scale-105' :
+                    isSpeaking ? 'bg-blue-50 border-blue-200 text-blue-600 scale-102' : 'bg-green-50 border-green-200 text-[#377437]'}`}>
                   <Volume2 size={56} className={isListening || isSpeaking ? 'animate-pulse' : 'animate-bounce'} />
                 </div>
 
@@ -542,7 +542,7 @@ export default function AiSupportConsole() {
                 {lastAiResponse && (
                   <div className="w-full max-w-2xl bg-green-50 p-6 rounded-2xl border border-green-100">
                     {lastAiResponse && (
-                      <div className="bg-white p-6 rounded-[2.5rem] border border-gray-100 shadow-xl shadow-green-100/20 animate-in zoom-in duration-500">
+                      <div className="bg-white p-6 rounded-2xl border border-gray-200 animate-in zoom-in duration-500">
                         <div className="flex items-center justify-center gap-2 mb-3">
                           <Sparkles size={16} className="text-[#377437]" />
                           <span className="text-[10px] font-black text-[#377437] uppercase tracking-widest">AI Analysis</span>
@@ -584,7 +584,7 @@ export default function AiSupportConsole() {
                   {/* Glow hiệu ứng nền mờ ảo cho tầng 1 */}
                   <div className="absolute -inset-1 bg-gradient-to-r from-green-100/10 to-emerald-100/10 rounded-[2rem] blur-lg opacity-50"></div>
 
-                  <div className="relative flex flex-wrap items-center justify-between gap-4 bg-white/60 backdrop-blur-xl border border-white/80 shadow-sm px-6 py-3 rounded-[2rem]">
+                  <div className="relative flex flex-wrap items-center justify-between gap-4 bg-white/60 backdrop-blur-xl border border-gray-200 px-6 py-3 rounded-2xl">
 
                     {/* Badge Trạng thái */}
                     <div className="flex items-center gap-3 px-4 py-2 bg-white/90 rounded-2xl border border-gray-100 shadow-sm">
@@ -619,7 +619,7 @@ export default function AiSupportConsole() {
 
                 {/* TẦNG 2: LANGUAGE SELECTORS */}
                 <div className="relative w-full max-w-[90%]"> {/* Tầng 2 hơi hẹp hơn tầng 1 để tạo hình khối đẹp */}
-                  <div className="relative flex items-center justify-center gap-8 bg-white/40 backdrop-blur-2xl border border-white/40 shadow-xl shadow-gray-200/20 px-10 py-3 rounded-[2.5rem]">
+                  <div className="relative flex items-center justify-center gap-8 bg-white/40 backdrop-blur-2xl border border-gray-200 px-10 py-3 rounded-2xl">
 
                     {/* Lựa chọn: Tôi nói */}
                     <div className="flex items-center gap-4 group/item">
@@ -677,10 +677,10 @@ export default function AiSupportConsole() {
 
                     <button
                       onClick={toggleListening}
-                      className={`relative z-10 w-28 h-28 rounded-[2.5rem] flex items-center justify-center transition-all duration-500 
+                      className={`relative z-10 w-28 h-28 rounded-2xl flex items-center justify-center transition-all duration-500 border-2 
           ${isListening
-                          ? "bg-red-500 text-white shadow-[0_20px_50px_rgba(239,68,68,0.3)] scale-110"
-                          : "bg-white text-[#377437] shadow-[0_20px_50px_rgba(0,0,0,0.08)] hover:shadow-[0_20px_50px_rgba(55,116,55,0.15)] active:scale-95 border border-gray-100"
+                          ? "bg-red-500 border-red-600 text-white scale-105"
+                          : "bg-white text-[#377437] hover:bg-gray-50 active:scale-95 border-gray-200"
                         }`}
                     >
                       {isListening
@@ -742,8 +742,8 @@ export default function AiSupportConsole() {
         {/* --- INPUT BAR CHO CÁC MODE CÒN LẠI --- */}
         {activeMode !== "PRONUNCIATION" && (
           <div className="absolute bottom-10 left-10 right-10 z-20">
-            <div className={`bg-gray-100/90 hover:backdrop-blur-md rounded-[2.5rem] p-3 flex items-center gap-3 border transition-all duration-300 hover:shadow-2xl
-                    ${isListening ? 'border-red-500 shadow-red-100 bg-white' : 'border-gray-200 focus-within:bg-white focus-within:border-[#377437]'}`}>
+            <div className={`bg-gray-100/90 hover:backdrop-blur-md rounded-2xl p-3 flex items-center gap-3 border transition-all duration-300
+                    ${isListening ? 'border-red-500 bg-white' : 'border-gray-200 focus-within:bg-white focus-within:border-[#377437]'}`}>
 
               <button
                 onClick={toggleListening}

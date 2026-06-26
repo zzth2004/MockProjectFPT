@@ -56,6 +56,24 @@ function ConfettiAnimation() {
   );
 }
 
+const getGlobalStarredCards = () => {
+  try {
+    const saved = localStorage.getItem("starred_flashcards_data");
+    return saved ? JSON.parse(saved) : [];
+  } catch (err) {
+    console.error("Lỗi đọc global starred cards:", err);
+    return [];
+  }
+};
+
+const saveGlobalStarredCards = (cards) => {
+  try {
+    localStorage.setItem("starred_flashcards_data", JSON.stringify(cards));
+  } catch (err) {
+    console.error("Lỗi lưu global starred cards:", err);
+  }
+};
+
 export default function StudyFlashcard() {
   const { setId } = useParams();
   const navigate = useNavigate();
@@ -70,7 +88,7 @@ export default function StudyFlashcard() {
   const [starredIds, setStarredIds] = useState(new Set());
   const [showConfetti, setShowConfetti] = useState(false);
   const [isTransitioning, setIsTransitioning] = useState(false);
-  
+
   useEffect(() => {
     fetchDueCards();
   }, [setId]);
@@ -78,20 +96,35 @@ export default function StudyFlashcard() {
   const fetchDueCards = async () => {
     setIsLoading(true);
     try {
-      const data = await flashcardService.getDueCards(setId);
+      let data = [];
+      if (setId === "starred") {
+        data = getGlobalStarredCards();
+      } else {
+        data = await flashcardService.getDueCards(setId);
+      }
       setFlashcards(data || []);
       if (!data || data.length === 0) {
         setIsFinished(true);
       }
-      
-      // Fetch starred cards
+
+      // Fetch starred cards from LocalStorage (FE-only flow)
       try {
-        const starred = await flashcardService.getStarredFlashcards(setId);
-        if (starred && Array.isArray(starred)) {
-          setStarredIds(new Set(starred));
+        if (setId === "starred") {
+          const ids = (data || []).map(c => c.id);
+          setStarredIds(new Set(ids));
+        } else {
+          const savedStarred = localStorage.getItem(`starred_flashcards_set_${setId}`);
+          if (savedStarred) {
+            const starredArr = JSON.parse(savedStarred);
+            if (Array.isArray(starredArr)) {
+              setStarredIds(new Set(starredArr));
+            }
+          } else {
+            setStarredIds(new Set());
+          }
         }
       } catch (err) {
-        console.error("Không thể tải danh sách thẻ đã gắn sao:", err);
+        console.error("Không thể tải danh sách thẻ đã gắn sao từ LocalStorage:", err);
       }
     } catch (err) {
       console.error("Lỗi khi tải flashcard:", err);
@@ -107,32 +140,38 @@ export default function StudyFlashcard() {
   const progress = ((currentIndex + 1) / flashcards.length) * 100;
   const isStarred = starredIds.has(card?.id);
 
-  // ── Toggle star ──
-  const toggleStar = async (e) => {
+  // ── Toggle star (FE-only flow) ──
+  const toggleStar = (e) => {
     e.stopPropagation();
     if (!card) return;
-    
-    // Optimistic UI update
-    const currentIsStarred = isStarred;
+
     setStarredIds((prev) => {
       const next = new Set(prev);
-      if (currentIsStarred) next.delete(card.id);
-      else next.add(card.id);
+      const isCurrentlyStarred = next.has(card.id);
+
+      if (isCurrentlyStarred) {
+        next.delete(card.id);
+        const currentStarred = getGlobalStarredCards();
+        const updatedStarred = currentStarred.filter(c => c.id !== card.id);
+        saveGlobalStarredCards(updatedStarred);
+      } else {
+        next.add(card.id);
+        const currentStarred = getGlobalStarredCards();
+        if (!currentStarred.some(c => c.id === card.id)) {
+          currentStarred.push({ ...card, progress: card.progress || 0 });
+          saveGlobalStarredCards(currentStarred);
+        }
+      }
+
+      // Persist to LocalStorage for current deck
+      try {
+        localStorage.setItem(`starred_flashcards_set_${setId}`, JSON.stringify(Array.from(next)));
+      } catch (err) {
+        console.error("Không thể lưu trạng thái gắn sao vào LocalStorage:", err);
+      }
+
       return next;
     });
-
-    try {
-      await flashcardService.toggleStar(card.id);
-    } catch (err) {
-      console.error("Lỗi khi gắn sao:", err);
-      // Revert optimistic update
-      setStarredIds((prev) => {
-        const next = new Set(prev);
-        if (currentIsStarred) next.add(card.id);
-        else next.delete(card.id);
-        return next;
-      });
-    }
   };
 
   // ── Flip card ──
@@ -146,12 +185,27 @@ export default function StudyFlashcard() {
   const handleManualNext = useCallback(async () => {
     if (isTransitioning) return;
     setIsTransitioning(true);
-    
+
     if (card) {
-      try {
-        await flashcardService.submitReview(card.id, 4); // Default to 'Good'
-      } catch (err) {
-        console.error("Lỗi cập nhật tiến độ:", err);
+      if (setId === "starred") {
+        try {
+          const currentStarred = getGlobalStarredCards();
+          const updatedStarred = currentStarred.map((c) => {
+            if (c.id === card.id) {
+              return { ...c, progress: Math.min((c.progress || 0) + 25, 100) };
+            }
+            return c;
+          });
+          saveGlobalStarredCards(updatedStarred);
+        } catch (err) {
+          console.error("Lỗi cập nhật tiến độ local:", err);
+        }
+      } else {
+        try {
+          await flashcardService.submitReview(card.id, 4); // Default to 'Good'
+        } catch (err) {
+          console.error("Lỗi cập nhật tiến độ:", err);
+        }
       }
     }
 
@@ -168,7 +222,7 @@ export default function StudyFlashcard() {
         setIsTransitioning(false);
       }, 200);
     }, 150);
-  }, [currentIndex, flashcards.length, isTransitioning, card]);
+  }, [currentIndex, flashcards.length, isTransitioning, card, setId]);
 
   const handleManualPrev = useCallback(() => {
     if (isTransitioning || currentIndex === 0) return;
@@ -280,7 +334,7 @@ export default function StudyFlashcard() {
   // ─────────────────────────────────────────────────────────────────
   // MAIN STUDY SCREEN
   // ─────────────────────────────────────────────────────────────────
-  
+
   if (isLoading) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center font-sans relative" style={{ background: "linear-gradient(180deg, #f8faff 0%, #f0f4f8 100%)" }}>
@@ -381,8 +435,8 @@ export default function StudyFlashcard() {
 
         {/* CARD */}
         <div
-          className="flashcard-scene w-full max-w-2xl mb-8"
-          style={{ height: "clamp(280px, 40vh, 360px)" }}
+          className="flashcard-scene w-full max-w-[360px] mb-8"
+          style={{ height: "clamp(460px, 65vh, 540px)" }}
         >
           <div
             className={`flashcard-inner ${isFlipped ? "is-flipped" : ""}`}
@@ -418,13 +472,13 @@ export default function StudyFlashcard() {
               {/* Korean word */}
               <div className="absolute inset-0 flex flex-col items-center justify-center px-8">
                 <p
-                  className="text-5xl sm:text-6xl font-extrabold text-gray-900 text-center leading-none mb-4 tracking-tight"
+                  className="text-3xl sm:text-4xl font-extrabold text-gray-900 text-center leading-none mb-3 tracking-tight"
                   style={{ letterSpacing: "-0.02em" }}
                 >
                   {card?.frontText || card?.front || ""}
                 </p>
                 {card?.romanization && (
-                  <p className="text-base text-gray-400 font-medium italic">
+                  <p className="text-sm text-gray-400 font-medium italic">
                     {card?.romanization}
                   </p>
                 )}
@@ -479,21 +533,21 @@ export default function StudyFlashcard() {
 
               {/* Meaning */}
               <div className="absolute inset-0 flex flex-col items-center justify-center px-8 gap-4 z-10">
-                <p className="text-4xl sm:text-5xl font-extrabold text-gray-900 text-center leading-none tracking-tight">
+                <p className="text-2xl sm:text-3xl font-extrabold text-gray-900 text-center leading-none tracking-tight">
                   {card?.backText || card?.back || ""}
                 </p>
 
                 {/* Example sentence */}
                 {card?.example && (
                   <div
-                    className="mt-4 px-5 py-3.5 rounded-2xl max-w-[90%] text-center"
+                    className="mt-4 px-4 py-3 rounded-2xl max-w-[90%] text-center"
                     style={{ background: "rgba(0,0,0,0.03)", border: "1px solid rgba(0,0,0,0.05)" }}
                   >
-                    <p className="text-sm font-medium text-gray-700 italic mb-1">
+                    <p className="text-xs sm:text-sm font-medium text-gray-700 italic mb-1">
                       "{card?.example}"
                     </p>
                     {card?.exampleTrans && (
-                      <p className="text-xs text-gray-400 font-medium">
+                      <p className="text-[11px] sm:text-xs text-gray-400 font-medium">
                         {card?.exampleTrans}
                       </p>
                     )}
@@ -508,24 +562,24 @@ export default function StudyFlashcard() {
 
 
         {/* ── MANUAL NAVIGATION BAR ── */}
-        <div className="w-full max-w-2xl flex justify-between items-center mt-6 gap-4 px-2">
-            <button
-              onClick={handleManualPrev}
-              disabled={currentIndex === 0 || isTransitioning}
-              className="flex items-center gap-2 px-5 py-3 rounded-xl font-bold text-gray-500 bg-white border border-gray-200 hover:bg-gray-50 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              <ChevronLeft size={18} />
-              Trước
-            </button>
+        <div className="w-full max-w-[360px] flex justify-between items-center mt-6 gap-4 px-2">
+          <button
+            onClick={handleManualPrev}
+            disabled={currentIndex === 0 || isTransitioning}
+            className="flex items-center gap-2 px-5 py-3 rounded-xl font-bold text-gray-500 bg-white border border-gray-200 hover:bg-gray-50 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <ChevronLeft size={18} />
+            Trước
+          </button>
 
-            <button
-              onClick={handleManualNext}
-              disabled={isTransitioning}
-              className="flex items-center gap-2 px-5 py-3 rounded-xl font-bold text-gray-500 bg-white border border-gray-200 hover:bg-gray-50 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {currentIndex < flashcards.length - 1 ? "Tiếp" : "Hoàn thành"}
-              <ChevronRight size={18} />
-            </button>
+          <button
+            onClick={handleManualNext}
+            disabled={isTransitioning}
+            className="flex items-center gap-2 px-5 py-3 rounded-xl font-bold text-gray-500 bg-white border border-gray-200 hover:bg-gray-50 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {currentIndex < flashcards.length - 1 ? "Tiếp" : "Hoàn thành"}
+            <ChevronRight size={18} />
+          </button>
         </div>
 
       </div>

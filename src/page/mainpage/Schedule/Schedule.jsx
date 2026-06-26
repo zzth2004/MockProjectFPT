@@ -179,7 +179,7 @@ const Schedule = () => {
           </div>
         </div>
 
-        <div className="flex items-center gap-4 bg-white px-4 py-2 rounded-xl shadow-sm border border-gray-100">
+        <div className="flex items-center gap-4 bg-white px-4 py-2 rounded-xl border border-gray-250">
           <button onClick={() => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1))} className="p-2 hover:bg-gray-100 rounded-full transition-colors"><ChevronLeft size={20} /></button>
           <span className="text-lg font-black text-gray-800 min-w-[140px] text-center uppercase tracking-tighter">
             {currentDate.toLocaleDateString('vi-VN', { month: 'long', year: 'numeric' })}
@@ -189,7 +189,7 @@ const Schedule = () => {
       </div>
 
       {/* --- CALENDAR GRID --- */}
-      <div className="bg-white rounded-[2.5rem] p-6 shadow-sm border border-gray-100">
+      <div className="bg-white rounded-2xl p-6 border border-gray-200">
         <div className="grid grid-cols-7 mb-4">
           {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map((day, i) => (
             <div key={day} className={`text-center font-black text-xs uppercase tracking-widest ${i >= 5 ? 'text-red-400' : 'text-gray-400'}`}>{day}</div>
@@ -197,7 +197,7 @@ const Schedule = () => {
         </div>
 
         <div className="grid grid-cols-7 gap-2 md:gap-4">
-          {Array.from({ length: firstDayIndex }).map((_, i) => <div key={`empty-${i}`} className="h-28 md:h-36 bg-gray-50/50 rounded-3xl"></div>)}
+          {Array.from({ length: firstDayIndex }).map((_, i) => <div key={`empty-${i}`} className="h-28 md:h-36 bg-gray-50/50 rounded-2xl border border-gray-100/50"></div>)}
 
           {Array.from({ length: days }).map((_, i) => {
             const day = i + 1;
@@ -213,7 +213,7 @@ const Schedule = () => {
               <div
                 key={day}
                 onClick={() => handleDayClick(dateObj)}
-                className={`h-28 md:h-36 rounded-3xl border-2 p-2 flex flex-col gap-1 transition-all cursor-pointer hover:shadow-lg hover:-translate-y-1 ${isToday ? 'bg-green-50/40 border-[#377437]' : 'bg-white border-transparent hover:border-green-200'}`}
+                className={`h-28 md:h-36 rounded-2xl border p-2 flex flex-col gap-1 transition-all cursor-pointer ${isToday ? 'bg-green-50/40 border-[#377437]' : 'bg-white border-gray-100 hover:border-green-200 hover:bg-gray-50/30'}`}
               >
                 <div className="flex justify-between items-start mb-1">
                   <span className={`w-7 h-7 flex items-center justify-center rounded-xl text-sm font-black ${isToday ? 'bg-[#377437] text-white' : 'text-gray-400'}`}>{day}</span>
@@ -234,8 +234,8 @@ const Schedule = () => {
 
       {/* --- DAY DETAIL MODAL --- */}
       {isModalOpen && selectedDate && (
-        <div className="fixed inset-0 bg-black/40 z-[9999] flex items-center justify-center p-4 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="bg-white rounded-[3rem] w-full max-w-lg shadow-2xl overflow-hidden flex flex-col max-h-[85vh] border border-white">
+        <div className="fixed inset-0 bg-black/45 z-[9999] flex items-center justify-center p-4 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-white rounded-2xl w-full max-w-lg overflow-hidden flex flex-col max-h-[85vh] border border-gray-200">
 
             <div className="bg-[#377437] p-8 text-white flex justify-between items-start shrink-0">
               <div>
@@ -263,7 +263,7 @@ const Schedule = () => {
                     return (
                       <div key={ev.id} className="flex gap-4 items-center group">
                         <div className="w-14 text-right shrink-0 font-black text-[11px] text-gray-400 uppercase">{time}</div>
-                        <div className={`flex-1 p-4 rounded-3xl border-2 flex items-center justify-between gap-3 transition-all duration-500 ${glowing ? 'bg-white border-green-500 shadow-[0_0_20px_rgba(34,197,94,0.3)] animate-pulse scale-[1.02]' : 'bg-green-50/50 border-green-100'}`}>
+                        <div className={`flex-1 p-4 rounded-2xl border flex items-center justify-between gap-3 transition-all duration-500 ${glowing ? 'bg-white border-green-600 ring-1 ring-green-600 scale-[1.01]' : 'bg-green-50/30 border-green-200/80'}`}>
                           <div className="flex items-center gap-3">
                             <div className="p-2.5 bg-white rounded-2xl shadow-sm text-[#377437]">{ev.meetLink ? <Video size={18} /> : <CalendarIcon size={18} />}</div>
                             <div>
@@ -338,7 +338,7 @@ const Schedule = () => {
 
                 {/* Toggle Meet */}
                 {isConnected && (
-                  <div className="flex items-center justify-between bg-white/50 p-3 rounded-2xl border border-white">
+                  <div className="flex items-center justify-between bg-white/50 p-3 rounded-xl border border-gray-200">
                     <label className="flex items-center gap-3 cursor-pointer group">
                       <div
                         onClick={() => setUseMeet(!useMeet)}

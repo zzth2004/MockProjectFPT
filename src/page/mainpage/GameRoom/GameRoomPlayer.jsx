@@ -3,7 +3,7 @@ import { useSearchParams, useNavigate } from "react-router-dom";
 import { io } from "socket.io-client";
 import { useAuth } from "../../../context/authContext";
 
-const SOCKET_URL = "http://localhost:3000/game-room";
+const SOCKET_URL = "https://0087-171-225-184-91.ngrok-free.app/game-room";
 const OPTION_COLORS = [
   { bg: "#ef4444", glow: "rgba(239,68,68,0.35)", light: "#fca5a5" },
   { bg: "#3b82f6", glow: "rgba(59,130,246,0.35)", light: "#93c5fd" },
@@ -30,7 +30,9 @@ export default function GameRoomPlayer() {
 
   const socketRef = useRef(null);
   const [pin, setPin] = useState(searchParams.get("pin") || "");
-  const [nickname, setNickname] = useState(user?.fullName || "");
+  const passedName = searchParams.get("name");
+  const passedUid = searchParams.get("uid");
+  const [nickname, setNickname] = useState(passedName || user?.fullName || "");
   const [screen, setScreen] = useState("JOIN");
   const [errorMsg, setErrorMsg] = useState("");
   const [room, setRoom] = useState(null);
@@ -63,7 +65,7 @@ export default function GameRoomPlayer() {
         pin,
         fullName: nickname.trim(),
         avatar: user?.avatar || avatarUrl(nickname),
-        userId: user?.id,
+        userId: user?.id || passedUid,
       });
     });
 
@@ -175,6 +177,13 @@ export default function GameRoomPlayer() {
   // ════════════════════════════════════════════════════════════════════════
   if (screen === "JOIN") return (
     <div style={S.page}>
+      <button 
+        onClick={() => { window.close(); navigate("/user/dashboard"); }}
+        style={{ position: "absolute", top: 20, left: 20, background: "rgba(255,255,255,0.2)", color: "white", padding: "8px 16px", borderRadius: 12, border: "none", cursor: "pointer", fontWeight: "bold", backdropFilter: "blur(4px)", zIndex: 10, display: "flex", alignItems: "center", gap: 6 }}
+      >
+        <span style={{ fontSize: 18 }}>←</span> Thoát
+      </button>
+
       <div style={S.particles} />
       <div style={{ width: "100%", maxWidth: 440, padding: "0 16px", zIndex: 1 }}>
 

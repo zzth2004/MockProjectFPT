@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
-import { ChevronLeft, ChevronRight, Star, Bookmark, BookOpen, Play, Loader2 } from "lucide-react";
+import { ArrowLeft, ChevronRight, Star, Bookmark, BookOpen, Play, Loader2 } from "lucide-react";
 
 import useCallApiHandler from "../../../../hooks/HookHander/useCallApiHandler";
 import lessonService from "../../../../AdminControl/Service/API/lessonServiceAPI/lesson.service";
@@ -131,18 +131,22 @@ const StudyPage = () => {
     <div className="w-full min-h-screen font-sans pt-2 pb-8 relative bg-gray-50/50">
 
       {/* --- HEADER --- */}
-      <header className="flex items-center gap-2 mb-8 px-4 -ml-2">
-        <button onClick={() => navigate(-1)} className="p-2 rounded-full bg-white text-gray-500 border border-gray-200 shadow-sm">
-          <ChevronLeft size={20} />
+      <div className="flex items-center gap-3 mb-8 px-4">
+        <button
+          onClick={() => navigate(-1)}
+          className="flex items-center justify-center w-9 h-9 rounded-xl bg-white border border-gray-200 text-gray-500 hover:text-gray-900 hover:border-gray-300 hover:shadow-sm active:scale-95 transition-all duration-150"
+          aria-label="Quay lại"
+        >
+          <ArrowLeft size={17} />
         </button>
-        <div className="flex flex-wrap items-center gap-2 text-lg font-bold text-gray-800 ml-1">
-          <span className="opacity-50 hover:opacity-100 cursor-pointer transition" onClick={() => navigate('/courses')}>Course</span>
-          <ChevronRight size={18} className="text-gray-400" />
-          <span className="opacity-50 hover:opacity-100 cursor-pointer transition" onClick={() => navigate(-1)}>General Learning</span>
-          <ChevronRight size={18} className="text-gray-400" />
-          <span className="uppercase text-[#008236] truncate max-w-[200px]">{content.title}</span>
-        </div>
-      </header>
+        <nav className="flex flex-wrap items-center gap-1.5 text-sm font-medium text-gray-400">
+          <span className="hover:text-gray-700 cursor-pointer transition-colors" onClick={() => navigate('/courses')}>Khóa học</span>
+          <ChevronRight size={14} className="text-gray-300" />
+          <span className="hover:text-gray-700 cursor-pointer transition-colors" onClick={() => navigate(-1)}>General Learning</span>
+          <ChevronRight size={14} className="text-gray-300" />
+          <span className="text-green-700 font-semibold uppercase truncate max-w-[200px]">{content.title}</span>
+        </nav>
+      </div>
 
       {/* --- TABS --- */}
       <div className="flex items-end pl-4 overflow-x-auto no-scrollbar">
@@ -170,7 +174,7 @@ const StudyPage = () => {
 
       {/* --- CONTENT BOX --- */}
       <div className={`
-        relative bg-white border-2 border-t-0 rounded-b-[2.5rem] rounded-tr-[2.5rem] p-6 min-h-[550px] shadow-2xl shadow-green-900/10
+        relative bg-white border-2 border-t-0 rounded-b-2xl rounded-tr-2xl p-6 min-h-[550px]
         ${activeTab === 'starred' ? 'border-yellow-400' : 'border-[#5CA370]'}
       `}>
 
@@ -179,12 +183,12 @@ const StudyPage = () => {
           {shouldShowFloatBtn && floatConfig && (
             <button
               onClick={handleFloatBtnClick}
-              className="relative -top-7 right-0 h-14 px-6 bg-[#5CA370] text-white rounded-full shadow-[0_8px_20px_rgba(92,163,112,0.3)] flex items-center gap-3 transition-all hover:scale-105 active:scale-95 border-4 border-white animate-in fade-in slide-in-from-right-5 duration-300"
+              className="relative -top-7 right-0 h-11 px-5 bg-[#5CA370] text-white rounded-xl flex items-center gap-2 transition-all hover:bg-[#467d55] active:scale-95 border border-white animate-in fade-in slide-in-from-right-5 duration-300"
             >
-              <div className="flex items-center justify-center p-1.5 bg-white/20 rounded-full">
+              <div className="flex items-center justify-center p-1">
                 {floatConfig.icon}
               </div>
-              <span className="text-sm font-black uppercase tracking-tight whitespace-nowrap">
+              <span className="text-xs font-black uppercase tracking-tight whitespace-nowrap">
                 {floatConfig.label}
               </span>
             </button>
@@ -194,7 +198,7 @@ const StudyPage = () => {
           {activeTab === 'theory' ? (
             <div className="space-y-8 animate-in fade-in zoom-in-95 duration-500">
               {content.videoUrl && (
-                <div className="w-full max-w-4xl mx-auto aspect-video rounded-[2rem] overflow-hidden shadow-xl border border-gray-100 bg-black">
+                <div className="w-full max-w-4xl mx-auto aspect-video rounded-2xl overflow-hidden border border-gray-200 bg-black">
                    {content.videoUrl.includes('youtube.com') || content.videoUrl.includes('youtu.be') ? (
                        <iframe 
                            className="w-full h-full"
@@ -211,7 +215,7 @@ const StudyPage = () => {
                 </div>
               )}
               {content.contentText && (
-                <div className="max-w-4xl mx-auto bg-[#F9FBF9] p-8 md:p-12 rounded-[2rem] border border-green-50 shadow-sm">
+                <div className="max-w-4xl mx-auto bg-[#F9FBF9] p-8 md:p-12 rounded-2xl border border-green-200/85">
                    {content.description && <p className="text-gray-500 italic mb-6 border-l-4 border-[#5CA370] pl-4">{content.description}</p>}
                    <div 
                       className="prose prose-green prose-lg max-w-none text-gray-800"

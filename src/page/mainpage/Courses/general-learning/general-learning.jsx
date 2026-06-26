@@ -1,6 +1,6 @@
 import React, { useEffect, useCallback, useMemo } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { ChevronLeft, ChevronRight, PlayCircle, Loader2, BookOpen } from "lucide-react";
+import { ArrowLeft, ChevronRight, PlayCircle, Loader2, BookOpen } from "lucide-react";
 
 // Logic & Services
 import useCallApiHandler from "../../../../hooks/HookHander/useCallApiHandler";
@@ -43,9 +43,10 @@ const GeneralLearning = () => {
         <header className="flex items-center gap-4 mb-8">
           <button
             onClick={() => navigate("/courses")}
-            className="p-2.5 rounded-xl bg-white text-gray-400 hover:text-green-700 hover:shadow-md transition-all border border-gray-100 active:scale-90"
+            className="flex items-center justify-center w-9 h-9 rounded-xl bg-white border border-gray-100 text-gray-400 hover:text-green-700 hover:border-green-200 hover:shadow-md active:scale-90 transition-all duration-150"
+            aria-label="Quay lại"
           >
-            <ChevronLeft size={22} />
+            <ArrowLeft size={18} />
           </button>
 
           <div className="flex items-center gap-2 text-sm font-black uppercase tracking-widest">
@@ -80,7 +81,7 @@ const GeneralLearning = () => {
             </div>
           ) : lessons.length === 0 ? (
             /* --- EMPTY STATE --- */
-            <div className="bg-white border-2 border-dashed border-gray-100 rounded-[2.5rem] py-24 text-center shadow-sm">
+            <div className="bg-white border-2 border-dashed border-gray-250 rounded-2xl py-24 text-center">
               <PlayCircle size={56} strokeWidth={1} className="mx-auto text-gray-100 mb-4" />
               <p className="text-gray-400 font-black uppercase text-xs tracking-widest">Hiện tại chưa có bài học nào</p>
             </div>
@@ -92,10 +93,9 @@ const GeneralLearning = () => {
                   key={lesson.id}
                   onClick={() => handleUnitClick(lesson.id)}
                   className="
-                    group bg-white p-5 rounded-[1.8rem] cursor-pointer
-                    border-2 border-transparent hover:border-green-100
-                    transition-all duration-300 shadow-sm hover:shadow-xl hover:shadow-green-900/5
-                    flex items-center justify-between active:scale-[0.99]
+                    group bg-white p-5 rounded-2xl cursor-pointer
+                    border border-gray-200 hover:border-green-600/40
+                    transition-all duration-300 flex items-center justify-between active:scale-[0.99]
                   "
                 >
                   <div className="flex items-center gap-5">

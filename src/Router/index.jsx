@@ -184,7 +184,7 @@ function AnimatedRoutes() {
           <Route path="/user/chats/:id" element={<PageWrapper><ChatPage /></PageWrapper>} />
           <Route path="/user/games" element={<PageWrapper><GamesPage /></PageWrapper>} />
           <Route path="/user/leaderboard" element={<PageWrapper><LeaderboardPage /></PageWrapper>} />
-          <Route path="/user/quiz" element={<PageWrapper><QuizRoomPage /></PageWrapper>} />
+          <Route path="/user/quiz" element={<Navigate to="/user/game-room/play" replace />} />
           <Route path="/topik-learn" element={<PageWrapper><TopikPrepPage /></PageWrapper>} />
         </Route>
 

@@ -28,7 +28,7 @@ export default function MainLayout2() {
   return (
     <div
       className="flex h-screen w-full overflow-hidden font-sans"
-      style={{ background: "var(--surface-app)" }}
+      style={{ background: "var(--surface-app)", fontFamily: "'Plus Jakarta Sans', 'DM Sans', ui-sans-serif, system-ui, sans-serif" }}
     >
       {/* ── DESKTOP SIDEBAR ── */}
       <div className="hidden lg:flex h-full flex-shrink-0" style={{ zIndex: 30 }}>
